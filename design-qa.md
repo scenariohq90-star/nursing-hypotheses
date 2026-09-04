@@ -8,6 +8,7 @@
 - Full-view paired comparison: `artifacts/qa/comparison-final.html` and `artifacts/qa/comparison-final.png`
 - Focused decision comparison: `artifacts/qa/comparison-focused-final.html` and `artifacts/qa/comparison-focused-final.png`
 - Responsive evidence: `artifacts/qa/question-bank-mobile-ar-390x720-normalized.png`, `artifacts/qa/learning-account-mobile-en-390x844.png`, `artifacts/qa/learning-account-mobile-ar-390x844.png`, and `artifacts/qa/learning-account-mobile-ar-menu-390x844.png`
+- Private production evidence: `artifacts/qa/live-private-home-1200x750.png`
 - Local route: `http://localhost:4173/#/scenario/ed-older-adult-dyspnea`
 - Learning-account route: `http://localhost:5173/#/learning`
 
@@ -32,6 +33,7 @@ No actionable P0, P1 or P2 visual, responsive, accessibility or core-flow differ
 - **Interaction states:** scenario choice, confirm, feedback and next-step states work; context details expand; question-bank validation, locked answers, final debrief and local analytics work; mobile navigation, language switching, references, membership-preview and learning-account mode controls work.
 - **Responsiveness and accessibility:** Arabic RTL and English LTR were checked. At 390px there was no horizontal overflow on either the question bank or the newly integrated account panel. The Arabic mobile menu opens as a two-column navigation grid with seven reachable links and exposes `aria-expanded="true"`. Controls are semantic buttons, radios, links, details/summary and progress elements; focus styles and screen-reader labels remain present.
 - **Console:** final in-app browser inspection returned no warnings or errors. A fresh CDP network pass on the learning route returned no failed or HTTP 4xx/5xx responses.
+- **Published surface:** the owner-only production deployment screenshot shows the bilingual header, safety notice, main learning proposition, featured simulation and 24 / 12 / 28 summary counts rendered correctly.
 
 Accepted P3 differences:
 
@@ -71,8 +73,9 @@ Evidence: `artifacts/qa/scenario-reference-state-1280x910-normalized.png`, `arti
 - [x] Arabic/English switching and RTL/LTR checked.
 - [x] Scenario answer validation, feedback, next step and context expansion checked.
 - [x] Question-bank setup, empty-submit alert, locked answer, debrief and learning analytics checked.
-- [x] Mobile menu, membership preview, exact footer credit and 16-entry reference library checked.
+- [x] Mobile menu, membership preview, exact footer credit and 28-source reference set checked.
 - [x] Mobile account sign-in/create-account mode controls and seven-link menu checked without submitting credentials.
+- [x] Owner-only production deployment completed and its rendered home screenshot was inspected.
 - [x] Runtime console checked with no warnings or errors.
 - [x] 44 content, engine, account-sync and security tests, the production build, and 4 Sites-worker tests passed.
 
