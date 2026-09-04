@@ -1,0 +1,975 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowSquareOut,
+  BookOpen,
+  Books,
+  Brain,
+  ChartLineUp,
+  Check,
+  CheckCircle,
+  Circle,
+  ClipboardText,
+  Clock,
+  Database,
+  Drop,
+  Exam,
+  FirstAidKit,
+  Globe,
+  GraduationCap,
+  Gauge,
+  Heartbeat,
+  Hospital,
+  House,
+  Info,
+  List,
+  LockKey,
+  Medal,
+  Play,
+  Pulse,
+  ShieldCheck,
+  ShieldWarning,
+  Stethoscope,
+  Target,
+  Trash,
+  UserCircle,
+  Warning,
+  Wind,
+  X,
+} from "@phosphor-icons/react";
+import { references, scenarios, selectScenarioVariant } from "./data/scenarios.js";
+import {
+  examCategories,
+  examDifficulties,
+  examTracks,
+  questionBank,
+} from "./data/question-bank.js";
+import {
+  analyzePerformance,
+  createGuidedQuiz,
+  createQuiz,
+  getGuidedQuestionPlan,
+  getQuestionCategoryInsights,
+  gradeQuiz,
+} from "./lib/question-engine.js";
+import { ExamQuestion } from "./components/ExamQuestion.jsx";
+import {
+  getConfirmedAnswers,
+  isExamSessionExpired,
+  useExamSession,
+} from "./hooks/useExamSession.js";
+import {
+  createEmptyProfile,
+  getCompletedScenarioCount,
+  getCompetencyInsights,
+  getScenarioRecommendations,
+  gradeAttempt,
+  mergeAttempt,
+  parseProfile,
+  revalidateProfile,
+  serializeProfile,
+} from "./lib/learning-engine.js";
+
+const PROFILE_STORAGE_KEY = "nursing-hypotheses.learning-profile.v1";
+const EXAM_STORAGE_KEY = "nursing-hypotheses.exam-profile.v1";
+const EXAM_SESSION_STORAGE_KEY = "nursing-hypotheses.active-exam-session.v1";
+const EXAM_PROFILE_VERSION = 1;
+const EXAM_SECONDS_PER_QUESTION = 90;
+const PRODUCT_NAME = { en: "Nursing Hypotheses", ar: "فرضيات تمريضية" };
+
+const copy = {
+  en: {
+    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", learning: "My learning", resources: "References", membership: "Membership", about: "About",
+    menu: "Open navigation", closeMenu: "Close navigation", language: "Language", learner: "Learner 01", localProfile: "Local demo profile", localProfileShort: "Local only",
+    privacyStrip: "Draft content pending clinical, legal and Arabic review. Fictional education only — not patient care or emergency use. Never enter patient data; follow local policy.",
+    simulation: "Educational simulation", eyebrow: "Clinical judgement, practised safely", heroTitle: "Learn to notice what matters — before the next decision.",
+    heroBody: "Branching nursing scenarios for emergency, ward, paediatric, maternity and critical-care decisions. Every choice is explained in Arabic and English and linked to authoritative guidance.",
+    explore: "Explore scenarios", continueLearning: "View my learning", evidenceLed: "Scenario-level evidence", evidenceLedBody: "Each scenario names the versioned source set used to author it.",
+    bilingual: "Truly bilingual", bilingualBody: "Switch the complete experience without losing your place.", privateDemo: "Private by design", privateDemoBody: "Only minimal learning progress is kept in this browser.",
+    scenariosCount: "authored scenarios", practiceContexts: "practice contexts", departmentsCount: "clinical areas", referencesCount: "authoritative sources", startFeatured: "Start featured case", featured: "Featured simulation", featuredKicker: "Emergency Department · 12 min",
+    featuredBody: "An older adult arrives breathless. Prioritise assessment, recognise deterioration and deliver a safe handover through six decisions.",
+    sourceSet: "Scenario-level source set", opensNewTab: "Opens in a new tab", scenarioNotFound: "This scenario could not be found.",
+    howItWorks: "How the learning loop works", stepOne: "Read the changing clinical picture", stepOneBody: "Vital signs and the timeline update at every decision point.",
+    stepTwo: "Commit to one nursing action", stepTwoBody: "Choose, confirm, then review immediate feedback and rationale.", stepThree: "Debrief your pattern", stepThreeBody: "See your score, safety flags and evidence-aware learning gaps.",
+    learningNotCertification: "Scores support reflection only. They are not a competency assessment, credential, diagnosis or clinical instruction.",
+    libraryEyebrow: "Scenario library", libraryTitle: "Choose a clinical situation to practise", libraryBody: "Each fictional case follows a changing patient journey. Decisions are scored for learning, then linked back to their rationale and source set.",
+    allDepartments: "All clinical areas", allDifficulties: "All levels", department: "Clinical area", difficulty: "Level", duration: "Estimated time", decisions: "decisions", competencies: "Learning focus",
+    start: "Start scenario", practiseAgain: "Practise again", completed: "Completed", noScenarios: "No scenarios match these filters.", resetFilters: "Reset filters",
+    patientStatus: "Patient status", scenario: "Scenario", keyVitals: "Key vital signs", clinicalMoment: "Current clinical picture", step: "Step", of: "of", timeline: "Scenario timeline", current: "Current",
+    questionIntro: "Select the best nursing response.", choiceGroup: "Response options", confirm: "Confirm selection", chooseFirst: "Choose one response before confirming.", nextDecision: "Next decision", viewDebrief: "View debrief",
+    selectionLocked: "Your answer is locked for this decision.", feedback: "Decision feedback", rationale: "Why this matters", safe: "Strong response", gap: "Learning gap", delay: "Delayed priority", unsafe: "Safety concern",
+    progress: "Your progress", learningProgress: "Scenario progress", evidence: "Scenario source set", decisionRecorded: "Decision recorded", currentDecision: "Current decision", upcoming: "Upcoming", viewSources: "View scenario sources",
+    important: "Important", localProtocol: "Use current local protocols, authorised orders and escalation pathways.", educationalOnly: "Educational simulation only. Not for real patient care, diagnosis, treatment, triage or emergency use. Never enter real patient information. In a real emergency, immediately contact your clinical team and local emergency service.",
+    debriefEyebrow: "Scenario debrief", debriefTitle: "Review the decisions, not just the number", score: "Learning score", answered: "Decisions answered", safetyFlags: "Safety flags", band: "Learning reflection",
+    strongFoundation: "Higher score in this attempt", progressing: "Mid-range score in this attempt", guidedReview: "Lower score in this attempt", safetyReview: "Safety choices to review", notStarted: "Not started", decisionReview: "Decision-by-decision review",
+    yourChoice: "Your choice", points: "points", evidenceForCase: "Evidence used for this case", backLibrary: "Back to scenarios", tryAgain: "Try this scenario again",
+    noAttempt: "No completed attempt was found for this scenario in this browser.", openScenario: "Open scenario",
+    learningEyebrow: "Local learning profile", learningTitle: "See your practice pattern", learningBody: "Your dashboard summarises completed fictional scenarios and highlights where more practice may help. It never certifies competence.",
+    scenariosCompleted: "Unique scenarios completed", totalAttempts: "Completed attempts", averageScore: "Average learning score", competencyMap: "Learning insights",
+    competencyBody: "A weakness label appears only after at least three decisions across two scenarios. Until then, the dashboard asks for more evidence.",
+    insightInsufficient: "More evidence needed", insightWeakness: "Lower accuracy in this sample", insightDeveloping: "Mixed performance in this sample", insightStrength: "Higher accuracy in this sample", observations: "observations", across: "across", caseSingular: "scenario", casesPlural: "scenarios",
+    safetyReviewNeeded: "Contains a safety-critical choice for review.", attemptsHistory: "Latest scenario results", review: "Review", emptyLearning: "Your learning dashboard will populate after your first completed scenario.", chooseFirstScenario: "Choose your first scenario",
+    localStorageTitle: "About this local profile", localStorageBody: "This prototype stores your selected language, minimal learning-history summaries and any active timed-question session in this browser: identifiers, selected options, question order and an absolute timer deadline plus recomputed scores and learning domains. Guided recommendations are derived locally from that activity. Storage is unencrypted, unsafe on shared devices and not synced. It collects no email, real name or free-text response.",
+    clearHistory: "Clear learning history", clearHistoryConfirm: "Clear all completed learning attempts stored in this browser? Your selected language will be kept.", historyCleared: "Learning history cleared. Your language preference was kept.",
+    questionBankEyebrow: "Independent nursing licensure practice", questionBankTitle: "Computer-based practice with transparent reasoning", questionBankBody: "Choose a nursing study path, then use guided practice or build your own fixed set. Every independently authored item includes bilingual reasoning and clinical sources.",
+    selectTrack: "Study path", quizCategory: "Learning domain", quizDifficulty: "Difficulty", allCategories: "All learning domains", quizSize: "Questions", beginQuiz: "Begin practice", restartQuiz: "Start a new set", noQuestions: "No questions match these filters. Change a filter and try again.", noFreshGuidedQuestions: "You have completed every new question available for these filters. Change a filter or use manual practice to revisit authored items.",
+    practiceMode: "Practice mode", guidedPractice: "Guided practice", guidedPracticeBody: "Builds one fixed set before you begin, weighting lower-accuracy domains while protecting variety and unseen questions.", manualPractice: "Build my own set", manualPracticeBody: "Uses only the study path, domain, difficulty and size you choose.", guidedPlanBaseline: "No completed evidence yet. This set will sample broadly to build a starting baseline.", guidedPlanEvidence: "The evidence is still limited. This set favours unseen questions and broader coverage before calling anything a weakness.", guidedPlanReview: "This set will increase practice in lower-accuracy domains supported by enough completed evidence.", guidedPlanDevelopment: "This set adds more practice in mixed-performance domains while keeping other areas in the rotation.", currentFocus: "Current guided focus", guidedFixedSetNotice: "Guided practice creates a fixed set before it starts. It is not computerized adaptive testing and does not estimate exam readiness.",
+    question: "Question", selectOneAnswer: "Select one answer before locking it.", lockAnswer: "Lock answer", nextQuestion: "Next question", finishQuiz: "Finish and review", correctAnswer: "Correct response", incorrectAnswer: "Review this response", unansweredAtTimeout: "Unanswered when time ended", answerLocked: "Answer locked", answerRationale: "Answer rationale", questionSources: "Sources for this item", timeRemaining: "Time remaining", timeExpired: "Time ended — the set was submitted with unanswered items marked incorrect.", sessionSaved: "Progress and the absolute deadline are saved in this browser, so refreshing does not restart the timer.", focusedPracticeTitle: "10-question focused follow-up", focusedPracticeBody: "This new set starts with the lowest-scoring learning domains from this completed attempt and favours questions you have not just answered.", startFocusedSet: "Start focused set",
+    quizProgress: "Question progress", quizScore: "Practice score", correctAnswers: "Correct answers", quizDebriefEyebrow: "Question-bank debrief", quizDebriefTitle: "Review what you understood and what to revisit", quizIncomplete: "Complete the current question set to see its debrief.", localExamProgress: "Local question practice", localExamProgressBody: "Completed question sets are summarised in this browser only. Scores describe this sample and do not predict an examination result, licensure or professional competence.", setsCompleted: "Completed sets", questionsAnswered: "Questions answered", categoryInsights: "Learning-domain review", morePractice: "Lower accuracy in this sample", developingKnowledge: "Mixed performance in this sample", strongKnowledge: "Higher accuracy in this sample", noExamAttempts: "Your first completed question set will appear here.",
+    originalPracticeNotice: "Independent original practice only. No recalled, secure or official examination items are used, and scores do not predict an examination result, licensure or competence.", allDifficultyLevels: "All levels", questionsAvailable: "questions available", practiceSet: "Practice set", newVariation: "New variation", viewQuestionBank: "Open question bank", uniqueItems: "unique questions", completedSetsEvidence: "completed sets", earlyIndicator: "Early learning indicator", categoryEvidenceBody: "A learning-domain signal appears only after at least three unique questions across two completed sets. It describes this sample only.", contextVariant: "Practice context", contextDetails: "Context details", contextVariantNote: "Context changes presentation only; the draft clinical cues, scoring and safest response do not change.", guidedScenarioTitle: "Guided scenario order", guidedScenarioBody: "Completed decisions reorder the library so relevant lower-scoring or safety-flagged learning domains appear more often near the top. New scenarios remain in the mix.", recommendedNext: "Recommended next", recommendationExplore: "Broaden the baseline", recommendationEvidence: "Gather more evidence", recommendationDevelopment: "Practise mixed-performance areas", recommendationReview: "Revisit a lower-accuracy area", recommendationSafety: "Review a safety-critical choice", adaptiveLearningTitle: "Suggested next practice", adaptiveLearningBody: "These suggestions use only completed activity stored in this browser. They guide practice; they do not measure competence or predict an examination result.", openRecommendedScenario: "Open suggested scenario", startGuidedQuestions: "Start guided questions", examNonAffiliation: "Nursing Hypotheses is an independently developed educational resource. It is not issued, sponsored, endorsed, approved or administered by any nursing regulator, examination owner or test-delivery provider. It contains no recalled or secure examination items. Practice scores describe performance only in this question set and do not predict examination results, licensure or professional competence.",
+    freeAccess: "Free access", futureMembership: "Future membership", accessibleNow: "Available now", plannedInactive: "Planned · not yet active",
+    plansEyebrow: "Membership roadmap", plansTitle: "A clear path for future study support", plansBody: "All current scenarios and question-bank content remain accessible. The options below describe planned information architecture only; subscriptions, checkout and payments are not active.",
+    freePlan: "Free", freePlanBody: "Explore the current bilingual scenarios, practice questions, debriefs and source links without an account.", saudiNursingPlan: "Saudi nursing study path", saudiNursingPlanBody: "A planned study space for deeper independent organisation and longitudinal review for learners in Saudi nursing contexts.", internationalRnPlan: "International RN study path", internationalRnPlanBody: "A planned study space for deeper independent registered-nurse practice organisation and longitudinal review.", computerizedPlan: "Computer-based practice path", computerizedPlanBody: "The current sample is free; a future expanded tier could add larger timed banks and study scheduling after secure accounts and entitlements exist.", institutionalPlan: "Institutional", institutionalPlanBody: "A planned option for educator-led cohorts, governance and organisation-level reporting.",
+    currentIncludes: "Current access includes", freeFeatureOne: "All current draft scenarios", freeFeatureTwo: "Current independent question sets", freeFeatureThree: "Bilingual rationales and references", plannedFeatureOne: "Expanded learning-domain banks", plannedFeatureTwo: "Study planning and deeper analytics", plannedFeatureThree: "Organisation controls and reporting", noCheckout: "No plan can be purchased yet. This prototype has no checkout, payment collection, subscription activation or production authentication.",
+    referencesEyebrow: "Evidence library", referencesTitle: "Go back to the source", referencesBody: "Scenarios use original educational wording and point to official publishers, regulators and professional organisations. Check the current version and your facility policy before practice.",
+    source: "Publisher/source page", accessNote: "Access note", aboutEyebrow: "About the platform", aboutTitle: "A rehearsal space for clinical reasoning",
+    aboutLead: "Nursing Hypotheses turns realistic but fictional moments into deliberate practice: notice, prioritise, act, reassess and explain.", purpose: "What it is for",
+    purposeBody: "Self-directed nursing education, facilitated debrief and discussion of safe decision sequences across clinical areas.", method: "How it is built", methodBody: "Original branching cases, bilingual explanations, transparent scores and references mapped at scenario level.",
+    boundaries: "Clinical boundaries", boundariesBody: "It does not replace supervision, local policy, formal education, professional assessment or real-time clinical judgement.", accountModel: "Prototype account model",
+    accountModelBody: "There is no production authentication or cloud account in this prototype. Progress is local and deliberately minimised; a production service must use fail-closed authentication and server-side authorisation.",
+    editorial: "Evidence and editorial approach", editorialBody: "Guidance changes. Each scenario names its source set and uses cautious, non-prescriptive wording where local targets, devices, orders or escalation criteria differ.",
+    footerLine: "Learn. Reason. Care.", privacy: "Privacy", terms: "Terms", contact: "Contact & safety", copyright: "Nursing Hypotheses. Educational beta.",
+  },
+  ar: {
+    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", learning: "تعلّمي", resources: "المراجع", membership: "العضوية", about: "عن المنصة",
+    menu: "فتح قائمة التنقل", closeMenu: "إغلاق قائمة التنقل", language: "اللغة", learner: "المتعلم 01", localProfile: "ملف تجريبي محلي", localProfileShort: "محلي فقط",
+    privacyStrip: "محتوى أولي بانتظار المراجعة السريرية والقانونية واللغوية العربية. تعليم خيالي فقط — ليس لرعاية المرضى أو الطوارئ. لا تُدخل بيانات مرضى واتبع السياسة المحلية.", simulation: "محاكاة تعليمية", eyebrow: "تدرّب على الحكم السريري بأمان",
+    heroTitle: "تعلّم كيف تلاحظ المهم — قبل القرار التالي.", heroBody: "سيناريوهات تمريضية متفرعة لقرارات الطوارئ والأجنحة والأطفال والولادة والعناية الحرجة. كل اختيار مشروح بالعربية والإنجليزية ومرتبط بإرشادات موثوقة.",
+    explore: "استكشف السيناريوهات", continueLearning: "اعرض تقدمي", evidenceLed: "أدلة على مستوى السيناريو", evidenceLedBody: "يسمي كل سيناريو مجموعة المصادر المؤرخة التي استُخدمت في تأليفه.", bilingual: "ثنائي اللغة بالكامل",
+    bilingualBody: "بدّل التجربة كاملة من دون أن تفقد موضعك.", privateDemo: "خصوصية مقصودة", privateDemoBody: "يُحفظ الحد الأدنى من تقدم التعلم في هذا المتصفح فقط.",
+    scenariosCount: "سيناريوهات مؤلفة", practiceContexts: "سياقات تدريبية", departmentsCount: "مجالات سريرية", referencesCount: "مصدراً موثوقاً", startFeatured: "ابدأ الحالة المختارة", featured: "محاكاة مختارة", featuredKicker: "قسم الطوارئ · 12 دقيقة",
+    featuredBody: "يصل بالغ كبير في السن يعاني ضيق التنفس. رتّب التقييم، وتعرّف على التدهور، وقدّم تسليماً آمناً عبر ستة قرارات.", sourceSet: "مجموعة مصادر السيناريو", opensNewTab: "يفتح في علامة تبويب جديدة", scenarioNotFound: "تعذر العثور على هذا السيناريو.", howItWorks: "كيف تعمل دورة التعلم",
+    stepOne: "اقرأ الصورة السريرية المتغيرة", stepOneBody: "تتحدث العلامات الحيوية والخط الزمني عند كل نقطة قرار.", stepTwo: "التزم بإجراء تمريضي واحد", stepTwoBody: "اختر وأكّد، ثم راجع التغذية الراجعة والمبرر فوراً.",
+    stepThree: "حلّل نمط قراراتك", stepThreeBody: "اطّلع على درجتك وتنبيهات السلامة وفجوات التعلم المرتبطة بالأدلة.", learningNotCertification: "الدرجات للتأمل التعليمي فقط، وليست تقييماً للكفاءة أو اعتماداً أو تشخيصاً أو توجيهاً سريرياً.",
+    libraryEyebrow: "مكتبة السيناريوهات", libraryTitle: "اختر موقفاً سريرياً للتدرب", libraryBody: "تتبع كل حالة خيالية رحلة مريض متغيرة. تُقيّم القرارات للتعلم، ثم ترتبط بمبرراتها ومجموعة مصادرها.",
+    allDepartments: "كل المجالات السريرية", allDifficulties: "كل المستويات", department: "المجال السريري", difficulty: "المستوى", duration: "الوقت المتوقع", decisions: "قرارات", competencies: "محور التعلم",
+    start: "ابدأ السيناريو", practiseAgain: "تدرّب مجدداً", completed: "مكتمل", noScenarios: "لا توجد سيناريوهات مطابقة لهذه المرشحات.", resetFilters: "إعادة ضبط المرشحات",
+    patientStatus: "حالة المريض", scenario: "السيناريو", keyVitals: "العلامات الحيوية الأساسية", clinicalMoment: "الصورة السريرية الحالية", step: "الخطوة", of: "من", timeline: "الخط الزمني للسيناريو", current: "الحالية",
+    questionIntro: "اختر أفضل استجابة تمريضية.", choiceGroup: "خيارات الاستجابة", confirm: "تأكيد الاختيار", chooseFirst: "اختر استجابة واحدة قبل التأكيد.", nextDecision: "القرار التالي", viewDebrief: "عرض التحليل",
+    selectionLocked: "تم تثبيت إجابتك لهذا القرار.", feedback: "التغذية الراجعة للقرار", rationale: "لماذا يهم هذا؟", safe: "استجابة قوية", gap: "فجوة تعلم", delay: "تأخير للأولوية", unsafe: "تنبيه سلامة",
+    progress: "تقدمك", learningProgress: "تقدم السيناريو", evidence: "مجموعة مصادر السيناريو", decisionRecorded: "تم تسجيل القرار", currentDecision: "القرار الحالي", upcoming: "قادم", viewSources: "عرض مصادر السيناريو",
+    important: "مهم", localProtocol: "استخدم البروتوكولات المحلية الحالية والأوامر المعتمدة ومسارات التصعيد.", educationalOnly: "محاكاة تعليمية فقط. ليست لرعاية مريض حقيقي أو التشخيص أو العلاج أو الفرز أو استخدام الطوارئ. لا تُدخل معلومات مريض حقيقي. في الطوارئ الحقيقية تواصل فوراً مع فريقك السريري وخدمة الطوارئ المحلية.",
+    debriefEyebrow: "تحليل السيناريو", debriefTitle: "راجع القرارات، لا الرقم وحده", score: "درجة التعلم", answered: "القرارات المجاب عنها", safetyFlags: "تنبيهات السلامة", band: "انعكاس التعلم",
+    strongFoundation: "درجة أعلى في هذه المحاولة", progressing: "درجة متوسطة في هذه المحاولة", guidedReview: "درجة أقل في هذه المحاولة", safetyReview: "اختيارات سلامة تحتاج مراجعة", notStarted: "لم يبدأ", decisionReview: "مراجعة كل قرار",
+    yourChoice: "اختيارك", points: "نقطة", evidenceForCase: "الأدلة المستخدمة في هذه الحالة", backLibrary: "العودة إلى السيناريوهات", tryAgain: "أعد تجربة السيناريو", noAttempt: "لم نعثر على محاولة مكتملة لهذا السيناريو في هذا المتصفح.", openScenario: "فتح السيناريو",
+    learningEyebrow: "ملف تعلم محلي", learningTitle: "شاهد نمط تدريبك", learningBody: "تلخص لوحة التعلم السيناريوهات الخيالية المكتملة وتوضح أين قد يفيد مزيد من التدريب، من دون اعتماد الكفاءة.",
+    scenariosCompleted: "السيناريوهات الفريدة المكتملة", totalAttempts: "المحاولات المكتملة", averageScore: "متوسط درجة التعلم", competencyMap: "مؤشرات التعلم",
+    competencyBody: "لا تظهر تسمية نقطة تركيز إلا بعد ثلاثة قرارات على الأقل عبر سيناريوهين. قبل ذلك تطلب اللوحة مزيداً من الأدلة.", insightInsufficient: "نحتاج أدلة أكثر", insightWeakness: "دقة أقل في هذه العينة", insightDeveloping: "أداء متباين في هذه العينة", insightStrength: "دقة أعلى في هذه العينة",
+    observations: "ملاحظات", across: "عبر", caseSingular: "سيناريو", casesPlural: "سيناريوهات", safetyReviewNeeded: "يتضمن اختياراً حرجاً للسلامة يحتاج إلى مراجعة.", attemptsHistory: "أحدث نتائج السيناريوهات", review: "مراجعة",
+    emptyLearning: "ستظهر بيانات لوحة التعلم بعد إكمال السيناريو الأول.", chooseFirstScenario: "اختر أول سيناريو", localStorageTitle: "حول هذا الملف المحلي",
+    localStorageBody: "يحفظ هذا النموذج الأولي اللغة المختارة والحد الأدنى من ملخصات سجل التعلم وأي جلسة أسئلة مؤقتة نشطة في هذا المتصفح: المعرّفات والخيارات المحددة وترتيب الأسئلة والموعد النهائي المطلق للعداد، إضافة إلى الدرجات ومجالات التعلم المعاد احتسابها. تُشتق توصيات التدريب محلياً من هذا النشاط. البيانات غير مشفرة، وغير آمنة على الأجهزة المشتركة، ولا تتزامن بين الأجهزة. لا نجمع بريداً إلكترونياً أو اسماً حقيقياً أو إجابة نصية حرة.",
+    clearHistory: "مسح سجل التعلم", clearHistoryConfirm: "هل تريد مسح جميع محاولات التعلم المكتملة المحفوظة في هذا المتصفح؟ ستبقى اللغة المختارة محفوظة.", historyCleared: "تم مسح سجل التعلم مع الاحتفاظ باللغة المختارة.",
+    questionBankEyebrow: "تدريب مستقل على ترخيص التمريض", questionBankTitle: "تدريب محوسب مع شرح واضح للقرار", questionBankBody: "اختر مساراً دراسياً تمريضياً، ثم استخدم التدريب الموجّه أو كوّن مجموعة ثابتة بنفسك. لكل سؤال مؤلف بصورة مستقلة شرح ثنائي اللغة ومصادر سريرية.",
+    selectTrack: "مسار الدراسة", quizCategory: "مجال التعلم", quizDifficulty: "الصعوبة", allCategories: "كل مجالات التعلم", quizSize: "عدد الأسئلة", beginQuiz: "ابدأ التدريب", restartQuiz: "ابدأ مجموعة جديدة", noQuestions: "لا توجد أسئلة مطابقة لهذه المرشحات. غيّر أحد المرشحات وحاول مجدداً.", noFreshGuidedQuestions: "أكملت كل الأسئلة الجديدة المتاحة لهذه المرشحات. غيّر أحد المرشحات أو استخدم التدريب اليدوي لمراجعة المواد المؤلفة.",
+    practiceMode: "نمط التدريب", guidedPractice: "تدريب موجّه", guidedPracticeBody: "ينشئ مجموعة ثابتة قبل البدء، ويزيد وزن المجالات منخفضة الدقة مع الحفاظ على التنوع والأسئلة غير المجابة.", manualPractice: "أكوّن مجموعتي", manualPracticeBody: "يستخدم فقط المسار والمجال والصعوبة والحجم الذي تختاره.", guidedPlanBaseline: "لا توجد أدلة مكتملة بعد. ستأخذ هذه المجموعة عينة واسعة لبناء خط أساس أولي.", guidedPlanEvidence: "ما زالت الأدلة محدودة. تفضّل المجموعة الأسئلة غير المجابة والتغطية الأوسع قبل وصف أي مجال بأنه ضعف.", guidedPlanReview: "ستزيد هذه المجموعة التدريب في المجالات منخفضة الدقة التي يدعمها عدد كافٍ من المحاولات المكتملة.", guidedPlanDevelopment: "تضيف هذه المجموعة تدريباً أكثر في المجالات ذات الأداء المتفاوت، مع إبقاء بقية المجالات ضمن التناوب.", currentFocus: "محور التدريب الموجّه", guidedFixedSetNotice: "ينشئ التدريب الموجّه مجموعة ثابتة قبل أن تبدأ. وهو ليس اختباراً تكيفياً محوسباً ولا يقدّر الجاهزية للاختبار.",
+    question: "السؤال", selectOneAnswer: "اختر إجابة واحدة قبل تثبيتها.", lockAnswer: "تثبيت الإجابة", nextQuestion: "السؤال التالي", finishQuiz: "إنهاء ومراجعة", correctAnswer: "استجابة صحيحة", incorrectAnswer: "راجع هذه الاستجابة", unansweredAtTimeout: "لم يُجب عنه عند انتهاء الوقت", answerLocked: "تم تثبيت الإجابة", answerRationale: "مبرر الإجابة", questionSources: "مصادر هذا السؤال", timeRemaining: "الوقت المتبقي", timeExpired: "انتهى الوقت — أُرسلت المجموعة واحتُسبت الأسئلة غير المجابة كإجابات غير صحيحة.", sessionSaved: "يُحفظ التقدم والموعد النهائي للعداد في هذا المتصفح، لذلك لا يعيد تحديث الصفحة بدء الوقت.", focusedPracticeTitle: "متابعة مركزة من 10 أسئلة", focusedPracticeBody: "تبدأ هذه المجموعة الجديدة بمجالات التعلم الأقل نتيجة في المحاولة المكتملة، وتفضّل الأسئلة التي لم تُجب عنها للتو.", startFocusedSet: "ابدأ المجموعة المركزة",
+    quizProgress: "تقدم الأسئلة", quizScore: "درجة التدريب", correctAnswers: "الإجابات الصحيحة", quizDebriefEyebrow: "تحليل بنك الأسئلة", quizDebriefTitle: "راجع ما فهمته وما يحتاج إلى عودة", quizIncomplete: "أكمل مجموعة الأسئلة الحالية لعرض التحليل.", localExamProgress: "تدريب الأسئلة المحلي", localExamProgressBody: "تُلخص مجموعات الأسئلة المكتملة في هذا المتصفح فقط. تصف الدرجات أداء هذه العينة ولا تتنبأ بنتيجة اختبار أو ترخيص أو كفاءة مهنية.", setsCompleted: "المجموعات المكتملة", questionsAnswered: "الأسئلة المجاب عنها", categoryInsights: "مراجعة مجالات التعلم", morePractice: "دقة أقل في هذه العينة", developingKnowledge: "أداء متباين في هذه العينة", strongKnowledge: "دقة أعلى في هذه العينة", noExamAttempts: "ستظهر أول مجموعة أسئلة مكتملة هنا.",
+    originalPracticeNotice: "تدريب مستقل ومؤلف أصلاً فقط. لا يستخدم أسئلة اختبار متذكَّرة أو سرية أو رسمية، ولا تتنبأ الدرجات بنتيجة اختبار أو ترخيص أو كفاءة.", allDifficultyLevels: "كل المستويات", questionsAvailable: "سؤالاً متاحاً", practiceSet: "مجموعة تدريب", newVariation: "تنويع جديد", viewQuestionBank: "فتح بنك الأسئلة", uniqueItems: "أسئلة فريدة", completedSetsEvidence: "مجموعات مكتملة", earlyIndicator: "مؤشر تعلم مبكر", categoryEvidenceBody: "لا يظهر مؤشر لمجال التعلم إلا بعد ثلاثة أسئلة فريدة على الأقل عبر مجموعتين مكتملتين، وهو يصف هذه العينة فقط.", contextVariant: "سياق التدريب", contextDetails: "تفاصيل السياق", contextVariantNote: "يغير السياق طريقة العرض فقط؛ ولا تتغير المؤشرات السريرية الأولية أو الدرجة أو الاستجابة الأكثر أماناً.", guidedScenarioTitle: "ترتيب موجّه للسيناريوهات", guidedScenarioBody: "تعيد القرارات المكتملة ترتيب المكتبة لتظهر مجالات التعلم ذات الدقة الأقل أو اختيارات السلامة قرب الأعلى بصورة أكثر تكراراً، مع إبقاء السيناريوهات الجديدة ضمن التناوب.", recommendedNext: "مقترح تالٍ", recommendationExplore: "توسيع خط الأساس", recommendationEvidence: "جمع أدلة إضافية", recommendationDevelopment: "التدرب على الأداء المتفاوت", recommendationReview: "مراجعة مجال منخفض الدقة", recommendationSafety: "مراجعة اختيار متعلق بالسلامة", adaptiveLearningTitle: "التدريب التالي المقترح", adaptiveLearningBody: "تستخدم هذه الاقتراحات النشاط المكتمل المحفوظ في هذا المتصفح فقط. وهي توجه التدريب ولا تقيس الكفاءة أو تتنبأ بنتيجة اختبار.", openRecommendedScenario: "فتح السيناريو المقترح", startGuidedQuestions: "بدء أسئلة موجّهة", examNonAffiliation: "فرضيات تمريضية مورد تعليمي مطوّر بصورة مستقلة. لا يصدر عن أي جهة تنظيمية تمريضية أو مالك اختبار أو مزود تقديم اختبارات، ولا ترعاه أو تؤيده أو تعتمده أو تديره أيٌّ منها. ولا يتضمن أسئلة اختبار متذكَّرة أو سرية. تصف درجات التدريب أداء المتعلم في هذه المجموعة فقط، ولا تتنبأ بنتيجة اختبار أو بالحصول على ترخيص أو بالكفاءة المهنية.",
+    freeAccess: "وصول مجاني", futureMembership: "عضوية مستقبلية", accessibleNow: "متاح الآن", plannedInactive: "مخطط · غير مفعل بعد",
+    plansEyebrow: "خارطة طريق العضوية", plansTitle: "مسار واضح لدعم الدراسة مستقبلاً", plansBody: "تبقى جميع السيناريوهات ومحتويات بنك الأسئلة الحالية متاحة. توضح الخيارات أدناه بنية معلومات مخططة فقط؛ الاشتراكات والدفع غير مفعّلين.",
+    freePlan: "مجاني", freePlanBody: "استكشف السيناريوهات الحالية والأسئلة التدريبية والتحليلات وروابط المصادر باللغتين ومن دون حساب.", saudiNursingPlan: "مسار دراسة التمريض السعودي", saudiNursingPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق ومراجعته على مدى أطول للمتعلمين في سياق التمريض السعودي.", internationalRnPlan: "مسار دراسة الممرض المسجل الدولي", internationalRnPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق للممرض المسجل ومراجعته على مدى أطول.", computerizedPlan: "مسار التدريب المحوسب", computerizedPlanBody: "العينة الحالية مجانية؛ ويمكن أن تضيف فئة موسعة مستقبلاً بنوكاً مؤقتة أكبر وجدولة للدراسة بعد إنشاء الحسابات والاستحقاقات الآمنة.", institutionalPlan: "للمؤسسات", institutionalPlanBody: "خيار مخطط لمجموعات يقودها المعلمون والحوكمة والتقارير على مستوى المؤسسة.",
+    currentIncludes: "يشمل الوصول الحالي", freeFeatureOne: "كل السيناريوهات الأولية الحالية", freeFeatureTwo: "مجموعات الأسئلة المستقلة الحالية", freeFeatureThree: "المبررات والمراجع ثنائية اللغة", plannedFeatureOne: "بنوك أوسع حسب مجالات التعلم", plannedFeatureTwo: "تخطيط الدراسة وتحليلات أعمق", plannedFeatureThree: "ضوابط وتقارير للمؤسسات", noCheckout: "لا يمكن شراء أي خطة الآن. لا يتضمن هذا النموذج دفعاً أو تحصيلاً مالياً أو تفعيل اشتراك أو مصادقة إنتاجية.",
+    referencesEyebrow: "مكتبة الأدلة", referencesTitle: "ارجع إلى المصدر", referencesBody: "تستخدم السيناريوهات صياغة تعليمية أصلية وتحيل إلى ناشرين وجهات تنظيمية ومنظمات مهنية رسمية. تحقق من الإصدار الحالي وسياسة منشأتك قبل التطبيق.",
+    source: "صفحة الناشر/المصدر", accessNote: "ملاحظة الوصول", aboutEyebrow: "عن المنصة", aboutTitle: "مساحة تدريب للاستدلال السريري", aboutLead: "تحوّل فرضيات تمريضية لحظات واقعية لكنها خيالية إلى تدريب مقصود: لاحظ، ورتّب الأولوية، وتدخل، وأعد التقييم، واشرح.",
+    purpose: "لأي غرض؟", purposeBody: "للتعلم التمريضي الذاتي والتحليل الميسر ومناقشة تسلسل القرارات الآمنة عبر المجالات السريرية.", method: "كيف بُنيت؟", methodBody: "حالات متفرعة أصلية، وشروح ثنائية اللغة، ودرجات شفافة، ومراجع مرتبطة على مستوى السيناريو.",
+    boundaries: "الحدود السريرية", boundariesBody: "لا تحل المنصة محل الإشراف أو السياسة المحلية أو التعليم الرسمي أو التقييم المهني أو الحكم السريري الفوري.", accountModel: "نموذج الحساب التجريبي",
+    accountModelBody: "لا توجد مصادقة إنتاجية أو حساب سحابي في هذا النموذج. التقدم محلي ومحدود عمداً؛ ويجب أن تستخدم خدمة الإنتاج مصادقة مغلقة افتراضياً وتفويضاً على الخادم.",
+    editorial: "منهج الأدلة والتحرير", editorialBody: "تتغير الإرشادات. يذكر كل سيناريو مصادره ويستخدم لغة حذرة وغير آمرة عندما تختلف الأهداف أو الأجهزة أو الأوامر أو معايير التصعيد محلياً.",
+    footerLine: "تعلّم. استدل. اعتنِ.", privacy: "الخصوصية", terms: "الشروط", contact: "التواصل والسلامة", copyright: "فرضيات تمريضية. نسخة تعليمية تجريبية.",
+  },
+};
+
+const POLICY_PAGES = {
+  en: {
+    privacy: {
+      eyebrow: "Transparency for the free beta",
+      title: "Privacy notice",
+      lead: "This notice describes the current browser-only beta. It must be updated if accounts, analytics, cloud sync, forms, subscriptions or other processors are added.",
+      effective: "Effective 4 September 2026 · draft pending legal review",
+      warning: "Do not enter names, record numbers, clinical notes or any information about a real patient anywhere in this website.",
+      sections: [
+        { title: "Information kept in this browser", body: "Three local-storage records may be used: nursing-hypotheses.learning-profile.v1, nursing-hypotheses.exam-profile.v1 and nursing-hypotheses.active-exam-session.v1. They may contain the selected language; scenario, question, option and order identifiers; an active session's absolute deadline; learning-domain labels; recomputed scores; set seeds; and completion metadata. Up to 500 scenario attempts and 100 question sets may be retained. The current interface does not request an email address, real name, account, payment detail or free-text clinical response." },
+        { title: "Local storage is not private storage", body: "This information is unencrypted and can be visible to anyone using the same browser profile or device. It is not synced or recoverable by this beta. Use the Clear learning history control on My learning, clear site data in your browser, or avoid the site on a shared device." },
+        { title: "Hosting and technical records", body: "The website itself sends no learning progress to an application server in this beta. A hosting or CDN provider may still receive standard technical data needed to deliver the page, such as IP address, user agent, requested URL, timestamps and security logs. The production host, countries of processing, log retention and deletion process have not yet been selected; they must be documented before external publication." },
+        { title: "External source links", body: "Opening a reference sends a request to the third-party publisher. That publisher receives technical data and applies its own privacy and cookie policies. Nursing Hypotheses does not control those services." },
+        { title: "Future changes", body: "Accounts, support forms, analytics, AI, email, n8n workflows and payments are not active. None may be enabled until the data flow, lawful basis, processor terms, region, retention, security controls and user choices are documented in an updated notice." },
+      ],
+    },
+    terms: {
+      eyebrow: "Rules for using the free beta",
+      title: "Learning terms",
+      lead: "These beta terms set educational and acceptable-use boundaries. They are a working draft and are not a substitute for advice from counsel in the launch jurisdictions.",
+      effective: "Effective 4 September 2026 · draft pending legal review",
+      warning: "Educational simulation only. Not for real patient care, diagnosis, treatment, triage or emergency use. In a real emergency, contact the responsible clinical team and local emergency service immediately.",
+      sections: [
+        { title: "Educational scope", body: "The website offers fictional scenarios and independently authored practice questions for self-study and facilitated discussion. It does not provide medical advice, professional supervision, a credential, continuing-education credit, licensure eligibility, a competency decision or a prediction of any examination result." },
+        { title: "Clinical responsibility", body: "Current law, regulator requirements, facility policy, authorised orders, scope of practice, the patient's condition and the responsible team's judgement always take priority. Do not delay escalation or use this website during care of a real patient." },
+        { title: "Independent question bank", body: "No recalled, secure or official examination item may be submitted, reconstructed, copied or requested. Similarities to common nursing topics, four-option formats or single-best-answer methods do not make this an official exam product. No regulator or examination owner issues, sponsors, endorses, approves or administers the website." },
+        { title: "Acceptable use", body: "Use the beta for lawful personal learning or authorised teaching. Do not enter patient or confidential workplace data; bypass controls; scrape or republish the bank; interfere with service; impersonate a person or organisation; or use the material to provide unsupervised clinical instructions." },
+        { title: "Content and external rights", body: "Original site text and presentation remain subject to their applicable rights. Linked publications, names and marks belong to their respective owners. A link is attribution and research traceability, not permission to copy or an endorsement." },
+        { title: "Availability, changes and paid services", body: "Draft content may be corrected, withdrawn or unavailable without notice. No account, subscription, checkout, refund promise or paid entitlement exists in this beta. Separate commercial terms, identity, tax, payment, cancellation and consumer-law review are required before any paid launch." },
+        { title: "Audience and jurisdiction", body: "The beta is intended for adult nursing learners and professionals; younger learners should use it only with an educator or guardian. The initial audience is expected to include Saudi users, but the governing-law, dispute and liability clauses remain open for qualified legal review before public or commercial launch." },
+      ],
+    },
+    contact: {
+      eyebrow: "Content, safety and rights",
+      title: "Contact and safety reporting",
+      lead: "A real monitored support address and responsible publishing entity have not yet been supplied for this beta.",
+      effective: "Launch blocker · configure before external publication",
+      warning: "Do not publish this beta externally until a monitored contact channel, privacy owner and content-safety escalation owner are displayed here.",
+      sections: [
+        { title: "What a report should include", body: "Identify the page, scenario or question; language; content version; and a concise description of the possible clinical, translation, accessibility, copyright or privacy issue. Do not include any patient, learner or confidential workplace information." },
+        { title: "Urgent clinical situations", body: "This page is not monitored for emergencies. If a real person may be at risk, follow the authorised local emergency and escalation pathway now. Do not wait for a website response." },
+        { title: "Before launch", body: "The publisher must add a real monitored email or ticket channel, name the responsible legal entity and privacy contact, define acknowledgement and takedown targets, and test that reports reach the assigned reviewers." },
+      ],
+    },
+  },
+  ar: {
+    privacy: {
+      eyebrow: "الشفافية للنسخة التجريبية المجانية",
+      title: "إشعار الخصوصية",
+      lead: "يصف هذا الإشعار النسخة التجريبية الحالية التي تحفظ التقدم داخل المتصفح فقط. يجب تحديثه عند إضافة الحسابات أو التحليلات أو المزامنة السحابية أو النماذج أو الاشتراكات أو أي معالج بيانات آخر.",
+      effective: "يسري من 4 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
+      warning: "لا تُدخل اسماً أو رقم ملف أو ملاحظة سريرية أو أي معلومات تخص مريضاً حقيقياً في أي موضع من هذا الموقع.",
+      sections: [
+        { title: "المعلومات المحفوظة في هذا المتصفح", body: "قد يستخدم الموقع ثلاثة سجلات في التخزين المحلي: nursing-hypotheses.learning-profile.v1 وnursing-hypotheses.exam-profile.v1 وnursing-hypotheses.active-exam-session.v1. وقد تتضمن اللغة المختارة؛ ومعرّفات السيناريوهات والأسئلة والخيارات والترتيب؛ والموعد النهائي المطلق لجلسة اختبار نشطة؛ وتسميات مجالات التعلم؛ والدرجات المعاد احتسابها؛ وبذور المجموعات؛ وبيانات الإكمال. قد يُحتفظ بما يصل إلى 500 محاولة سيناريو و100 مجموعة أسئلة. لا تطلب الواجهة الحالية بريداً إلكترونياً أو اسماً حقيقياً أو حساباً أو بيانات دفع أو إجابة سريرية نصية حرة." },
+        { title: "التخزين المحلي ليس خزنة خاصة", body: "هذه المعلومات غير مشفرة وقد يراها من يستخدم ملف المتصفح أو الجهاز نفسه. لا تزامنها النسخة التجريبية ولا تستطيع استعادتها. استخدم زر «مسح سجل التعلم» في صفحة «تعلّمي»، أو امسح بيانات الموقع من المتصفح، أو تجنب استخدام الموقع على جهاز مشترك." },
+        { title: "الاستضافة والسجلات التقنية", body: "لا ترسل النسخة التجريبية تقدم التعلم إلى خادم تطبيقي. لكن قد يستقبل مزود الاستضافة أو شبكة توزيع المحتوى بيانات تقنية معتادة لازمة لتقديم الصفحة، مثل عنوان IP ونوع المتصفح والرابط المطلوب والطوابع الزمنية وسجلات الأمان. لم يُحدَّد بعد مزود الإنتاج أو دول المعالجة أو مدة الاحتفاظ بالسجلات أو آلية حذفها؛ ويجب توثيق ذلك قبل النشر الخارجي." },
+        { title: "روابط المصادر الخارجية", body: "يؤدي فتح مرجع إلى إرسال طلب إلى موقع الناشر الخارجي. يستقبل ذلك الناشر بيانات تقنية ويطبق سياسة الخصوصية وملفات الارتباط الخاصة به. لا تتحكم «فرضيات تمريضية» في تلك الخدمات." },
+        { title: "التغييرات المستقبلية", body: "الحسابات ونماذج الدعم والتحليلات والذكاء الاصطناعي والبريد وتدفقات n8n والمدفوعات غير مفعلة. ولا يجوز تفعيلها قبل توثيق تدفق البيانات والأساس النظامي وشروط المعالج والمنطقة والاحتفاظ وضوابط الأمان وخيارات المستخدم في إشعار محدث." },
+      ],
+    },
+    terms: {
+      eyebrow: "قواعد استخدام النسخة التجريبية المجانية",
+      title: "شروط التعلم",
+      lead: "تحدد هذه الشروط التجريبية الحدود التعليمية والاستخدام المقبول. وهي مسودة عمل وليست بديلاً عن استشارة قانونية في مناطق الإطلاق.",
+      effective: "يسري من 4 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
+      warning: "محاكاة تعليمية فقط. ليست لرعاية مريض حقيقي أو التشخيص أو العلاج أو الفرز أو استخدام الطوارئ. في الطوارئ الحقيقية تواصل فوراً مع الفريق السريري المسؤول وخدمة الطوارئ المحلية.",
+      sections: [
+        { title: "النطاق التعليمي", body: "يقدم الموقع سيناريوهات خيالية وأسئلة تدريبية مؤلفة بصورة مستقلة للتعلم الذاتي والنقاش الميسّر. ولا يقدم نصيحة طبية أو إشرافاً مهنياً أو اعتماداً أو ساعات تعليم مستمر أو أهلية ترخيص أو قرار كفاءة أو توقعاً لنتيجة أي اختبار." },
+        { title: "المسؤولية السريرية", body: "يتقدم دائماً النظام الحالي ومتطلبات الجهة المنظمة وسياسة المنشأة والأوامر المعتمدة ونطاق الممارسة وحالة المريض وحكم الفريق المسؤول. لا تؤخر التصعيد ولا تستخدم الموقع أثناء رعاية مريض حقيقي." },
+        { title: "بنك أسئلة مستقل", body: "يُحظر إرسال أو إعادة بناء أو نسخ أو طلب أي سؤال اختبار متذكَّر أو سري أو رسمي. ولا تجعل الموضوعات التمريضية الشائعة أو صيغة الخيارات الأربعة أو منهج أفضل إجابة واحدة هذا منتج اختبار رسمي. لا تصدر المنصة عن أي جهة تنظيمية أو مالك اختبار ولا ترعاها أو تؤيدها أو تعتمدها أو تديرها أيٌّ منها." },
+        { title: "الاستخدام المقبول", body: "استخدم النسخة للتعلم الشخصي المشروع أو التعليم المصرح. لا تدخل بيانات مرضى أو بيانات عمل سرية؛ ولا تتجاوز الضوابط؛ ولا تجمع البنك آلياً أو تعيد نشره؛ ولا تعطل الخدمة؛ ولا تنتحل شخصاً أو جهة؛ ولا تستخدم المحتوى لتقديم توجيهات سريرية دون إشراف." },
+        { title: "المحتوى وحقوق الغير", body: "يخضع نص الموقع الأصلي وعرضه للحقوق المطبقة. وتعود المنشورات والأسماء والعلامات المرتبطة إلى أصحابها. الرابط إسناد وتتبع بحثي وليس إذناً بالنسخ أو تأييداً للمنصة." },
+        { title: "التوفر والتغييرات والخدمات المدفوعة", body: "قد يُصحح المحتوى الأولي أو يُسحب أو يتعذر دون إشعار. لا يوجد في هذه النسخة حساب أو اشتراك أو شراء أو وعد باسترداد أو استحقاق مدفوع. يلزم إعداد شروط تجارية منفصلة ومراجعة الهوية والضرائب والدفع والإلغاء وحماية المستهلك قبل أي إطلاق مدفوع." },
+        { title: "الجمهور والنطاق النظامي", body: "تستهدف النسخة متعلمي التمريض والمهنيين البالغين؛ وعلى الأصغر سناً استخدامها بإشراف معلم أو ولي. يُتوقع أن يشمل الجمهور الأول مستخدمين في السعودية، لكن بنود النظام الحاكم والنزاعات والمسؤولية ما تزال مفتوحة لمراجعة قانونية مؤهلة قبل الإطلاق العام أو التجاري." },
+      ],
+    },
+    contact: {
+      eyebrow: "المحتوى والسلامة والحقوق",
+      title: "التواصل وبلاغات السلامة",
+      lead: "لم يُزوَّد هذا النموذج حتى الآن بعنوان دعم حقيقي خاضع للمراقبة أو باسم الجهة المسؤولة عن النشر.",
+      effective: "مانع إطلاق · يجب ضبطه قبل النشر الخارجي",
+      warning: "لا تنشر هذه النسخة خارجياً حتى تظهر هنا قناة تواصل مراقبة ومسؤول الخصوصية ومسؤول تصعيد سلامة المحتوى.",
+      sections: [
+        { title: "ماذا يتضمن البلاغ؟", body: "حدد الصفحة أو السيناريو أو السؤال، واللغة، وإصدار المحتوى، ووصفاً موجزاً للمشكلة السريرية أو اللغوية أو المتعلقة بالوصول أو حقوق النشر أو الخصوصية. لا ترفق أي معلومات مريض أو متعلم أو معلومات عمل سرية." },
+        { title: "الحالات السريرية العاجلة", body: "هذه الصفحة غير مراقبة للطوارئ. إذا كان شخص حقيقي معرضاً للخطر فاتبع الآن مسار الطوارئ والتصعيد المحلي المعتمد. لا تنتظر رداً من الموقع." },
+        { title: "قبل الإطلاق", body: "يجب على الناشر إضافة بريد مراقب أو نظام تذاكر حقيقي، وتسمية الكيان القانوني المسؤول وجهة اتصال الخصوصية، وتحديد زمن الاستلام والسحب، واختبار وصول البلاغات إلى المراجعين المعينين." },
+      ],
+    },
+  },
+};
+
+const NAV_ITEMS = [["home", "home", House], ["scenarios", "simulations", Exam], ["questions", "questionBank", ClipboardText], ["learning", "learning", ChartLineUp], ["resources", "resources", Books], ["membership", "membership", Medal], ["about", "about", Info]];
+
+function readProfile() {
+  if (typeof window === "undefined") return revalidateProfile(parseProfile(""), scenarios);
+  try {
+    return revalidateProfile(parseProfile(window.localStorage.getItem(PROFILE_STORAGE_KEY) ?? ""), scenarios);
+  } catch {
+    return revalidateProfile(parseProfile(""), scenarios);
+  }
+}
+
+function persistProfile(profile) {
+  try { window.localStorage.setItem(PROFILE_STORAGE_KEY, serializeProfile(profile)); } catch { /* Usable without persistence. */ }
+}
+
+function createEmptyExamProfile() {
+  return { schemaVersion: EXAM_PROFILE_VERSION, attempts: [] };
+}
+
+function revalidateExamAttempt(value, index) {
+  if (!value || !Array.isArray(value.questionIds) || !Array.isArray(value.decisions)) return null;
+  const questions = value.questionIds
+    .map((id) => questionBank.find((question) => question.id === id))
+    .filter(Boolean);
+  if (!questions.length || questions.length !== value.questionIds.length) return null;
+  const answers = Object.fromEntries(
+    value.decisions
+      .filter((decision) => typeof decision?.questionId === "string" && typeof decision?.selectedOptionId === "string")
+      .map((decision) => [decision.questionId, decision.selectedOptionId]),
+  );
+  const completionReason = value.completionReason === "time-expired" ? "time-expired" : "completed";
+  const graded = gradeQuiz(questions, answers, { includeUnanswered: completionReason === "time-expired" });
+  if (!graded.isComplete) return null;
+  const allowedSelectionModes = new Set(["guided", "manual", "performance-focus"]);
+  return {
+    ...graded,
+    id: typeof value.id === "string" ? value.id.slice(0, 100) : `restored-${index}`,
+    examId: questions[0].examId,
+    seed: typeof value.seed === "string" ? value.seed.slice(0, 120) : "restored",
+    completedAt: typeof value.completedAt === "string" && !Number.isNaN(Date.parse(value.completedAt)) ? value.completedAt : graded.completedAt,
+    selectionMode: allowedSelectionModes.has(value.selectionMode) ? value.selectionMode : "manual",
+    completionReason,
+    bankVersion: "2026-09-04.3",
+  };
+}
+
+function readExamProfile() {
+  if (typeof window === "undefined") return createEmptyExamProfile();
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(EXAM_STORAGE_KEY) ?? "{}");
+    const attempts = (Array.isArray(parsed?.attempts) ? parsed.attempts : [])
+      .slice(-100)
+      .map(revalidateExamAttempt)
+      .filter(Boolean);
+    return { schemaVersion: EXAM_PROFILE_VERSION, attempts };
+  } catch {
+    return createEmptyExamProfile();
+  }
+}
+
+function persistExamProfile(profile) {
+  try { window.localStorage.setItem(EXAM_STORAGE_KEY, JSON.stringify({ schemaVersion: EXAM_PROFILE_VERSION, attempts: profile.attempts.slice(-100) })); } catch { /* Usable without persistence. */ }
+}
+
+function createScenarioSession(scenarioId = null, orderSeed = 0) {
+  const scenario = scenarios.find((item) => item.id === scenarioId);
+  const variant = scenario ? selectScenarioVariant(scenario, orderSeed) : null;
+  return { scenarioId, stepIndex: 0, answers: {}, confirmedStepId: null, notice: "", orderSeed, variantId: variant?.id ?? null, submitted: false };
+}
+
+function parseRoute() {
+  const [page = "home", id = ""] = window.location.hash.replace(/^#\/?/, "").split("/");
+  const allowed = new Set(["home", "scenarios", "scenario", "result", "questions", "learning", "resources", "membership", "about", "privacy", "terms", "contact"]);
+  return allowed.has(page) ? { page, id } : { page: "home", id: "" };
+}
+
+function localize(value, lang) { return value && typeof value === "object" ? value[lang] || value.en || value.ar || "" : String(value ?? ""); }
+function formatNumber(value, lang, options) { return new Intl.NumberFormat(lang === "ar" ? "ar-SA" : "en-US", options).format(value); }
+function formatCountdown(totalSeconds, lang) {
+  const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  const locale = lang === "ar" ? "ar-SA" : "en-US";
+  const twoDigits = new Intl.NumberFormat(locale, { minimumIntegerDigits: 2, useGrouping: false });
+  return `${twoDigits.format(minutes)}:${twoDigits.format(seconds)}`;
+}
+function localizeVitalValue(value, lang) {
+  if (lang !== "ar") return value;
+  return { Alert: "واعٍ", Pacing: "يتحرك بقلق", None: "لا يوجد", "Alert, dizzy": "واعٍ مع دوار", Confused: "مشوش" }[value] || value;
+}
+function routeSection(route) {
+  if (route.page === "scenario" || route.page === "result") return "scenarios";
+  if (route.page === "questions") return "questionBank";
+  return route.page;
+}
+function scoreBandKey(band) { return { "strong-foundation": "strongFoundation", progressing: "progressing", "guided-review": "guidedReview", "safety-review": "safetyReview", "not-started": "notStarted" }[band] || "guidedReview"; }
+function classificationIcon(value) { return value === "safe" ? CheckCircle : value === "unsafe" ? ShieldWarning : value === "delay" ? Clock : Target; }
+const scenarioRecommendationCopy = {
+  explore: "recommendationExplore",
+  "evidence-building": "recommendationEvidence",
+  "targeted-development": "recommendationDevelopment",
+  "targeted-review": "recommendationReview",
+  "safety-review": "recommendationSafety",
+};
+const guidedPlanCopy = {
+  baseline: "guidedPlanBaseline",
+  "evidence-building": "guidedPlanEvidence",
+  "targeted-development": "guidedPlanDevelopment",
+  "targeted-review": "guidedPlanReview",
+};
+function vitalIcon(label) {
+  const english = label?.en?.toLowerCase?.() || "";
+  if (english.includes("spo2") || english.includes("oxygen")) return Gauge;
+  if (english.includes("respiratory")) return Wind;
+  if (english.includes("blood pressure")) return Drop;
+  if (english.includes("conscious") || english.includes("pain") || english.includes("temperature")) return Brain;
+  return Heartbeat;
+}
+
+function stableHash(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function stableShuffle(items, seed) {
+  const ordered = [...items];
+  let state = stableHash(seed) || 1;
+  for (let index = ordered.length - 1; index > 0; index -= 1) {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    const target = state % (index + 1);
+    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+  }
+  return ordered;
+}
+
+function seededIndex(seed, length) {
+  if (length <= 1) return 0;
+  const state = (Math.imul(stableHash(seed) || 1, 1664525) + 1013904223) >>> 0;
+  return state % length;
+}
+
+export function deterministicSafePositions(scenario, orderSeed) {
+  const positionCount = Math.max(1, ...scenario.steps.map((step) => step.choices.length));
+  const counts = Array(positionCount).fill(0);
+
+  return scenario.steps.map((step, stepIndex) => {
+    const seed = `${scenario.id}:${step.id}:${orderSeed}:safe-position`;
+    const independentTarget = seededIndex(seed, positionCount);
+    const softCap = Math.min(
+      Math.ceil(scenario.steps.length / 2),
+      Math.max(2, Math.ceil((stepIndex + 1) * 0.6)),
+    );
+    let target = independentTarget;
+
+    if (counts[independentTarget] >= softCap) {
+      const alternatives = counts
+        .map((count, position) => ({ count, position }))
+        .filter(({ count, position }) => position !== independentTarget && count < softCap)
+        .map(({ position }) => position);
+      if (alternatives.length) target = alternatives[seededIndex(`${seed}:cap-fallback`, alternatives.length)];
+    }
+
+    counts[target] += 1;
+    return target;
+  });
+}
+
+function stableChoiceOrder(choices, seed, safeTargetPosition) {
+  const ordered = stableShuffle(choices, seed);
+  const safeIndex = ordered.findIndex((choice) => choice.classification === "safe");
+  const target = safeTargetPosition % ordered.length;
+  if (safeIndex >= 0 && safeIndex !== target) {
+    [ordered[safeIndex], ordered[target]] = [ordered[target], ordered[safeIndex]];
+  }
+  return ordered;
+}
+
+function AppLink({ to, className = "", children, onNavigate, ...props }) {
+  return <a href={`#/${to}`} className={className} onClick={() => onNavigate?.()} {...props}>{children}</a>;
+}
+
+function SectionIntro({ eyebrow, title, body }) {
+  return <header className="section-intro"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{body ? <p className="section-lead">{body}</p> : null}</header>;
+}
+
+function Header({ lang, setLanguage, route, menuOpen, setMenuOpen, t }) {
+  const active = routeSection(route);
+  return <>
+    <a
+      className="skip-link"
+      href="#main-content"
+      onClick={(event) => {
+        event.preventDefault();
+        const main = document.getElementById("main-content");
+        main?.scrollIntoView({ block: "start" });
+        window.setTimeout(() => main?.focus({ preventScroll: true }), 0);
+      }}
+    >
+      {t("skip")}
+    </a>
+    <header className="site-header">
+      <div className="header-inner">
+        <AppLink to="home" className="brand" onNavigate={() => setMenuOpen(false)} aria-label={PRODUCT_NAME[lang]}>
+          <span className="brand-mark" aria-hidden="true"><Heartbeat size={31} /></span>
+          <span className="brand-copy"><span className="brand-name"><span lang="ar">فرضيات تمريضية</span><span className="brand-divider">|</span><span lang="en">Nursing Hypotheses</span></span><span className="brand-tagline">{t("footerLine")}</span></span>
+        </AppLink>
+        <nav className="desktop-nav" aria-label={lang === "ar" ? "التنقل الرئيسي" : "Primary navigation"}>
+          {NAV_ITEMS.map(([path, label]) => <AppLink key={path} to={path} className={active === path ? "active" : ""} aria-current={active === path ? "page" : undefined}>{t(label)}</AppLink>)}
+        </nav>
+        <div className="header-actions">
+          <div className="language-switch" aria-label={t("language")} role="group"><Globe size={19} aria-hidden="true" /><button type="button" className={lang === "ar" ? "selected" : ""} aria-pressed={lang === "ar"} onClick={() => setLanguage("ar")} lang="ar">العربية</button><button type="button" className={lang === "en" ? "selected" : ""} aria-pressed={lang === "en"} onClick={() => setLanguage("en")} lang="en">English</button></div>
+          <AppLink to="learning" className="profile-link" aria-label={`${t("learner")} — ${t("localProfile")}`}><UserCircle size={31} aria-hidden="true" /><span><strong>{t("learner")}</strong><small>{t("localProfileShort")}</small></span></AppLink>
+          <button type="button" className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? t("closeMenu") : t("menu")}>{menuOpen ? <X size={25} /> : <List size={25} />}</button>
+        </div>
+      </div>
+      <nav id="mobile-navigation" className={`mobile-nav ${menuOpen ? "open" : ""}`} aria-label={lang === "ar" ? "تنقل الهاتف" : "Mobile navigation"}>
+        {NAV_ITEMS.map(([path, label, Icon]) => <AppLink key={path} to={path} onNavigate={() => setMenuOpen(false)} className={active === path ? "active" : ""} aria-current={active === path ? "page" : undefined}><Icon size={21} aria-hidden="true" /><span>{t(label)}</span></AppLink>)}
+      </nav>
+    </header>
+    <div className="safety-strip" role="note"><ShieldWarning size={18} weight="fill" aria-hidden="true" /><span>{t("privacyStrip")}</span></div>
+  </>;
+}
+
+function HomePage({ lang, t, onStart, profile }) {
+  const featured = scenarios[0];
+  const completedCount = getCompletedScenarioCount(profile);
+  const departmentCount = new Set(scenarios.map((scenario) => scenario.departmentId)).size;
+  const contextCount = scenarios.reduce((total, scenario) => total + Math.max(1, scenario.contextVariants?.length || 0), 0);
+  return <>
+    <section className="hero-band"><div className="hero-content">
+      <div className="hero-copy"><p className="eyebrow light"><Stethoscope size={18} weight="bold" /> {t("eyebrow")}</p><h1>{t("heroTitle")}</h1><p>{t("heroBody")}</p>
+        <div className="hero-actions"><AppLink to="scenarios" className="button button-primary">{t("explore")} {lang === "ar" ? <ArrowLeft size={19} /> : <ArrowRight size={19} />}</AppLink><AppLink to="learning" className="button button-ghost-light"><ChartLineUp size={19} /> {t("continueLearning")}{completedCount > 0 ? <span className="button-count">{formatNumber(completedCount, lang)}</span> : null}</AppLink></div>
+      </div>
+      <div className="featured-case" aria-label={t("featured")}><div className="featured-topline"><span>{t("featured")}</span><FirstAidKit size={26} weight="duotone" /></div><p className="featured-kicker">{t("featuredKicker")}</p><h2>{localize(featured.title, lang)}</h2><p>{t("featuredBody")}</p>
+        <div className="mini-vitals" aria-label={t("keyVitals")}>{featured.steps[1].vitals.slice(0, 3).map((vital) => <span key={vital.label.en}><small>{localize(vital.label, lang)}</small><strong>{vital.value}</strong></span>)}</div>
+        <button type="button" className="text-action light-action" onClick={() => onStart(featured.id)}><Play size={18} weight="fill" /> {t("startFeatured")}</button>
+      </div>
+    </div></section>
+    <section className="home-stats" aria-label={lang === "ar" ? "محتوى المنصة" : "Platform content"}><div><strong>{formatNumber(contextCount, lang)}</strong><span>{t("practiceContexts")}</span></div><div><strong>{formatNumber(departmentCount, lang)}</strong><span>{t("departmentsCount")}</span></div><div><strong>{formatNumber(allQuestionReferences.length, lang)}</strong><span>{t("referencesCount")}</span></div></section>
+    <section className="trust-band"><div className="trust-item"><BookOpen size={29} weight="duotone" /><div><h2>{t("evidenceLed")}</h2><p>{t("evidenceLedBody")}</p></div></div><div className="trust-item"><Globe size={29} weight="duotone" /><div><h2>{t("bilingual")}</h2><p>{t("bilingualBody")}</p></div></div><div className="trust-item"><LockKey size={29} weight="duotone" /><div><h2>{t("privateDemo")}</h2><p>{t("privateDemoBody")}</p></div></div></section>
+    <section className="content-section learning-loop"><header className="loop-heading"><p className="eyebrow">{t("simulation")}</p><h2>{t("howItWorks")}</h2></header><ol className="loop-list"><li><span>01</span><div><h3>{t("stepOne")}</h3><p>{t("stepOneBody")}</p></div></li><li><span>02</span><div><h3>{t("stepTwo")}</h3><p>{t("stepTwoBody")}</p></div></li><li><span>03</span><div><h3>{t("stepThree")}</h3><p>{t("stepThreeBody")}</p></div></li></ol><div className="boundary-note"><Info size={22} weight="fill" /><p>{t("learningNotCertification")}</p></div></section>
+  </>;
+}
+
+function ScenarioLibrary({ lang, t, profile, onStart }) {
+  const [department, setDepartment] = useState("all");
+  const [difficulty, setDifficulty] = useState("all");
+  const departments = useMemo(() => { const map = new Map(); scenarios.forEach((item) => map.set(item.departmentId, item.department)); return [...map.entries()]; }, []);
+  const difficulties = useMemo(() => { const map = new Map(); scenarios.forEach((item) => map.set(item.difficultyId, item.difficulty)); return [...map.entries()]; }, []);
+  const completedIds = useMemo(() => new Set(profile.attempts.filter((item) => item.isComplete).map((item) => item.scenarioId)), [profile]);
+  const recommendations = useMemo(
+    () => getScenarioRecommendations(profile, scenarios, { limit: scenarios.length }),
+    [profile],
+  );
+  const recommendationById = useMemo(
+    () => new Map(recommendations.map((item, index) => [item.scenarioId, { ...item, rank: index }])),
+    [recommendations],
+  );
+  const filtered = scenarios
+    .filter((item) => (department === "all" || item.departmentId === department) && (difficulty === "all" || item.difficultyId === difficulty))
+    .sort((left, right) => (recommendationById.get(left.id)?.rank ?? 999) - (recommendationById.get(right.id)?.rank ?? 999));
+  const firstRecommendation = filtered.length ? recommendationById.get(filtered[0].id) : null;
+  return <div className="page-container"><SectionIntro eyebrow={t("libraryEyebrow")} title={t("libraryTitle")} body={t("libraryBody")} />
+    <section className="guided-practice-banner" aria-labelledby="guided-scenario-title"><Brain size={31} weight="duotone" aria-hidden="true" /><div><h2 id="guided-scenario-title">{t("guidedScenarioTitle")}</h2><p>{t("guidedScenarioBody")}</p>{firstRecommendation ? <strong>{t(scenarioRecommendationCopy[firstRecommendation.reason])}: {localize(filtered[0].title, lang)}</strong> : null}</div>{filtered[0] ? <button type="button" className="button button-secondary" onClick={() => onStart(filtered[0].id)}>{t("openRecommendedScenario")}</button> : null}</section>
+    <div className="filter-bar" aria-label={lang === "ar" ? "مرشحات السيناريو" : "Scenario filters"}>
+      <label><span>{t("department")}</span><select value={department} onChange={(event) => setDepartment(event.target.value)}><option value="all">{t("allDepartments")}</option>{departments.map(([id, label]) => <option key={id} value={id}>{localize(label, lang)}</option>)}</select></label>
+      <label><span>{t("difficulty")}</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="all">{t("allDifficulties")}</option>{difficulties.map(([id, label]) => <option key={id} value={id}>{localize(label, lang)}</option>)}</select></label>
+      <div className="filter-result"><strong>{formatNumber(filtered.length, lang)}</strong><span>{t("scenariosCount")}</span></div>
+    </div>
+    {filtered.length > 0 ? <div className="scenario-list">{filtered.map((scenario, index) => { const completed = completedIds.has(scenario.id); const recommendation = recommendationById.get(scenario.id); return <article className="scenario-row" key={scenario.id}>
+      <div className="scenario-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</div><div className="scenario-main"><div className="scenario-meta"><span><Hospital size={16} />{localize(scenario.department, lang)}</span><span><Target size={16} />{localize(scenario.difficulty, lang)}</span><span><Clock size={16} />{localize(scenario.duration, lang)}</span><span><Pulse size={16} />{formatNumber(Math.max(1, scenario.contextVariants?.length || 0), lang)} {t("practiceContexts")}</span><AccessBadge t={t} />{recommendation?.rank < 3 ? <span className="recommended-badge"><Brain size={15} weight="fill" />{t("recommendedNext")} · {t(scenarioRecommendationCopy[recommendation.reason])}</span> : null}{completed ? <span className="completed-badge"><CheckCircle size={16} weight="fill" />{t("completed")}</span> : null}</div><h2>{localize(scenario.title, lang)}</h2><p>{localize(scenario.summary, lang)}</p><div className="competency-chips" aria-label={t("competencies")}>{scenario.competencies.slice(0, 4).map((item) => <span key={item.slug}>{localize(item.label, lang)}</span>)}</div></div>
+      <div className="scenario-action"><span className="decision-count"><strong>{formatNumber(scenario.steps.length, lang)}</strong>{t("decisions")}</span><button type="button" className="button button-secondary" onClick={() => onStart(scenario.id)}><Play size={17} weight="fill" /> {completed ? t("practiseAgain") : t("start")}</button></div>
+    </article>; })}</div> : <div className="empty-state"><Exam size={43} weight="duotone" /><h2>{t("noScenarios")}</h2><button type="button" className="button button-secondary" onClick={() => { setDepartment("all"); setDifficulty("all"); }}>{t("resetFilters")}</button></div>}
+  </div>;
+}
+
+function ProgressSteps({ stepIndex, count, lang, t }) {
+  const progressLabel = `${t("step")} ${formatNumber(stepIndex + 1, lang)} ${t("of")} ${formatNumber(count, lang)}`;
+  return <div className="step-progress" role="progressbar" aria-label={progressLabel} aria-valuemin="1" aria-valuemax={count} aria-valuenow={stepIndex + 1} aria-valuetext={progressLabel}><strong>{t("step")} <span>{formatNumber(stepIndex + 1, lang)}</span> <small>{t("of")} {formatNumber(count, lang)}</small></strong><ol>{Array.from({ length: count }, (_, index) => <li key={index} className={index < stepIndex ? "done" : index === stepIndex ? "active" : ""} aria-current={index === stepIndex ? "step" : undefined}><span>{index < stepIndex ? <Check size={14} weight="bold" /> : formatNumber(index + 1, lang)}</span></li>)}</ol></div>;
+}
+
+function PatientRail({ scenario, step, lang, t }) {
+  return <aside className="patient-rail" aria-labelledby="patient-status-title"><div className="rail-heading"><h2 id="patient-status-title">{t("patientStatus")}</h2></div><div className="scenario-identity"><span>{t("scenario")}</span><strong>{localize(scenario.department, lang)}</strong><p>{localize(scenario.title, lang)}</p></div><div className="rail-divider" /><h3>{t("keyVitals")}</h3><dl className="vital-list">{step.vitals.map((vital) => { const Icon = vitalIcon(vital.label); return <div className="vital-item" key={vital.label.en}><Icon size={34} weight="duotone" aria-hidden="true" /><div><dt>{localize(vital.label, lang)}</dt><dd><strong>{localizeVitalValue(vital.value, lang)}</strong> <span>{localize(vital.unit, lang)}</span></dd></div></div>; })}</dl><div className="rail-disclaimer"><ShieldWarning size={19} weight="fill" /><p>{t("educationalOnly")}</p></div></aside>;
+}
+
+function LearningRail({ scenario, stepIndex, lang, t }) {
+  const percentage = Math.round(((stepIndex + 1) / scenario.steps.length) * 100);
+  const caseReferences = scenario.referenceIds.map((id) => references.find((reference) => reference.id === id)).filter(Boolean);
+  return <aside className="learning-rail" aria-labelledby="progress-title"><div className="rail-heading"><h2 id="progress-title">{t("progress")}</h2></div><h3>{t("learningProgress")}</h3><div className="progress-meter" role="progressbar" aria-label={t("learningProgress")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percentage}><span style={{ width: `${percentage}%` }} /></div><div className="progress-copy"><strong>{formatNumber(percentage, lang)}%</strong><span>{t("step")} {formatNumber(stepIndex + 1, lang)} {t("of")} {formatNumber(scenario.steps.length, lang)}</span></div><div className="rail-divider" /><h3>{t("evidence")}</h3><ol className="evidence-steps">{scenario.steps.map((step, index) => <li key={step.id} className={index < stepIndex ? "done" : index === stepIndex ? "active" : ""}><span>{index < stepIndex ? <CheckCircle size={21} weight="fill" /> : <ClipboardText size={21} weight="duotone" />}</span><div><strong>{step.time}</strong><small>{index < stepIndex ? t("decisionRecorded") : index === stepIndex ? t("currentDecision") : t("upcoming")}</small></div></li>)}</ol><div className="evidence-box"><BookOpen size={25} weight="duotone" /><div><h3>{t("evidence")}</h3><p>{formatNumber(caseReferences.length, lang)} {t("referencesCount")}</p><AppLink to="resources" className="inline-link">{t("viewSources")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></div></div><div className="protocol-box"><Warning size={24} weight="fill" /><div><h3>{t("important")}</h3><p>{t("localProtocol")}</p></div></div></aside>;
+}
+
+function ScenarioContext({ variant, lang, t }) {
+  if (!variant) return null;
+  return <aside className="scenario-context" aria-label={t("contextVariant")}><div className="context-heading"><Pulse size={21} weight="duotone" aria-hidden="true" /><div><span>{t("contextVariant")}</span><strong>{localize(variant.label, lang)}</strong></div></div><dl>{variant.changes.map((change) => <div key={change.id}><dt>{localize(change.label, lang)}</dt><dd>{localize(change.value, lang)}</dd></div>)}</dl><details className="context-details"><summary>{t("contextDetails")}</summary><p>{localize(variant.setup, lang)}</p><small><Info size={14} weight="fill" aria-hidden="true" />{t("contextVariantNote")}</small></details></aside>;
+}
+
+function ScenarioPage({ scenarioId, lang, t, session, setSession, onComplete }) {
+  const scenario = scenarios.find((item) => item.id === scenarioId);
+  if (!scenario) {
+    return <div className="page-container compact-page"><div className="empty-state"><Exam size={46} weight="duotone" /><h1>{t("scenarioNotFound")}</h1><AppLink className="button button-primary" to="scenarios">{t("backLibrary")}</AppLink></div></div>;
+  }
+  return <ScenarioExperience scenario={scenario} lang={lang} t={t} session={session} setSession={setSession} onComplete={onComplete} />;
+}
+
+function ScenarioExperience({ scenario, lang, t, session, setSession, onComplete }) {
+  const stepIndex = session.scenarioId === scenario.id ? Math.min(session.stepIndex, scenario.steps.length - 1) : 0;
+  const step = scenario.steps[stepIndex];
+  const selectedId = session.answers[step.id] || "";
+  const confirmed = session.confirmedStepId === step.id;
+  const selectedChoice = step.choices.find((choice) => choice.id === selectedId);
+  const variant = scenario.contextVariants?.find((item) => item.id === session.variantId) ?? selectScenarioVariant(scenario, session.orderSeed ?? 0);
+  const safePositions = useMemo(
+    () => deterministicSafePositions(scenario, session.orderSeed ?? 0),
+    [scenario, session.orderSeed],
+  );
+  const orderedChoices = useMemo(
+    () => stableChoiceOrder(
+      step.choices,
+      `${scenario.id}:${step.id}:${session.orderSeed ?? 0}`,
+      safePositions[stepIndex],
+    ),
+    [safePositions, scenario.id, session.orderSeed, step, stepIndex],
+  );
+  const alternateLang = lang === "ar" ? "en" : "ar";
+  const caseReferenceCount = scenario.referenceIds.length;
+  const stepReferences = (step.referenceIds ?? scenario.referenceIds)
+    .map((id) => references.find((reference) => reference.id === id))
+    .filter(Boolean);
+  const questionRef = useRef(null);
+  const previousStepIdRef = useRef(step.id);
+  const submittedRef = useRef(Boolean(session.submitted));
+  useEffect(() => { if (session.scenarioId !== scenario.id) setSession(createScenarioSession(scenario.id)); }, [scenario.id, session.scenarioId, setSession]);
+  useEffect(() => { submittedRef.current = Boolean(session.submitted); }, [session.scenarioId, session.submitted]);
+  useEffect(() => {
+    if (previousStepIdRef.current !== step.id) {
+      previousStepIdRef.current = step.id;
+      questionRef.current?.focus();
+    }
+  }, [step.id]);
+  function selectChoice(choiceId) { if (!confirmed) setSession((current) => ({ ...current, answers: { ...current.answers, [step.id]: choiceId }, notice: "" })); }
+  function confirmChoice() { if (!selectedId) { setSession((current) => ({ ...current, notice: t("chooseFirst") })); return; } setSession((current) => ({ ...current, confirmedStepId: step.id, notice: "" })); }
+  function advance() {
+    if (!confirmed) return;
+    if (stepIndex < scenario.steps.length - 1) {
+      setSession((current) => ({ ...current, stepIndex: stepIndex + 1, confirmedStepId: null, notice: "" }));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (submittedRef.current || session.submitted) {
+      window.location.hash = `#/result/${scenario.id}`;
+      return;
+    }
+    submittedRef.current = true;
+    if (onComplete(scenario, session.answers) === false) {
+      submittedRef.current = false;
+      return;
+    }
+    setSession((current) => ({ ...current, submitted: true }));
+  }
+  return <div className="scenario-shell"><PatientRail scenario={scenario} step={step} lang={lang} t={t} /><section className="decision-stage">
+    <div className="decision-toolbar"><span className="simulation-badge"><Pulse size={19} weight="bold" />{t("simulation")}</span><ProgressSteps stepIndex={stepIndex} count={scenario.steps.length} lang={lang} t={t} /></div>
+    <ScenarioContext variant={variant} lang={lang} t={t} />
+    <section className="timeline-block" aria-labelledby="timeline-title"><h2 id="timeline-title">{t("timeline")}</h2><ol>{scenario.steps.slice(Math.max(0, stepIndex - 2), stepIndex + 1).map((timelineStep) => <li key={timelineStep.id} className={timelineStep.id === step.id ? "current" : ""}><span className="timeline-icon"><Pulse size={17} weight={timelineStep.id === step.id ? "fill" : "regular"} /></span><time>{timelineStep.time}</time><p>{localize(timelineStep.narrative, lang)}</p></li>)}</ol></section>
+    <div className="decision-question"><div className="question-heading"><span className="question-icon"><Target size={28} weight="duotone" /></span><div><p className="eyebrow">{t("clinicalMoment")}</p><h1 ref={questionRef} tabIndex="-1">{localize(step.question, lang)}</h1><p className="translated-question" lang={alternateLang} dir={alternateLang === "ar" ? "rtl" : "ltr"}>{localize(step.question, alternateLang)}</p></div></div><p className="question-instruction">{t("questionIntro")}</p>
+      <fieldset className="choice-list"><legend className="sr-only">{t("choiceGroup")}</legend>{orderedChoices.map((choice, index) => { const checked = selectedId === choice.id; return <label key={choice.id} className={`choice-option ${checked ? "selected" : ""} ${confirmed ? "locked" : ""}`}><input type="radio" name={`choice-${step.id}`} value={choice.id} checked={checked} disabled={confirmed} onChange={() => selectChoice(choice.id)} /><span className="choice-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span><span className="choice-text">{localize(choice.text, lang)}</span><span className="radio-visual" aria-hidden="true">{checked ? <Check size={15} weight="bold" /> : null}</span></label>; })}</fieldset>
+      {session.notice ? <p className="form-notice" role="alert"><Warning size={18} weight="fill" />{session.notice}</p> : null}
+      {confirmed && selectedChoice ? <div className={`decision-feedback ${selectedChoice.classification}`} aria-live="polite">{(() => { const Icon = classificationIcon(selectedChoice.classification); return <Icon size={28} weight="fill" aria-hidden="true" />; })()}<div><p className="feedback-label">{t("feedback")} · {t(selectedChoice.classification)}</p><h2>{localize(selectedChoice.feedback, lang)}</h2><p>{localize(selectedChoice.rationale, lang)}</p><div className="decision-source-list"><strong><BookOpen size={16} weight="duotone" />{t("questionSources")}</strong>{stepReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow">{localize(reference.title, lang)}<ArrowSquareOut size={14} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div><small><LockKey size={14} />{t("selectionLocked")}</small></div></div> : null}
+      <div className="decision-actions"><button type="button" className="button button-primary" onClick={confirmed ? advance : confirmChoice}>{confirmed ? (stepIndex === scenario.steps.length - 1 ? t("viewDebrief") : t("nextDecision")) : t("confirm")} {lang === "ar" ? <ArrowLeft size={19} /> : <ArrowRight size={19} />}</button></div>
+    </div><div className="decision-source-note"><BookOpen size={20} weight="duotone" /><p><strong>{t("sourceSet")}</strong> · {formatNumber(caseReferenceCount, lang)} {t("referencesCount")}</p></div>
+  </section><LearningRail scenario={scenario} stepIndex={stepIndex} lang={lang} t={t} /></div>;
+}
+
+function ScoreRing({ score, lang }) {
+  return <div className="score-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(score)} aria-label={`${formatNumber(score, lang)}%`} style={{ "--score": `${score}%` }}><Circle className="score-ring-track" size={132} weight="regular" aria-hidden="true" /><div><strong>{formatNumber(Math.round(score), lang)}</strong><span>/ 100</span><span className="score-ring-meter" aria-hidden="true"><span /></span></div></div>;
+}
+
+function ResultPage({ scenarioId, lang, t, profile, onStart }) {
+  const scenario = scenarios.find((item) => item.id === scenarioId);
+  const attempt = [...profile.attempts].reverse().find((item) => item.scenarioId === scenarioId && item.isComplete);
+  if (!scenario || !attempt) return <div className="page-container compact-page"><div className="empty-state"><ClipboardText size={46} weight="duotone" /><h1>{t("noAttempt")}</h1><AppLink className="button button-primary" to={scenario ? `scenario/${scenario.id}` : "scenarios"}>{scenario ? t("openScenario") : t("backLibrary")}</AppLink></div></div>;
+  const caseReferences = scenario.referenceIds.map((id) => references.find((item) => item.id === id)).filter(Boolean);
+  return <div className="page-container debrief-page"><SectionIntro eyebrow={t("debriefEyebrow")} title={t("debriefTitle")} body={localize(scenario.title, lang)} />
+    <section className="result-summary"><ScoreRing score={attempt.score} lang={lang} /><div className="result-primary"><span>{t("band")}</span><h2>{t(scoreBandKey(attempt.educationalBand))}</h2><p>{t("learningNotCertification")}</p></div><dl className="result-metrics"><div><dt>{t("answered")}</dt><dd>{formatNumber(attempt.answeredDecisionCount, lang)} / {formatNumber(attempt.totalDecisionCount, lang)}</dd></div><div><dt>{t("safetyFlags")}</dt><dd className={attempt.criticalUnsafeCount > 0 ? "danger-text" : ""}>{formatNumber(attempt.criticalUnsafeCount, lang)}</dd></div></dl></section>
+    <section className="debrief-decisions"><div className="subsection-heading"><p className="eyebrow">{t("feedback")}</p><h2>{t("decisionReview")}</h2></div><div className="review-list">{attempt.decisions.map((decision, index) => { const step = scenario.steps.find((item) => item.id === decision.stepId); const choice = step?.choices.find((item) => item.id === decision.choiceId); if (!step || !choice) return null; const Icon = classificationIcon(decision.classification); const decisionReferences = (step.referenceIds ?? scenario.referenceIds).map((id) => references.find((reference) => reference.id === id)).filter(Boolean); return <article className={`review-item ${decision.classification}`} key={decision.stepId}><div className="review-number">{formatNumber(index + 1, lang)}</div><div className="review-body"><div className="review-topline"><span><Icon size={19} weight="fill" />{t(decision.classification)}</span><strong>{formatNumber(decision.score, lang)} {t("points")}</strong></div><h3>{localize(step.question, lang)}</h3><p className="review-choice"><strong>{t("yourChoice")}:</strong> {localize(choice.text, lang)}</p><div className="rationale-copy"><BookOpen size={20} weight="duotone" /><p><strong>{t("rationale")}:</strong> {localize(choice.rationale, lang)}</p></div><div className="decision-source-list"><strong>{t("questionSources")}</strong>{decisionReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow">{localize(reference.title, lang)}<ArrowSquareOut size={14} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div></div></article>; })}</div></section>
+    <section className="debrief-evidence"><div className="subsection-heading"><p className="eyebrow">{t("resources")}</p><h2>{t("evidenceForCase")}</h2></div><div className="source-rows compact-sources">{caseReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow" className="source-row"><span className="source-year">{reference.year}</span><div><h3>{localize(reference.title, lang)}</h3><p>{localize(reference.organization, lang)}</p></div><ArrowSquareOut size={19} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div></section>
+    <div className="debrief-actions"><button type="button" className="button button-primary" onClick={() => onStart(scenario.id)}><Play size={18} weight="fill" />{t("tryAgain")}</button><AppLink to="scenarios" className="button button-secondary">{t("backLibrary")}</AppLink></div>
+  </div>;
+}
+
+const allQuestionReferences = references;
+
+function QuestionBankPage({ lang, t, examProfile, onComplete }) {
+  const [examId, setExamId] = useState("saudi-nursing");
+  const [practiceMode, setPracticeMode] = useState("guided");
+  const [categoryId, setCategoryId] = useState("all");
+  const [difficultyId, setDifficultyId] = useState("all");
+  const [limit, setLimit] = useState(10);
+  const [notice, setNotice] = useState("");
+  const [result, setResult] = useState(null);
+  const submittedRef = useRef(false);
+  const {
+    session,
+    questions: sessionQuestions,
+    currentQuestionIndex,
+    currentQuestion,
+    selectedAnswerId,
+    isCurrentAnswerLocked,
+    remainingSeconds,
+    isExpired,
+    startSession,
+    selectAnswer,
+    lockCurrentAnswer,
+    goToNextQuestion,
+    clearSession,
+  } = useExamSession({ storageKey: EXAM_SESSION_STORAGE_KEY, questionBank });
+  const quiz = session ? {
+    seed: session.metadata?.seed ?? "restored",
+    questions: sessionQuestions,
+    index: currentQuestionIndex,
+  } : null;
+  const activeExamId = session?.metadata?.examId ?? examId;
+  const activePracticeMode = session?.metadata?.selectionMode ?? practiceMode;
+  const categories = examCategories.filter((category) => category.examId === examId);
+  const completedSets = examProfile.attempts.filter((attempt) => attempt.isComplete);
+  const answeredQuestionIds = new Set(completedSets.flatMap((attempt) => attempt.questionIds ?? []));
+  const filteredQuestions = questionBank.filter((question) => question.examId === examId && (categoryId === "all" || question.categoryId === categoryId) && (difficultyId === "all" || question.difficultyId === difficultyId));
+  const availableCount = practiceMode === "guided"
+    ? filteredQuestions.filter((question) => !answeredQuestionIds.has(question.id)).length
+    : filteredQuestions.length;
+  const guidedPlan = getGuidedQuestionPlan(completedSets, examCategories, examId);
+
+  function beginQuiz() {
+    const seed = `${examId}:${Date.now()}:${completedSets.length}`;
+    const quizOptions = {
+      examId,
+      categoryIds: categoryId === "all" ? [] : [categoryId],
+      difficultyIds: difficultyId === "all" ? [] : [difficultyId],
+      limit,
+      seed,
+    };
+    const questions = practiceMode === "guided"
+      ? createGuidedQuiz(questionBank, completedSets, examCategories, quizOptions)
+      : createQuiz(questionBank, quizOptions);
+    if (!questions.length) { setNotice(t(practiceMode === "guided" ? "noFreshGuidedQuestions" : "noQuestions")); return; }
+    submittedRef.current = false;
+    startSession({
+      questions,
+      durationSeconds: questions.length * EXAM_SECONDS_PER_QUESTION,
+      metadata: { examId, seed, selectionMode: practiceMode, bankVersion: "2026-09-04.3" },
+    });
+    setNotice("");
+    setResult(null);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function resetQuiz() {
+    submittedRef.current = false;
+    clearSession();
+    setNotice("");
+    setResult(null);
+  }
+
+  function completeQuiz(completionReason = "completed") {
+    if (!quiz || submittedRef.current) return;
+    submittedRef.current = true;
+    const effectiveCompletionReason = isExamSessionExpired(session) ? "time-expired" : completionReason;
+    const includeUnanswered = effectiveCompletionReason === "time-expired";
+    const graded = gradeQuiz(quiz.questions, getConfirmedAnswers(session), { includeUnanswered });
+    if (!graded.isComplete) {
+      submittedRef.current = false;
+      setNotice(t("quizIncomplete"));
+      return;
+    }
+    const completed = {
+      ...graded,
+      id: session?.id ?? `practice-${Date.now()}`,
+      examId: activeExamId,
+      seed: quiz.seed,
+      selectionMode: activePracticeMode,
+      completionReason: effectiveCompletionReason,
+      bankVersion: "2026-09-04.3",
+    };
+    onComplete(completed);
+    setResult(completed);
+    clearSession();
+    setNotice(effectiveCompletionReason === "time-expired" ? t("timeExpired") : "");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function startFocusedQuiz() {
+    if (!result) return;
+    const resultQuestions = questionBank.filter((question) => question.examId === result.examId);
+    const resultAnswers = result.decisions.map((decision) => ({
+      questionId: decision.questionId,
+      selectedOptionId: decision.selectedOptionId,
+    }));
+    const seed = `focused:${result.examId}:${Date.now()}`;
+    const focusedQuestions = analyzePerformance(resultAnswers, resultQuestions);
+    const questions = createQuiz(focusedQuestions, { examId: result.examId, limit: 10, seed });
+    if (!questions.length) { setNotice(t("noQuestions")); return; }
+    submittedRef.current = false;
+    setResult(null);
+    setNotice("");
+    startSession({
+      questions,
+      durationSeconds: questions.length * EXAM_SECONDS_PER_QUESTION,
+      metadata: { examId: result.examId, seed, selectionMode: "performance-focus", bankVersion: "2026-09-04.3" },
+    });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  useEffect(() => {
+    if (quiz && isExpired && !result) completeQuiz("time-expired");
+  }, [isExpired, session?.id]);
+
+  if (!quiz && !result) {
+    return <div className="page-container question-bank-page"><SectionIntro eyebrow={t("questionBankEyebrow")} title={t("questionBankTitle")} body={t("questionBankBody")} />
+      <div className="exam-integrity-note" role="note"><ShieldCheck size={25} weight="duotone" aria-hidden="true" /><div><strong>{t("originalPracticeNotice")}</strong><p>{t("examNonAffiliation")}</p></div></div>
+      <section className="quiz-builder" aria-labelledby="quiz-builder-title"><div className="quiz-builder-heading"><div><p className="eyebrow">{t("practiceSet")}</p><h2 id="quiz-builder-title">{t("selectTrack")}</h2></div><AccessBadge t={t} /></div>
+        <fieldset className="exam-track-list"><legend className="sr-only">{t("selectTrack")}</legend>{examTracks.map((track) => <label key={track.id} className={examId === track.id ? "selected" : ""}><input type="radio" name="exam-track" value={track.id} checked={examId === track.id} onChange={() => { setExamId(track.id); setCategoryId("all"); setNotice(""); }} /><span className="track-check" aria-hidden="true">{examId === track.id ? <Check size={16} weight="bold" /> : null}</span><span><strong>{localize(track.shortLabel, lang)}</strong><small>{localize(track.description, lang)}</small></span></label>)}</fieldset>
+        <fieldset className="practice-mode-list"><legend>{t("practiceMode")}</legend><label className={practiceMode === "guided" ? "selected" : ""}><input type="radio" name="practice-mode" value="guided" checked={practiceMode === "guided"} onChange={() => { setPracticeMode("guided"); setNotice(""); }} /><Brain size={23} weight="duotone" aria-hidden="true" /><span><strong>{t("guidedPractice")}</strong><small>{t("guidedPracticeBody")}</small></span></label><label className={practiceMode === "manual" ? "selected" : ""}><input type="radio" name="practice-mode" value="manual" checked={practiceMode === "manual"} onChange={() => { setPracticeMode("manual"); setNotice(""); }} /><ClipboardText size={23} weight="duotone" aria-hidden="true" /><span><strong>{t("manualPractice")}</strong><small>{t("manualPracticeBody")}</small></span></label></fieldset>
+        {practiceMode === "guided" ? <div className="guided-plan-note" role="note"><Brain size={27} weight="fill" aria-hidden="true" /><div><strong>{t("guidedPractice")}</strong><p>{t(guidedPlanCopy[guidedPlan.mode])}</p>{guidedPlan.focusCategories.length ? <div className="guided-focus-list"><span>{t("currentFocus")}:</span>{guidedPlan.focusCategories.map((focus) => <b key={focus.categoryId}>{localize(focus.label, lang)}</b>)}</div> : null}<small>{t("guidedFixedSetNotice")}</small></div></div> : null}
+        <div className="quiz-filters"><label><span>{t("quizCategory")}</span><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="all">{t("allCategories")}</option>{categories.map((category) => <option key={category.id} value={category.id}>{localize(category.label, lang)}</option>)}</select></label><label><span>{t("quizDifficulty")}</span><select value={difficultyId} onChange={(event) => setDifficultyId(event.target.value)}><option value="all">{t("allDifficultyLevels")}</option>{examDifficulties.map((difficulty) => <option key={difficulty.id} value={difficulty.id}>{localize(difficulty.label, lang)}</option>)}</select></label><label><span>{t("quizSize")}</span><select value={limit} onChange={(event) => setLimit(Number(event.target.value))}>{[5, 10, 15].map((size) => <option key={size} value={size}>{formatNumber(size, lang)}</option>)}</select></label></div>
+        <div className="quiz-builder-footer"><p><strong>{formatNumber(availableCount, lang)}</strong> {t("questionsAvailable")}</p><button type="button" className="button button-primary" onClick={beginQuiz} disabled={availableCount === 0}><Play size={18} weight="fill" aria-hidden="true" />{t("beginQuiz")}</button></div>{notice ? <p className="form-notice" role="alert"><Warning size={18} weight="fill" />{notice}</p> : null}
+      </section>
+      <section className="exam-summary-strip"><div><ClipboardText size={27} weight="duotone" /><span>{t("setsCompleted")}</span><strong>{formatNumber(completedSets.length, lang)}</strong></div><div><Target size={27} weight="duotone" /><span>{t("questionsAnswered")}</span><strong>{formatNumber(completedSets.reduce((sum, attempt) => sum + attempt.answeredCount, 0), lang)}</strong></div><AppLink to="learning" className="inline-link">{t("continueLearning")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></section>
+    </div>;
+  }
+
+  if (result) {
+    const missed = result.decisions.filter((decision) => !decision.isCorrect);
+    return <div className="page-container quiz-result-page"><SectionIntro eyebrow={t("quizDebriefEyebrow")} title={t("quizDebriefTitle")} body={t("localExamProgressBody")} />{notice ? <p className="form-notice result-notice" role="status"><Clock size={18} weight="fill" />{notice}</p> : null}<section className="result-summary"><ScoreRing score={result.score} lang={lang} /><div className="result-primary"><span>{t("quizScore")}</span><h2>{formatNumber(Math.round(result.score), lang)}%</h2><p>{t("originalPracticeNotice")}</p></div><dl className="result-metrics"><div><dt>{t("correctAnswers")}</dt><dd>{formatNumber(result.correctCount, lang)} / {formatNumber(result.totalQuestionCount, lang)}</dd></div><div><dt>{t("selectTrack")}</dt><dd>{localize(examTracks.find((track) => track.id === result.examId)?.shortLabel, lang)}</dd></div></dl></section>
+      <section className="quiz-review"><div className="subsection-heading"><p className="eyebrow">{t("answerRationale")}</p><h2>{missed.length ? t("morePractice") : t("strongKnowledge")}</h2></div><div className="quiz-review-list">{result.decisions.map((decision, index) => { const question = questionBank.find((item) => item.id === decision.questionId); if (!question) return null; const DecisionIcon = decision.isCorrect ? CheckCircle : ShieldWarning; const responseLabel = decision.selectedOptionId === null ? t("unansweredAtTimeout") : t(decision.isCorrect ? "correctAnswer" : "incorrectAnswer"); return <article key={decision.questionId} className={decision.isCorrect ? "correct" : "incorrect"}><span className="review-number">{formatNumber(index + 1, lang)}</span><div><p>{localize(question.topic, lang)}</p><h3>{localize(question.stem, lang)}</h3><strong><DecisionIcon size={18} weight="fill" />{responseLabel}</strong><p>{localize(question.rationale, lang)}</p></div></article>; })}</div></section>
+      <section className="focused-followup" aria-labelledby="focused-followup-title"><Brain size={30} weight="duotone" aria-hidden="true" /><div><h2 id="focused-followup-title">{t("focusedPracticeTitle")}</h2><p>{t("focusedPracticeBody")}</p></div><button type="button" className="button button-primary" onClick={startFocusedQuiz}>{t("startFocusedSet")}</button></section>
+      <div className="debrief-actions"><button type="button" className="button button-secondary" onClick={resetQuiz}><Exam size={18} weight="duotone" />{t("restartQuiz")}</button><AppLink to="learning" className="button button-secondary">{t("continueLearning")}</AppLink></div><p className="exam-legal-line">{t("examNonAffiliation")}</p>
+    </div>;
+  }
+
+  const sourceSet = currentQuestion.referenceIds.map((id) => allQuestionReferences.find((reference) => reference.id === id)).filter(Boolean);
+  const percentage = Math.round(((quiz.index + 1) / quiz.questions.length) * 100);
+
+  function lockAnswer() {
+    if (!selectedAnswerId) { setNotice(t("selectOneAnswer")); return; }
+    lockCurrentAnswer();
+    setNotice("");
+  }
+
+  function advanceQuestion() {
+    if (!isCurrentAnswerLocked) return;
+    if (quiz.index < quiz.questions.length - 1) {
+      goToNextQuestion();
+      setNotice("");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    completeQuiz("completed");
+  }
+
+  return <div className="page-container active-quiz-page"><div className="active-quiz-top"><div><span className="simulation-badge"><ClipboardText size={18} weight="bold" />{localize(examTracks.find((track) => track.id === activeExamId)?.shortLabel, lang)}</span><AccessBadge t={t} /></div><div className={`exam-timer ${remainingSeconds <= 60 ? "urgent" : ""}`} aria-live="off"><span><Clock size={19} weight="duotone" />{t("timeRemaining")}</span><strong>{formatCountdown(remainingSeconds, lang)}</strong><small>{t("sessionSaved")}</small></div><div className="quiz-progress-copy"><strong>{t("question")} {formatNumber(quiz.index + 1, lang)} {t("of")} {formatNumber(quiz.questions.length, lang)}</strong><span>{formatNumber(percentage, lang)}%</span></div><div className="progress-meter" role="progressbar" aria-label={t("quizProgress")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percentage}><span style={{ width: `${percentage}%` }} /></div></div>
+    <ExamQuestion question={currentQuestion} questionNumber={quiz.index + 1} language={lang} translate={t} selectedOptionId={selectedAnswerId} locked={isCurrentAnswerLocked} notice={notice} sources={sourceSet} isLastQuestion={quiz.index === quiz.questions.length - 1} onSelect={(optionId) => { selectAnswer(optionId); setNotice(""); }} onPrimaryAction={isCurrentAnswerLocked ? advanceQuestion : lockAnswer} />
+    <p className="exam-legal-line">{t("examNonAffiliation")}</p>
+  </div>;
+}
+
+function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart }) {
+  const [historyCleared, setHistoryCleared] = useState(false);
+  const completedAttempts = profile.attempts.filter((item) => item.isComplete);
+  const completedExamAttempts = examProfile.attempts.filter((item) => item.isComplete);
+  const examInsights = getQuestionCategoryInsights(completedExamAttempts, examCategories).filter((insight) => insight.answeredCount > 0);
+  const examQuestionCount = completedExamAttempts.reduce((sum, attempt) => sum + attempt.answeredCount, 0);
+  const completedCount = getCompletedScenarioCount(profile);
+  const average = completedAttempts.length ? completedAttempts.reduce((sum, item) => sum + item.score, 0) / completedAttempts.length : 0;
+  const insights = getCompetencyInsights(profile, scenarios);
+  const [topScenarioRecommendation] = getScenarioRecommendations(profile, scenarios, { limit: 1 });
+  const suggestedScenario = scenarios.find((scenario) => scenario.id === topScenarioRecommendation?.scenarioId);
+  const guidedQuestionPlan = getGuidedQuestionPlan(completedExamAttempts, examCategories, "all");
+  const latestAttempts = [];
+  const seenScenarioIds = new Set();
+  for (let index = completedAttempts.length - 1; index >= 0; index -= 1) {
+    const attempt = completedAttempts[index];
+    if (!seenScenarioIds.has(attempt.scenarioId)) {
+      seenScenarioIds.add(attempt.scenarioId);
+      latestAttempts.push(attempt);
+    }
+  }
+  const statusCopy = { "insufficient-data": "insightInsufficient", weakness: "insightWeakness", developing: "insightDeveloping", strength: "insightStrength" };
+  const examStatusCopy = { "insufficient-data": "insightInsufficient", review: "morePractice", developing: "developingKnowledge", strength: "strongKnowledge" };
+  function clearHistory() {
+    if (!window.confirm(t("clearHistoryConfirm"))) return;
+    onClearHistory();
+    setHistoryCleared(true);
+  }
+  return <div className="page-container learning-page"><SectionIntro eyebrow={t("learningEyebrow")} title={t("learningTitle")} body={t("learningBody")} />
+    <section className="dashboard-metrics"><div><CheckCircle size={30} weight="duotone" /><span>{t("scenariosCompleted")}</span><strong>{formatNumber(completedCount, lang)} / {formatNumber(scenarios.length, lang)}</strong></div><div><ClipboardText size={30} weight="duotone" /><span>{t("totalAttempts")}</span><strong>{formatNumber(completedAttempts.length, lang)}</strong></div><div><Medal size={30} weight="duotone" /><span>{t("averageScore")}</span><strong>{completedAttempts.length ? `${formatNumber(Math.round(average), lang)}%` : "—"}</strong></div></section>
+    <section className="adaptive-next-panel" aria-labelledby="adaptive-next-title"><Brain size={36} weight="duotone" aria-hidden="true" /><div><p className="eyebrow">{t("guidedPractice")}</p><h2 id="adaptive-next-title">{t("adaptiveLearningTitle")}</h2><p>{t("adaptiveLearningBody")}</p>{suggestedScenario && topScenarioRecommendation ? <strong>{t(scenarioRecommendationCopy[topScenarioRecommendation.reason])}: {localize(suggestedScenario.title, lang)}</strong> : null}{guidedQuestionPlan.focusCategories.length ? <div className="guided-focus-list"><span>{t("currentFocus")}:</span>{guidedQuestionPlan.focusCategories.map((focus) => <b key={`${focus.examId}:${focus.categoryId}`}>{localize(focus.label, lang)}</b>)}</div> : null}</div><div className="adaptive-next-actions">{suggestedScenario ? <button type="button" className="button button-primary" onClick={() => onStart(suggestedScenario.id)}>{t("openRecommendedScenario")}</button> : null}<AppLink to="questions" className="button button-secondary">{t("startGuidedQuestions")}</AppLink></div></section>
+    {!completedAttempts.length ? <div className="empty-learning"><GraduationCap size={49} weight="duotone" /><div><h2>{t("emptyLearning")}</h2><AppLink to="scenarios" className="button button-primary">{t("chooseFirstScenario")}</AppLink></div></div> : null}
+    <section className="exam-learning-section"><div className="subsection-heading split-heading"><div><p className="eyebrow">{t("questionBankEyebrow")}</p><h2>{t("localExamProgress")}</h2></div><p>{t("localExamProgressBody")}</p></div><div className="exam-learning-metrics"><div><ClipboardText size={28} weight="duotone" /><span>{t("setsCompleted")}</span><strong>{formatNumber(completedExamAttempts.length, lang)}</strong></div><div><Target size={28} weight="duotone" /><span>{t("questionsAnswered")}</span><strong>{formatNumber(examQuestionCount, lang)}</strong></div><AppLink to="questions" className="button button-secondary">{t("viewQuestionBank")}</AppLink></div>
+      {!completedExamAttempts.length ? <div className="exam-empty"><Exam size={35} weight="duotone" /><p>{t("noExamAttempts")}</p></div> : <><p className="exam-evidence-note"><Info size={18} weight="fill" />{t("categoryEvidenceBody")}</p><ul className="exam-insight-list" aria-label={t("categoryInsights")}>{examInsights.map((insight) => <li key={`${insight.examId}:${insight.categoryId}`}><div><span>{localize(examTracks.find((track) => track.id === insight.examId)?.shortLabel, lang)}</span><strong>{localize(insight.label, lang)}</strong><small>{formatNumber(insight.uniqueQuestionCount, lang)} {t("uniqueItems")} · {formatNumber(insight.completedSetCount, lang)} {t("completedSetsEvidence")}</small></div><div className="insight-score"><strong>{insight.score === null ? "—" : `${formatNumber(Math.round(insight.score), lang)}%`}</strong><span className={`insight-status ${insight.status === "review" ? "weakness" : insight.status}`}>{t(examStatusCopy[insight.status])}</span></div></li>)}</ul></>}
+    </section>
+    <section className="insights-section"><div className="subsection-heading split-heading"><div><p className="eyebrow">{t("competencies")}</p><h2>{t("competencyMap")}</h2></div><p>{t("competencyBody")}</p></div><ul className="insight-table" aria-label={t("competencyMap")}>{insights.map((insight) => <li className="insight-row" key={insight.competency}><div className="insight-label"><span className={`status-dot ${insight.status}`} /><div><strong>{localize(insight.label, lang)}</strong><small>{formatNumber(insight.decisionCount, lang)} {t("observations")} · {t("across")} {formatNumber(insight.scenarioCount, lang)} {insight.scenarioCount === 1 ? t("caseSingular") : t("casesPlural")}</small></div></div><div className="insight-score"><strong>{insight.score === null ? "—" : `${formatNumber(Math.round(insight.score), lang)}%`}</strong><span className={`insight-status ${insight.status}`}>{t(statusCopy[insight.status])}</span></div>{insight.criticalUnsafeCount > 0 ? <p className="insight-alert"><ShieldWarning size={16} weight="fill" />{t("safetyReviewNeeded")}</p> : null}</li>)}</ul></section>
+    {latestAttempts.length ? <section className="attempts-section"><div className="subsection-heading"><p className="eyebrow">{t("scenario")}</p><h2>{t("attemptsHistory")}</h2></div><div className="attempt-list">{latestAttempts.map((attempt) => { const scenario = scenarios.find((item) => item.id === attempt.scenarioId); return <div className="attempt-row" key={attempt.scenarioId}><div><span>{localize(scenario?.department, lang)}</span><h3>{localize(scenario?.title, lang)}</h3></div><strong>{formatNumber(Math.round(attempt.score), lang)}%</strong><AppLink to={`result/${attempt.scenarioId}`} className="inline-link">{t("review")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></div>; })}</div></section> : null}
+    <section className="local-profile-note"><Database size={31} weight="duotone" /><div><h2>{t("localStorageTitle")}</h2><p>{t("localStorageBody")}</p>{historyCleared ? <p className="clear-history-status" role="status">{t("historyCleared")}</p> : null}</div><button type="button" className="button clear-history-button" onClick={clearHistory} disabled={!profile.attempts.length && !examProfile.attempts.length}><Trash size={17} aria-hidden="true" />{t("clearHistory")}</button></section><p className="exam-legal-line">{t("examNonAffiliation")}</p>
+  </div>;
+}
+
+function ReferencesPage({ lang, t }) {
+  return <div className="page-container references-page"><SectionIntro eyebrow={t("referencesEyebrow")} title={t("referencesTitle")} body={t("referencesBody")} /><div className="reference-callout"><ShieldCheck size={30} weight="duotone" /><p>{t("localProtocol")}</p></div><div className="source-rows">{allQuestionReferences.map((reference) => <article className="full-source-row" key={reference.id}><div className="source-year">{reference.year}</div><div className="source-details"><span>{localize(reference.organization, lang)}</span><h2>{localize(reference.title, lang)}</h2><details><summary>{t("accessNote")}</summary><p>{localize(reference.accessNote, lang)}</p><p>{localize(reference.licensingNote, lang)}</p></details></div><a href={reference.url} target="_blank" rel="noopener noreferrer nofollow" className="button button-secondary source-link"><span>{t("source")}</span><ArrowSquareOut size={18} /><span className="sr-only">{t("opensNewTab")}</span></a></article>)}</div><p className="exam-legal-line">{t("examNonAffiliation")}</p></div>;
+}
+
+function PolicyPage({ kind, lang, t }) {
+  const page = POLICY_PAGES[lang]?.[kind] ?? POLICY_PAGES.en[kind];
+  return <div className="page-container policy-page"><SectionIntro eyebrow={page.eyebrow} title={page.title} body={page.lead} />
+    <div className="policy-meta"><Clock size={18} weight="duotone" aria-hidden="true" /><span>{page.effective}</span></div>
+    <div className={`policy-warning ${kind === "contact" ? "launch-blocker" : ""}`} role="note"><ShieldWarning size={25} weight="fill" aria-hidden="true" /><p>{page.warning}</p></div>
+    <div className="policy-sections">{page.sections.map((section) => <section key={section.title}><h2>{section.title}</h2><p>{section.body}</p></section>)}</div>
+    <p className="exam-legal-line">{t("examNonAffiliation")}</p>
+  </div>;
+}
+
+function AboutPage({ t }) {
+  return <div className="page-container about-page"><SectionIntro eyebrow={t("aboutEyebrow")} title={t("aboutTitle")} body={t("aboutLead")} /><div className="about-grid"><section><Target size={29} weight="duotone" /><div><h2>{t("purpose")}</h2><p>{t("purposeBody")}</p></div></section><section><Brain size={29} weight="duotone" /><div><h2>{t("method")}</h2><p>{t("methodBody")}</p></div></section><section><ShieldWarning size={29} weight="duotone" /><div><h2>{t("boundaries")}</h2><p>{t("boundariesBody")}</p></div></section><section><LockKey size={29} weight="duotone" /><div><h2>{t("accountModel")}</h2><p>{t("accountModelBody")}</p></div></section></div><section className="editorial-band"><div><p className="eyebrow">{t("resources")}</p><h2>{t("editorial")}</h2></div><p>{t("editorialBody")}</p></section><p className="exam-legal-line">{t("examNonAffiliation")}</p></div>;
+}
+
+function AccessBadge({ future = false, t }) {
+  return <span className={`access-badge ${future ? "future" : "free"}`}>{future ? <Clock size={14} weight="bold" aria-hidden="true" /> : <CheckCircle size={14} weight="fill" aria-hidden="true" />}{t(future ? "futureMembership" : "freeAccess")}</span>;
+}
+
+function MembershipPage({ t }) {
+  const plans = [
+    { id: "free", title: "freePlan", body: "freePlanBody", icon: Globe, future: false, features: ["freeFeatureOne", "freeFeatureTwo", "freeFeatureThree"] },
+    { id: "saudi-nursing", title: "saudiNursingPlan", body: "saudiNursingPlanBody", icon: Exam, future: true, features: ["plannedFeatureOne", "plannedFeatureTwo"] },
+    { id: "international", title: "internationalRnPlan", body: "internationalRnPlanBody", icon: GraduationCap, future: true, features: ["plannedFeatureOne", "plannedFeatureTwo"] },
+    { id: "computerized", title: "computerizedPlan", body: "computerizedPlanBody", icon: ClipboardText, future: true, features: ["plannedFeatureOne", "plannedFeatureTwo"] },
+    { id: "institutional", title: "institutionalPlan", body: "institutionalPlanBody", icon: Hospital, future: true, features: ["plannedFeatureThree"] },
+  ];
+  return <div className="page-container plans-page"><SectionIntro eyebrow={t("plansEyebrow")} title={t("plansTitle")} body={t("plansBody")} /><div className="plans-list">{plans.map((plan) => { const Icon = plan.icon; return <section className={`plan-row ${plan.future ? "future" : "current"}`} key={plan.id} aria-labelledby={`plan-${plan.id}`}><div className="plan-icon"><Icon size={31} weight="duotone" aria-hidden="true" /></div><div className="plan-main"><div className="plan-heading"><h2 id={`plan-${plan.id}`}>{t(plan.title)}</h2><AccessBadge future={plan.future} t={t} /></div><p>{t(plan.body)}</p></div><div className="plan-includes"><strong>{t(plan.future ? "plannedInactive" : "currentIncludes")}</strong><ul>{plan.features.map((feature) => <li key={feature}><Check size={15} weight="bold" aria-hidden="true" />{t(feature)}</li>)}</ul></div></section>; })}</div><div className="no-checkout-note" role="note"><ShieldWarning size={25} weight="fill" aria-hidden="true" /><p>{t("noCheckout")}</p></div><p className="exam-legal-line">{t("examNonAffiliation")}</p></div>;
+}
+
+function Footer({ lang, t }) {
+  return <footer className="site-footer"><div><span className="footer-mark"><Heartbeat size={23} /></span><p>© 2026 Abdulkarim alhejaili</p></div><p className="footer-tagline">{PRODUCT_NAME[lang]} · {t("footerLine")}</p><nav aria-label={lang === "ar" ? "روابط التذييل" : "Footer links"}><AppLink to="resources">{t("resources")}</AppLink><AppLink to="privacy">{t("privacy")}</AppLink><AppLink to="terms">{t("terms")}</AppLink><AppLink to="contact">{t("contact")}</AppLink></nav></footer>;
+}
+
+export function App() {
+  const [profile, setProfile] = useState(readProfile);
+  const [examProfile, setExamProfile] = useState(readExamProfile);
+  const [lang, setLang] = useState(() => profile.language || "en");
+  const [route, setRoute] = useState(() => parseRoute());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [session, setSession] = useState(() => createScenarioSession());
+  const mainRef = useRef(null);
+  const t = (key) => copy[lang][key] || copy.en[key] || key;
+  useEffect(() => {
+    const onHashChange = () => {
+      setRoute(parseRoute());
+      setMenuOpen(false);
+    };
+    if (!window.location.hash) window.history.replaceState(null, "", "#/home");
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      mainRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [route.page, route.id]);
+  useEffect(() => { document.documentElement.lang = lang; document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"; document.title = `${PRODUCT_NAME[lang]} · ${t(routeSection(route))}`; }, [lang, route]);
+  function setLanguage(next) { setLang(next); setProfile((current) => { const updated = { ...current, language: next }; persistProfile(updated); return updated; }); }
+  function startScenario(id) { setSession(createScenarioSession(id, profile.attempts.length + 1)); window.location.hash = `#/scenario/${id}`; }
+  function completeScenario(scenario, answers) { const attempt = gradeAttempt(scenario, answers); if (!attempt.isComplete) return false; setProfile((current) => { const updated = mergeAttempt(current, attempt); persistProfile(updated); return updated; }); window.location.hash = `#/result/${scenario.id}`; return true; }
+  function completeQuestionSet(attempt) { setExamProfile((current) => { const withoutDuplicate = current.attempts.filter((item) => item.id !== attempt.id); const updated = { schemaVersion: EXAM_PROFILE_VERSION, attempts: [...withoutDuplicate, attempt].slice(-100) }; persistExamProfile(updated); return updated; }); }
+  function clearLearningHistory() {
+    const clearedProfile = createEmptyProfile("", lang);
+    try { window.localStorage.removeItem(PROFILE_STORAGE_KEY); } catch { /* In-memory clearing still works. */ }
+    try { window.localStorage.removeItem(EXAM_STORAGE_KEY); } catch { /* In-memory clearing still works. */ }
+    try { window.localStorage.removeItem(EXAM_SESSION_STORAGE_KEY); } catch { /* In-memory clearing still works. */ }
+    persistProfile(clearedProfile);
+    setProfile(clearedProfile);
+    setExamProfile(createEmptyExamProfile());
+    setSession(createScenarioSession());
+  }
+  let page;
+  if (route.page === "scenarios") page = <ScenarioLibrary lang={lang} t={t} profile={profile} onStart={startScenario} />;
+  else if (route.page === "scenario") page = <ScenarioPage scenarioId={route.id} lang={lang} t={t} session={session} setSession={setSession} onComplete={completeScenario} />;
+  else if (route.page === "result") page = <ResultPage scenarioId={route.id} lang={lang} t={t} profile={profile} onStart={startScenario} />;
+  else if (route.page === "questions") page = <QuestionBankPage lang={lang} t={t} examProfile={examProfile} onComplete={completeQuestionSet} />;
+  else if (route.page === "learning") page = <LearningPage lang={lang} t={t} profile={profile} examProfile={examProfile} onClearHistory={clearLearningHistory} onStart={startScenario} />;
+  else if (route.page === "resources") page = <ReferencesPage lang={lang} t={t} />;
+  else if (route.page === "membership") page = <MembershipPage t={t} />;
+  else if (route.page === "about") page = <AboutPage t={t} />;
+  else if (route.page === "privacy") page = <PolicyPage kind="privacy" lang={lang} t={t} />;
+  else if (route.page === "terms") page = <PolicyPage kind="terms" lang={lang} t={t} />;
+  else if (route.page === "contact") page = <PolicyPage kind="contact" lang={lang} t={t} />;
+  else page = <HomePage lang={lang} t={t} onStart={startScenario} profile={profile} />;
+  return <div className="app-shell"><Header lang={lang} setLanguage={setLanguage} route={route} menuOpen={menuOpen} setMenuOpen={setMenuOpen} t={t} /><main id="main-content" ref={mainRef} tabIndex="-1">{page}</main><Footer lang={lang} t={t} /></div>;
+}
