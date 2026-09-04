@@ -7,14 +7,15 @@
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test": "node --test tests/learning-engine.test.mjs tests/scenarios.test.mjs tests/question-bank.test.mjs tests/exam-session.test.mjs",
+    "test": "node --test tests/learning-engine.test.mjs tests/scenarios.test.mjs tests/question-bank.test.mjs tests/exam-session.test.mjs tests/progress-repository.test.mjs tests/supabase-security.test.mjs",
     "test:sites": "node --test tests/sites-worker.test.mjs",
-    "check": "npm run test && npm run build && npm run test:sites"
+    "check": "pnpm test && pnpm build && pnpm test:sites"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.115.0",
     "@vitejs/plugin-react": "5.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",

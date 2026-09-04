@@ -30,6 +30,11 @@ function sanitizeIdentifier(value) {
   return SAFE_IDENTIFIER.test(trimmed) ? trimmed : "";
 }
 
+function sanitizeTimestamp(value) {
+  if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return "";
+  return new Date(value).toISOString();
+}
+
 function sanitizeLabel(value, fallback) {
   const safeFallback = sanitizeName(fallback) || "Competency";
   if (!isRecord(value)) {
@@ -229,7 +234,14 @@ function sanitizeAttempt(value) {
   const totalDecisionCount = Math.max(decisions.length, Math.min(MAX_DECISIONS_PER_ATTEMPT, requestedTotal));
   const isComplete = value.isComplete === true && totalDecisionCount > 0 && decisions.length === totalDecisionCount;
 
-  return summarizeAttempt(scenarioId, decisions, totalDecisionCount, isComplete);
+  const summary = summarizeAttempt(scenarioId, decisions, totalDecisionCount, isComplete);
+  const id = sanitizeIdentifier(value.id);
+  const completedAt = sanitizeTimestamp(value.completedAt);
+  return {
+    ...summary,
+    ...(id ? { id } : {}),
+    ...(completedAt ? { completedAt } : {}),
+  };
 }
 
 function normalizeProfile(value) {
@@ -301,7 +313,10 @@ export function gradeAttempt(scenario, answers = {}) {
 
   const totalDecisionCount = steps.length;
   const isComplete = totalDecisionCount > 0 && decisions.length === totalDecisionCount;
-  return summarizeAttempt(scenarioId, decisions, totalDecisionCount, isComplete, unansweredStepIds);
+  return {
+    ...summarizeAttempt(scenarioId, decisions, totalDecisionCount, isComplete, unansweredStepIds),
+    contentVersion: sanitizeIdentifier(scenario?.contentVersion) || "legacy",
+  };
 }
 
 /** Adds one sanitized attempt to a new profile object. The input profile is not mutated. */
@@ -349,7 +364,13 @@ export function revalidateProfile(profile, scenarios = []) {
       attempt.decisions.map((decision) => [decision.stepId, decision.choiceId]),
     );
     const rebuilt = gradeAttempt(scenario, answers);
-    if (rebuilt.answeredDecisionCount > 0) attempts.push(rebuilt);
+    if (rebuilt.answeredDecisionCount > 0) {
+      attempts.push({
+        ...rebuilt,
+        ...(attempt.id ? { id: attempt.id } : {}),
+        ...(attempt.completedAt ? { completedAt: attempt.completedAt } : {}),
+      });
+    }
   }
 
   return { ...safeProfile, attempts };

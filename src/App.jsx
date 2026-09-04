@@ -54,6 +54,7 @@ import {
   gradeQuiz,
 } from "./lib/question-engine.js";
 import { ExamQuestion } from "./components/ExamQuestion.jsx";
+import { AccountPanel } from "./components/AccountPanel.jsx";
 import {
   getConfirmedAnswers,
   isExamSessionExpired,
@@ -70,23 +71,64 @@ import {
   revalidateProfile,
   serializeProfile,
 } from "./lib/learning-engine.js";
+import { LOCAL_HISTORY_CLAIM_KEY, useAuthSession } from "./hooks/useAuthSession.js";
+import {
+  addScenarioAttemptMetadata,
+  deleteCloudLearningHistory,
+  ensureScenarioAttemptMetadata,
+  retainAttemptsAfterHistoryClear,
+  saveLearningAttempt,
+  selectOwnedEntitlement,
+  splitLearningRecords,
+  syncLearningHistory,
+  updateCloudLanguage,
+} from "./lib/progress-repository.js";
 
 const PROFILE_STORAGE_KEY = "nursing-hypotheses.learning-profile.v1";
 const EXAM_STORAGE_KEY = "nursing-hypotheses.exam-profile.v1";
 const EXAM_SESSION_STORAGE_KEY = "nursing-hypotheses.active-exam-session.v1";
+const CACHE_OWNER_STORAGE_KEY = "nursing-hypotheses.cache-owner.v1";
 const EXAM_PROFILE_VERSION = 1;
 const EXAM_SECONDS_PER_QUESTION = 90;
 const PRODUCT_NAME = { en: "Nursing Hypotheses", ar: "فرضيات تمريضية" };
 
+function examSessionStorageKey(userId) {
+  return userId ? `${EXAM_SESSION_STORAGE_KEY}.${userId}` : EXAM_SESSION_STORAGE_KEY;
+}
+
+function consumeLocalHistoryClaim(userId) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_HISTORY_CLAIM_KEY) ?? "null");
+    const isFresh = Number.isFinite(parsed?.createdAt) && Date.now() - parsed.createdAt < 24 * 60 * 60 * 1000;
+    if (!isFresh) {
+      window.localStorage.removeItem(LOCAL_HISTORY_CLAIM_KEY);
+      return false;
+    }
+    if (parsed.userId !== userId) return false;
+    window.localStorage.removeItem(LOCAL_HISTORY_CLAIM_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function profileStorageKeyForUser(userId) {
+  return `${PROFILE_STORAGE_KEY}.user.${userId}`;
+}
+
+function examProfileStorageKeyForUser(userId) {
+  return `${EXAM_STORAGE_KEY}.user.${userId}`;
+}
+
 const copy = {
   en: {
     skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", learning: "My learning", resources: "References", membership: "Membership", about: "About",
-    menu: "Open navigation", closeMenu: "Close navigation", language: "Language", learner: "Learner 01", localProfile: "Local demo profile", localProfileShort: "Local only",
+    menu: "Open navigation", closeMenu: "Close navigation", language: "Language", learner: "Learning account", localProfile: "Learning profile", localProfileShort: "Account",
     privacyStrip: "Draft content pending clinical, legal and Arabic review. Fictional education only — not patient care or emergency use. Never enter patient data; follow local policy.",
     simulation: "Educational simulation", eyebrow: "Clinical judgement, practised safely", heroTitle: "Learn to notice what matters — before the next decision.",
     heroBody: "Branching nursing scenarios for emergency, ward, paediatric, maternity and critical-care decisions. Every choice is explained in Arabic and English and linked to authoritative guidance.",
     explore: "Explore scenarios", continueLearning: "View my learning", evidenceLed: "Scenario-level evidence", evidenceLedBody: "Each scenario names the versioned source set used to author it.",
-    bilingual: "Truly bilingual", bilingualBody: "Switch the complete experience without losing your place.", privateDemo: "Private by design", privateDemoBody: "Only minimal learning progress is kept in this browser.",
+    bilingual: "Truly bilingual", bilingualBody: "Switch the complete experience without losing your place.", privateDemo: "Private by design", privateDemoBody: "Use device-only progress or sign in to sync minimal completed learning records.",
     scenariosCount: "authored scenarios", practiceContexts: "practice contexts", departmentsCount: "clinical areas", referencesCount: "authoritative sources", startFeatured: "Start featured case", featured: "Featured simulation", featuredKicker: "Emergency Department · 12 min",
     featuredBody: "An older adult arrives breathless. Prioritise assessment, recognise deterioration and deliver a safe handover through six decisions.",
     sourceSet: "Scenario-level source set", opensNewTab: "Opens in a new tab", scenarioNotFound: "This scenario could not be found.",
@@ -104,40 +146,40 @@ const copy = {
     debriefEyebrow: "Scenario debrief", debriefTitle: "Review the decisions, not just the number", score: "Learning score", answered: "Decisions answered", safetyFlags: "Safety flags", band: "Learning reflection",
     strongFoundation: "Higher score in this attempt", progressing: "Mid-range score in this attempt", guidedReview: "Lower score in this attempt", safetyReview: "Safety choices to review", notStarted: "Not started", decisionReview: "Decision-by-decision review",
     yourChoice: "Your choice", points: "points", evidenceForCase: "Evidence used for this case", backLibrary: "Back to scenarios", tryAgain: "Try this scenario again",
-    noAttempt: "No completed attempt was found for this scenario in this browser.", openScenario: "Open scenario",
-    learningEyebrow: "Local learning profile", learningTitle: "See your practice pattern", learningBody: "Your dashboard summarises completed fictional scenarios and highlights where more practice may help. It never certifies competence.",
+    noAttempt: "No completed attempt was found for this scenario in your current learning profile.", openScenario: "Open scenario",
+    learningEyebrow: "Your learning profile", learningTitle: "See your practice pattern", learningBody: "Your dashboard summarises completed fictional scenarios and highlights where more practice may help. Sign in to sync completed attempts across devices. It never certifies competence.",
     scenariosCompleted: "Unique scenarios completed", totalAttempts: "Completed attempts", averageScore: "Average learning score", competencyMap: "Learning insights",
     competencyBody: "A weakness label appears only after at least three decisions across two scenarios. Until then, the dashboard asks for more evidence.",
     insightInsufficient: "More evidence needed", insightWeakness: "Lower accuracy in this sample", insightDeveloping: "Mixed performance in this sample", insightStrength: "Higher accuracy in this sample", observations: "observations", across: "across", caseSingular: "scenario", casesPlural: "scenarios",
     safetyReviewNeeded: "Contains a safety-critical choice for review.", attemptsHistory: "Latest scenario results", review: "Review", emptyLearning: "Your learning dashboard will populate after your first completed scenario.", chooseFirstScenario: "Choose your first scenario",
-    localStorageTitle: "About this local profile", localStorageBody: "This prototype stores your selected language, minimal learning-history summaries and any active timed-question session in this browser: identifiers, selected options, question order and an absolute timer deadline plus recomputed scores and learning domains. Guided recommendations are derived locally from that activity. Storage is unencrypted, unsafe on shared devices and not synced. It collects no email, real name or free-text response.",
-    clearHistory: "Clear learning history", clearHistoryConfirm: "Clear all completed learning attempts stored in this browser? Your selected language will be kept.", historyCleared: "Learning history cleared. Your language preference was kept.",
+    localStorageTitle: "How progress is stored", localStorageBody: "This browser keeps a local cache of your language, completed learning identifiers and active timed-question session. When you sign in, completed attempt identifiers and selected options sync to your private account; scores and learning signals are recalculated from the current authored bank. No patient data or free-text clinical response belongs here. Sign out before leaving a shared device.",
+    clearHistory: "Clear learning history", clearHistoryConfirm: "Clear all completed learning attempts from this device and, when signed in, from your learning account? Your selected language and active practice sessions will be kept.", historyCleared: "Learning history cleared. Your language preference and active practice sessions were kept.", historyClearPending: "Learning history is being cleared. Your active practice is preserved; try finishing again in a moment.",
     questionBankEyebrow: "Independent nursing licensure practice", questionBankTitle: "Computer-based practice with transparent reasoning", questionBankBody: "Choose a nursing study path, then use guided practice or build your own fixed set. Every independently authored item includes bilingual reasoning and clinical sources.",
     selectTrack: "Study path", quizCategory: "Learning domain", quizDifficulty: "Difficulty", allCategories: "All learning domains", quizSize: "Questions", beginQuiz: "Begin practice", restartQuiz: "Start a new set", noQuestions: "No questions match these filters. Change a filter and try again.", noFreshGuidedQuestions: "You have completed every new question available for these filters. Change a filter or use manual practice to revisit authored items.",
     practiceMode: "Practice mode", guidedPractice: "Guided practice", guidedPracticeBody: "Builds one fixed set before you begin, weighting lower-accuracy domains while protecting variety and unseen questions.", manualPractice: "Build my own set", manualPracticeBody: "Uses only the study path, domain, difficulty and size you choose.", guidedPlanBaseline: "No completed evidence yet. This set will sample broadly to build a starting baseline.", guidedPlanEvidence: "The evidence is still limited. This set favours unseen questions and broader coverage before calling anything a weakness.", guidedPlanReview: "This set will increase practice in lower-accuracy domains supported by enough completed evidence.", guidedPlanDevelopment: "This set adds more practice in mixed-performance domains while keeping other areas in the rotation.", currentFocus: "Current guided focus", guidedFixedSetNotice: "Guided practice creates a fixed set before it starts. It is not computerized adaptive testing and does not estimate exam readiness.",
     question: "Question", selectOneAnswer: "Select one answer before locking it.", lockAnswer: "Lock answer", nextQuestion: "Next question", finishQuiz: "Finish and review", correctAnswer: "Correct response", incorrectAnswer: "Review this response", unansweredAtTimeout: "Unanswered when time ended", answerLocked: "Answer locked", answerRationale: "Answer rationale", questionSources: "Sources for this item", timeRemaining: "Time remaining", timeExpired: "Time ended — the set was submitted with unanswered items marked incorrect.", sessionSaved: "Progress and the absolute deadline are saved in this browser, so refreshing does not restart the timer.", focusedPracticeTitle: "10-question focused follow-up", focusedPracticeBody: "This new set starts with the lowest-scoring learning domains from this completed attempt and favours questions you have not just answered.", startFocusedSet: "Start focused set",
-    quizProgress: "Question progress", quizScore: "Practice score", correctAnswers: "Correct answers", quizDebriefEyebrow: "Question-bank debrief", quizDebriefTitle: "Review what you understood and what to revisit", quizIncomplete: "Complete the current question set to see its debrief.", localExamProgress: "Local question practice", localExamProgressBody: "Completed question sets are summarised in this browser only. Scores describe this sample and do not predict an examination result, licensure or professional competence.", setsCompleted: "Completed sets", questionsAnswered: "Questions answered", categoryInsights: "Learning-domain review", morePractice: "Lower accuracy in this sample", developingKnowledge: "Mixed performance in this sample", strongKnowledge: "Higher accuracy in this sample", noExamAttempts: "Your first completed question set will appear here.",
-    originalPracticeNotice: "Independent original practice only. No recalled, secure or official examination items are used, and scores do not predict an examination result, licensure or competence.", allDifficultyLevels: "All levels", questionsAvailable: "questions available", practiceSet: "Practice set", newVariation: "New variation", viewQuestionBank: "Open question bank", uniqueItems: "unique questions", completedSetsEvidence: "completed sets", earlyIndicator: "Early learning indicator", categoryEvidenceBody: "A learning-domain signal appears only after at least three unique questions across two completed sets. It describes this sample only.", contextVariant: "Practice context", contextDetails: "Context details", contextVariantNote: "Context changes presentation only; the draft clinical cues, scoring and safest response do not change.", guidedScenarioTitle: "Guided scenario order", guidedScenarioBody: "Completed decisions reorder the library so relevant lower-scoring or safety-flagged learning domains appear more often near the top. New scenarios remain in the mix.", recommendedNext: "Recommended next", recommendationExplore: "Broaden the baseline", recommendationEvidence: "Gather more evidence", recommendationDevelopment: "Practise mixed-performance areas", recommendationReview: "Revisit a lower-accuracy area", recommendationSafety: "Review a safety-critical choice", adaptiveLearningTitle: "Suggested next practice", adaptiveLearningBody: "These suggestions use only completed activity stored in this browser. They guide practice; they do not measure competence or predict an examination result.", openRecommendedScenario: "Open suggested scenario", startGuidedQuestions: "Start guided questions", examNonAffiliation: "Nursing Hypotheses is an independently developed educational resource. It is not issued, sponsored, endorsed, approved or administered by any nursing regulator, examination owner or test-delivery provider. It contains no recalled or secure examination items. Practice scores describe performance only in this question set and do not predict examination results, licensure or professional competence.",
+    quizProgress: "Question progress", quizScore: "Practice score", correctAnswers: "Correct answers", quizDebriefEyebrow: "Question-bank debrief", quizDebriefTitle: "Review what you understood and what to revisit", quizIncomplete: "Complete the current question set to see its debrief.", localExamProgress: "Question practice history", localExamProgressBody: "Completed question sets are kept on this device and sync to your private account when signed in. Scores describe this sample and do not predict an examination result, licensure or professional competence.", setsCompleted: "Completed sets", questionsAnswered: "Questions answered", categoryInsights: "Learning-domain review", morePractice: "Lower accuracy in this sample", developingKnowledge: "Mixed performance in this sample", strongKnowledge: "Higher accuracy in this sample", noExamAttempts: "Your first completed question set will appear here.",
+    originalPracticeNotice: "Independent original practice only. No recalled, secure or official examination items are used, and scores do not predict an examination result, licensure or competence.", allDifficultyLevels: "All levels", questionsAvailable: "questions available", practiceSet: "Practice set", newVariation: "New variation", viewQuestionBank: "Open question bank", uniqueItems: "unique questions", completedSetsEvidence: "completed sets", earlyIndicator: "Early learning indicator", categoryEvidenceBody: "A learning-domain signal appears only after at least three unique questions across two completed sets. It describes this sample only.", contextVariant: "Practice context", contextDetails: "Context details", contextVariantNote: "Context changes presentation only; the draft clinical cues, scoring and safest response do not change.", guidedScenarioTitle: "Guided scenario order", guidedScenarioBody: "Completed decisions reorder the library so relevant lower-scoring or safety-flagged learning domains appear more often near the top. New scenarios remain in the mix.", recommendedNext: "Recommended next", recommendationExplore: "Broaden the baseline", recommendationEvidence: "Gather more evidence", recommendationDevelopment: "Practise mixed-performance areas", recommendationReview: "Revisit a lower-accuracy area", recommendationSafety: "Review a safety-critical choice", adaptiveLearningTitle: "Suggested next practice", adaptiveLearningBody: "These suggestions use your completed learning activity from this device and, when signed in, your synced account. They guide practice; they do not measure competence or predict an examination result.", openRecommendedScenario: "Open suggested scenario", startGuidedQuestions: "Start guided questions", examNonAffiliation: "Nursing Hypotheses is an independently developed educational resource. It is not issued, sponsored, endorsed, approved or administered by any nursing regulator, examination owner or test-delivery provider. It contains no recalled or secure examination items. Practice scores describe performance only in this question set and do not predict examination results, licensure or professional competence.",
     freeAccess: "Free access", futureMembership: "Future membership", accessibleNow: "Available now", plannedInactive: "Planned · not yet active",
     plansEyebrow: "Membership roadmap", plansTitle: "A clear path for future study support", plansBody: "All current scenarios and question-bank content remain accessible. The options below describe planned information architecture only; subscriptions, checkout and payments are not active.",
-    freePlan: "Free", freePlanBody: "Explore the current bilingual scenarios, practice questions, debriefs and source links without an account.", saudiNursingPlan: "Saudi nursing study path", saudiNursingPlanBody: "A planned study space for deeper independent organisation and longitudinal review for learners in Saudi nursing contexts.", internationalRnPlan: "International RN study path", internationalRnPlanBody: "A planned study space for deeper independent registered-nurse practice organisation and longitudinal review.", computerizedPlan: "Computer-based practice path", computerizedPlanBody: "The current sample is free; a future expanded tier could add larger timed banks and study scheduling after secure accounts and entitlements exist.", institutionalPlan: "Institutional", institutionalPlanBody: "A planned option for educator-led cohorts, governance and organisation-level reporting.",
-    currentIncludes: "Current access includes", freeFeatureOne: "All current draft scenarios", freeFeatureTwo: "Current independent question sets", freeFeatureThree: "Bilingual rationales and references", plannedFeatureOne: "Expanded learning-domain banks", plannedFeatureTwo: "Study planning and deeper analytics", plannedFeatureThree: "Organisation controls and reporting", noCheckout: "No plan can be purchased yet. This prototype has no checkout, payment collection, subscription activation or production authentication.",
+    freePlan: "Free", freePlanBody: "Explore the current bilingual scenarios, practice questions, debriefs and source links. An optional account syncs completed learning history.", saudiNursingPlan: "Saudi nursing study path", saudiNursingPlanBody: "A planned study space for deeper independent organisation and longitudinal review for learners in Saudi nursing contexts.", internationalRnPlan: "International RN study path", internationalRnPlanBody: "A planned study space for deeper independent registered-nurse practice organisation and longitudinal review.", computerizedPlan: "Computer-based practice path", computerizedPlanBody: "The current sample is free; a future expanded tier could add larger timed banks and study scheduling after server-verified entitlements exist.", institutionalPlan: "Institutional", institutionalPlanBody: "A planned option for educator-led cohorts, governance and organisation-level reporting.",
+    currentIncludes: "Current access includes", freeFeatureOne: "All current draft scenarios", freeFeatureTwo: "Current independent question sets", freeFeatureThree: "Bilingual rationales and references", plannedFeatureOne: "Expanded learning-domain banks", plannedFeatureTwo: "Study planning and deeper analytics", plannedFeatureThree: "Organisation controls and reporting", noCheckout: "No plan can be purchased yet. Account sign-in and learning-history sync are available, but checkout, payment collection and paid subscription activation are not active.",
     referencesEyebrow: "Evidence library", referencesTitle: "Go back to the source", referencesBody: "Scenarios use original educational wording and point to official publishers, regulators and professional organisations. Check the current version and your facility policy before practice.",
     source: "Publisher/source page", accessNote: "Access note", aboutEyebrow: "About the platform", aboutTitle: "A rehearsal space for clinical reasoning",
     aboutLead: "Nursing Hypotheses turns realistic but fictional moments into deliberate practice: notice, prioritise, act, reassess and explain.", purpose: "What it is for",
     purposeBody: "Self-directed nursing education, facilitated debrief and discussion of safe decision sequences across clinical areas.", method: "How it is built", methodBody: "Original branching cases, bilingual explanations, transparent scores and references mapped at scenario level.",
     boundaries: "Clinical boundaries", boundariesBody: "It does not replace supervision, local policy, formal education, professional assessment or real-time clinical judgement.", accountModel: "Prototype account model",
-    accountModelBody: "There is no production authentication or cloud account in this prototype. Progress is local and deliberately minimised; a production service must use fail-closed authentication and server-side authorisation.",
+    accountModelBody: "Email accounts can sync a deliberately minimised learning history. Database row policies isolate each learner, while paid access and any authoritative scoring must remain server-controlled before a commercial launch.",
     editorial: "Evidence and editorial approach", editorialBody: "Guidance changes. Each scenario names its source set and uses cautious, non-prescriptive wording where local targets, devices, orders or escalation criteria differ.",
     footerLine: "Learn. Reason. Care.", privacy: "Privacy", terms: "Terms", contact: "Contact & safety", copyright: "Nursing Hypotheses. Educational beta.",
   },
   ar: {
     skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", learning: "تعلّمي", resources: "المراجع", membership: "العضوية", about: "عن المنصة",
-    menu: "فتح قائمة التنقل", closeMenu: "إغلاق قائمة التنقل", language: "اللغة", learner: "المتعلم 01", localProfile: "ملف تجريبي محلي", localProfileShort: "محلي فقط",
+    menu: "فتح قائمة التنقل", closeMenu: "إغلاق قائمة التنقل", language: "اللغة", learner: "حساب التعلم", localProfile: "ملف التعلم", localProfileShort: "الحساب",
     privacyStrip: "محتوى أولي بانتظار المراجعة السريرية والقانونية واللغوية العربية. تعليم خيالي فقط — ليس لرعاية المرضى أو الطوارئ. لا تُدخل بيانات مرضى واتبع السياسة المحلية.", simulation: "محاكاة تعليمية", eyebrow: "تدرّب على الحكم السريري بأمان",
     heroTitle: "تعلّم كيف تلاحظ المهم — قبل القرار التالي.", heroBody: "سيناريوهات تمريضية متفرعة لقرارات الطوارئ والأجنحة والأطفال والولادة والعناية الحرجة. كل اختيار مشروح بالعربية والإنجليزية ومرتبط بإرشادات موثوقة.",
     explore: "استكشف السيناريوهات", continueLearning: "اعرض تقدمي", evidenceLed: "أدلة على مستوى السيناريو", evidenceLedBody: "يسمي كل سيناريو مجموعة المصادر المؤرخة التي استُخدمت في تأليفه.", bilingual: "ثنائي اللغة بالكامل",
-    bilingualBody: "بدّل التجربة كاملة من دون أن تفقد موضعك.", privateDemo: "خصوصية مقصودة", privateDemoBody: "يُحفظ الحد الأدنى من تقدم التعلم في هذا المتصفح فقط.",
+    bilingualBody: "بدّل التجربة كاملة من دون أن تفقد موضعك.", privateDemo: "خصوصية مقصودة", privateDemoBody: "استخدم التقدم المحلي فقط أو سجّل الدخول لمزامنة الحد الأدنى من المحاولات المكتملة.",
     scenariosCount: "سيناريوهات مؤلفة", practiceContexts: "سياقات تدريبية", departmentsCount: "مجالات سريرية", referencesCount: "مصدراً موثوقاً", startFeatured: "ابدأ الحالة المختارة", featured: "محاكاة مختارة", featuredKicker: "قسم الطوارئ · 12 دقيقة",
     featuredBody: "يصل بالغ كبير في السن يعاني ضيق التنفس. رتّب التقييم، وتعرّف على التدهور، وقدّم تسليماً آمناً عبر ستة قرارات.", sourceSet: "مجموعة مصادر السيناريو", opensNewTab: "يفتح في علامة تبويب جديدة", scenarioNotFound: "تعذر العثور على هذا السيناريو.", howItWorks: "كيف تعمل دورة التعلم",
     stepOne: "اقرأ الصورة السريرية المتغيرة", stepOneBody: "تتحدث العلامات الحيوية والخط الزمني عند كل نقطة قرار.", stepTwo: "التزم بإجراء تمريضي واحد", stepTwoBody: "اختر وأكّد، ثم راجع التغذية الراجعة والمبرر فوراً.",
@@ -152,29 +194,29 @@ const copy = {
     important: "مهم", localProtocol: "استخدم البروتوكولات المحلية الحالية والأوامر المعتمدة ومسارات التصعيد.", educationalOnly: "محاكاة تعليمية فقط. ليست لرعاية مريض حقيقي أو التشخيص أو العلاج أو الفرز أو استخدام الطوارئ. لا تُدخل معلومات مريض حقيقي. في الطوارئ الحقيقية تواصل فوراً مع فريقك السريري وخدمة الطوارئ المحلية.",
     debriefEyebrow: "تحليل السيناريو", debriefTitle: "راجع القرارات، لا الرقم وحده", score: "درجة التعلم", answered: "القرارات المجاب عنها", safetyFlags: "تنبيهات السلامة", band: "انعكاس التعلم",
     strongFoundation: "درجة أعلى في هذه المحاولة", progressing: "درجة متوسطة في هذه المحاولة", guidedReview: "درجة أقل في هذه المحاولة", safetyReview: "اختيارات سلامة تحتاج مراجعة", notStarted: "لم يبدأ", decisionReview: "مراجعة كل قرار",
-    yourChoice: "اختيارك", points: "نقطة", evidenceForCase: "الأدلة المستخدمة في هذه الحالة", backLibrary: "العودة إلى السيناريوهات", tryAgain: "أعد تجربة السيناريو", noAttempt: "لم نعثر على محاولة مكتملة لهذا السيناريو في هذا المتصفح.", openScenario: "فتح السيناريو",
-    learningEyebrow: "ملف تعلم محلي", learningTitle: "شاهد نمط تدريبك", learningBody: "تلخص لوحة التعلم السيناريوهات الخيالية المكتملة وتوضح أين قد يفيد مزيد من التدريب، من دون اعتماد الكفاءة.",
+    yourChoice: "اختيارك", points: "نقطة", evidenceForCase: "الأدلة المستخدمة في هذه الحالة", backLibrary: "العودة إلى السيناريوهات", tryAgain: "أعد تجربة السيناريو", noAttempt: "لم نعثر على محاولة مكتملة لهذا السيناريو في ملف التعلم الحالي.", openScenario: "فتح السيناريو",
+    learningEyebrow: "ملف تعلمك", learningTitle: "شاهد نمط تدريبك", learningBody: "تلخص لوحة التعلم السيناريوهات الخيالية المكتملة وتوضح أين قد يفيد مزيد من التدريب. سجّل الدخول لمزامنة المحاولات المكتملة بين الأجهزة، من دون اعتماد الكفاءة.",
     scenariosCompleted: "السيناريوهات الفريدة المكتملة", totalAttempts: "المحاولات المكتملة", averageScore: "متوسط درجة التعلم", competencyMap: "مؤشرات التعلم",
     competencyBody: "لا تظهر تسمية نقطة تركيز إلا بعد ثلاثة قرارات على الأقل عبر سيناريوهين. قبل ذلك تطلب اللوحة مزيداً من الأدلة.", insightInsufficient: "نحتاج أدلة أكثر", insightWeakness: "دقة أقل في هذه العينة", insightDeveloping: "أداء متباين في هذه العينة", insightStrength: "دقة أعلى في هذه العينة",
     observations: "ملاحظات", across: "عبر", caseSingular: "سيناريو", casesPlural: "سيناريوهات", safetyReviewNeeded: "يتضمن اختياراً حرجاً للسلامة يحتاج إلى مراجعة.", attemptsHistory: "أحدث نتائج السيناريوهات", review: "مراجعة",
-    emptyLearning: "ستظهر بيانات لوحة التعلم بعد إكمال السيناريو الأول.", chooseFirstScenario: "اختر أول سيناريو", localStorageTitle: "حول هذا الملف المحلي",
-    localStorageBody: "يحفظ هذا النموذج الأولي اللغة المختارة والحد الأدنى من ملخصات سجل التعلم وأي جلسة أسئلة مؤقتة نشطة في هذا المتصفح: المعرّفات والخيارات المحددة وترتيب الأسئلة والموعد النهائي المطلق للعداد، إضافة إلى الدرجات ومجالات التعلم المعاد احتسابها. تُشتق توصيات التدريب محلياً من هذا النشاط. البيانات غير مشفرة، وغير آمنة على الأجهزة المشتركة، ولا تتزامن بين الأجهزة. لا نجمع بريداً إلكترونياً أو اسماً حقيقياً أو إجابة نصية حرة.",
-    clearHistory: "مسح سجل التعلم", clearHistoryConfirm: "هل تريد مسح جميع محاولات التعلم المكتملة المحفوظة في هذا المتصفح؟ ستبقى اللغة المختارة محفوظة.", historyCleared: "تم مسح سجل التعلم مع الاحتفاظ باللغة المختارة.",
+    emptyLearning: "ستظهر بيانات لوحة التعلم بعد إكمال السيناريو الأول.", chooseFirstScenario: "اختر أول سيناريو", localStorageTitle: "كيف يُحفظ التقدم؟",
+    localStorageBody: "يحتفظ هذا المتصفح بنسخة محلية من اللغة ومعرّفات التعلم المكتمل وجلسة الأسئلة المؤقتة النشطة. عند تسجيل الدخول، تتزامن مع حسابك الخاص معرّفات المحاولات المكتملة والخيارات المحددة، وتُعاد حساب الدرجات ومؤشرات التعلم من البنك المؤلف الحالي. لا تُدخل بيانات مرضى أو نصاً سريرياً حراً. سجّل الخروج قبل مغادرة جهاز مشترك.",
+    clearHistory: "مسح سجل التعلم", clearHistoryConfirm: "هل تريد مسح جميع محاولات التعلم المكتملة من هذا الجهاز، ومن حساب التعلم أيضاً عند تسجيل الدخول؟ ستبقى اللغة المختارة وجلسات التدريب النشطة محفوظة.", historyCleared: "تم مسح سجل التعلم مع الاحتفاظ باللغة المختارة وجلسات التدريب النشطة.", historyClearPending: "يجري مسح سجل التعلم. جلسة التدريب النشطة محفوظة؛ حاول إنهاءها مجدداً بعد لحظات.",
     questionBankEyebrow: "تدريب مستقل على ترخيص التمريض", questionBankTitle: "تدريب محوسب مع شرح واضح للقرار", questionBankBody: "اختر مساراً دراسياً تمريضياً، ثم استخدم التدريب الموجّه أو كوّن مجموعة ثابتة بنفسك. لكل سؤال مؤلف بصورة مستقلة شرح ثنائي اللغة ومصادر سريرية.",
     selectTrack: "مسار الدراسة", quizCategory: "مجال التعلم", quizDifficulty: "الصعوبة", allCategories: "كل مجالات التعلم", quizSize: "عدد الأسئلة", beginQuiz: "ابدأ التدريب", restartQuiz: "ابدأ مجموعة جديدة", noQuestions: "لا توجد أسئلة مطابقة لهذه المرشحات. غيّر أحد المرشحات وحاول مجدداً.", noFreshGuidedQuestions: "أكملت كل الأسئلة الجديدة المتاحة لهذه المرشحات. غيّر أحد المرشحات أو استخدم التدريب اليدوي لمراجعة المواد المؤلفة.",
     practiceMode: "نمط التدريب", guidedPractice: "تدريب موجّه", guidedPracticeBody: "ينشئ مجموعة ثابتة قبل البدء، ويزيد وزن المجالات منخفضة الدقة مع الحفاظ على التنوع والأسئلة غير المجابة.", manualPractice: "أكوّن مجموعتي", manualPracticeBody: "يستخدم فقط المسار والمجال والصعوبة والحجم الذي تختاره.", guidedPlanBaseline: "لا توجد أدلة مكتملة بعد. ستأخذ هذه المجموعة عينة واسعة لبناء خط أساس أولي.", guidedPlanEvidence: "ما زالت الأدلة محدودة. تفضّل المجموعة الأسئلة غير المجابة والتغطية الأوسع قبل وصف أي مجال بأنه ضعف.", guidedPlanReview: "ستزيد هذه المجموعة التدريب في المجالات منخفضة الدقة التي يدعمها عدد كافٍ من المحاولات المكتملة.", guidedPlanDevelopment: "تضيف هذه المجموعة تدريباً أكثر في المجالات ذات الأداء المتفاوت، مع إبقاء بقية المجالات ضمن التناوب.", currentFocus: "محور التدريب الموجّه", guidedFixedSetNotice: "ينشئ التدريب الموجّه مجموعة ثابتة قبل أن تبدأ. وهو ليس اختباراً تكيفياً محوسباً ولا يقدّر الجاهزية للاختبار.",
     question: "السؤال", selectOneAnswer: "اختر إجابة واحدة قبل تثبيتها.", lockAnswer: "تثبيت الإجابة", nextQuestion: "السؤال التالي", finishQuiz: "إنهاء ومراجعة", correctAnswer: "استجابة صحيحة", incorrectAnswer: "راجع هذه الاستجابة", unansweredAtTimeout: "لم يُجب عنه عند انتهاء الوقت", answerLocked: "تم تثبيت الإجابة", answerRationale: "مبرر الإجابة", questionSources: "مصادر هذا السؤال", timeRemaining: "الوقت المتبقي", timeExpired: "انتهى الوقت — أُرسلت المجموعة واحتُسبت الأسئلة غير المجابة كإجابات غير صحيحة.", sessionSaved: "يُحفظ التقدم والموعد النهائي للعداد في هذا المتصفح، لذلك لا يعيد تحديث الصفحة بدء الوقت.", focusedPracticeTitle: "متابعة مركزة من 10 أسئلة", focusedPracticeBody: "تبدأ هذه المجموعة الجديدة بمجالات التعلم الأقل نتيجة في المحاولة المكتملة، وتفضّل الأسئلة التي لم تُجب عنها للتو.", startFocusedSet: "ابدأ المجموعة المركزة",
-    quizProgress: "تقدم الأسئلة", quizScore: "درجة التدريب", correctAnswers: "الإجابات الصحيحة", quizDebriefEyebrow: "تحليل بنك الأسئلة", quizDebriefTitle: "راجع ما فهمته وما يحتاج إلى عودة", quizIncomplete: "أكمل مجموعة الأسئلة الحالية لعرض التحليل.", localExamProgress: "تدريب الأسئلة المحلي", localExamProgressBody: "تُلخص مجموعات الأسئلة المكتملة في هذا المتصفح فقط. تصف الدرجات أداء هذه العينة ولا تتنبأ بنتيجة اختبار أو ترخيص أو كفاءة مهنية.", setsCompleted: "المجموعات المكتملة", questionsAnswered: "الأسئلة المجاب عنها", categoryInsights: "مراجعة مجالات التعلم", morePractice: "دقة أقل في هذه العينة", developingKnowledge: "أداء متباين في هذه العينة", strongKnowledge: "دقة أعلى في هذه العينة", noExamAttempts: "ستظهر أول مجموعة أسئلة مكتملة هنا.",
-    originalPracticeNotice: "تدريب مستقل ومؤلف أصلاً فقط. لا يستخدم أسئلة اختبار متذكَّرة أو سرية أو رسمية، ولا تتنبأ الدرجات بنتيجة اختبار أو ترخيص أو كفاءة.", allDifficultyLevels: "كل المستويات", questionsAvailable: "سؤالاً متاحاً", practiceSet: "مجموعة تدريب", newVariation: "تنويع جديد", viewQuestionBank: "فتح بنك الأسئلة", uniqueItems: "أسئلة فريدة", completedSetsEvidence: "مجموعات مكتملة", earlyIndicator: "مؤشر تعلم مبكر", categoryEvidenceBody: "لا يظهر مؤشر لمجال التعلم إلا بعد ثلاثة أسئلة فريدة على الأقل عبر مجموعتين مكتملتين، وهو يصف هذه العينة فقط.", contextVariant: "سياق التدريب", contextDetails: "تفاصيل السياق", contextVariantNote: "يغير السياق طريقة العرض فقط؛ ولا تتغير المؤشرات السريرية الأولية أو الدرجة أو الاستجابة الأكثر أماناً.", guidedScenarioTitle: "ترتيب موجّه للسيناريوهات", guidedScenarioBody: "تعيد القرارات المكتملة ترتيب المكتبة لتظهر مجالات التعلم ذات الدقة الأقل أو اختيارات السلامة قرب الأعلى بصورة أكثر تكراراً، مع إبقاء السيناريوهات الجديدة ضمن التناوب.", recommendedNext: "مقترح تالٍ", recommendationExplore: "توسيع خط الأساس", recommendationEvidence: "جمع أدلة إضافية", recommendationDevelopment: "التدرب على الأداء المتفاوت", recommendationReview: "مراجعة مجال منخفض الدقة", recommendationSafety: "مراجعة اختيار متعلق بالسلامة", adaptiveLearningTitle: "التدريب التالي المقترح", adaptiveLearningBody: "تستخدم هذه الاقتراحات النشاط المكتمل المحفوظ في هذا المتصفح فقط. وهي توجه التدريب ولا تقيس الكفاءة أو تتنبأ بنتيجة اختبار.", openRecommendedScenario: "فتح السيناريو المقترح", startGuidedQuestions: "بدء أسئلة موجّهة", examNonAffiliation: "فرضيات تمريضية مورد تعليمي مطوّر بصورة مستقلة. لا يصدر عن أي جهة تنظيمية تمريضية أو مالك اختبار أو مزود تقديم اختبارات، ولا ترعاه أو تؤيده أو تعتمده أو تديره أيٌّ منها. ولا يتضمن أسئلة اختبار متذكَّرة أو سرية. تصف درجات التدريب أداء المتعلم في هذه المجموعة فقط، ولا تتنبأ بنتيجة اختبار أو بالحصول على ترخيص أو بالكفاءة المهنية.",
+    quizProgress: "تقدم الأسئلة", quizScore: "درجة التدريب", correctAnswers: "الإجابات الصحيحة", quizDebriefEyebrow: "تحليل بنك الأسئلة", quizDebriefTitle: "راجع ما فهمته وما يحتاج إلى عودة", quizIncomplete: "أكمل مجموعة الأسئلة الحالية لعرض التحليل.", localExamProgress: "سجل تدريب الأسئلة", localExamProgressBody: "تُحفظ مجموعات الأسئلة المكتملة على هذا الجهاز وتتزامن مع حسابك الخاص عند تسجيل الدخول. تصف الدرجات أداء هذه العينة ولا تتنبأ بنتيجة اختبار أو ترخيص أو كفاءة مهنية.", setsCompleted: "المجموعات المكتملة", questionsAnswered: "الأسئلة المجاب عنها", categoryInsights: "مراجعة مجالات التعلم", morePractice: "دقة أقل في هذه العينة", developingKnowledge: "أداء متباين في هذه العينة", strongKnowledge: "دقة أعلى في هذه العينة", noExamAttempts: "ستظهر أول مجموعة أسئلة مكتملة هنا.",
+    originalPracticeNotice: "تدريب مستقل ومؤلف أصلاً فقط. لا يستخدم أسئلة اختبار متذكَّرة أو سرية أو رسمية، ولا تتنبأ الدرجات بنتيجة اختبار أو ترخيص أو كفاءة.", allDifficultyLevels: "كل المستويات", questionsAvailable: "سؤالاً متاحاً", practiceSet: "مجموعة تدريب", newVariation: "تنويع جديد", viewQuestionBank: "فتح بنك الأسئلة", uniqueItems: "أسئلة فريدة", completedSetsEvidence: "مجموعات مكتملة", earlyIndicator: "مؤشر تعلم مبكر", categoryEvidenceBody: "لا يظهر مؤشر لمجال التعلم إلا بعد ثلاثة أسئلة فريدة على الأقل عبر مجموعتين مكتملتين، وهو يصف هذه العينة فقط.", contextVariant: "سياق التدريب", contextDetails: "تفاصيل السياق", contextVariantNote: "يغير السياق طريقة العرض فقط؛ ولا تتغير المؤشرات السريرية الأولية أو الدرجة أو الاستجابة الأكثر أماناً.", guidedScenarioTitle: "ترتيب موجّه للسيناريوهات", guidedScenarioBody: "تعيد القرارات المكتملة ترتيب المكتبة لتظهر مجالات التعلم ذات الدقة الأقل أو اختيارات السلامة قرب الأعلى بصورة أكثر تكراراً، مع إبقاء السيناريوهات الجديدة ضمن التناوب.", recommendedNext: "مقترح تالٍ", recommendationExplore: "توسيع خط الأساس", recommendationEvidence: "جمع أدلة إضافية", recommendationDevelopment: "التدرب على الأداء المتفاوت", recommendationReview: "مراجعة مجال منخفض الدقة", recommendationSafety: "مراجعة اختيار متعلق بالسلامة", adaptiveLearningTitle: "التدريب التالي المقترح", adaptiveLearningBody: "تستخدم هذه الاقتراحات نشاط التعلم المكتمل على هذا الجهاز، ومن الحساب المتزامن عند تسجيل الدخول. وهي توجه التدريب ولا تقيس الكفاءة أو تتنبأ بنتيجة اختبار.", openRecommendedScenario: "فتح السيناريو المقترح", startGuidedQuestions: "بدء أسئلة موجّهة", examNonAffiliation: "فرضيات تمريضية مورد تعليمي مطوّر بصورة مستقلة. لا يصدر عن أي جهة تنظيمية تمريضية أو مالك اختبار أو مزود تقديم اختبارات، ولا ترعاه أو تؤيده أو تعتمده أو تديره أيٌّ منها. ولا يتضمن أسئلة اختبار متذكَّرة أو سرية. تصف درجات التدريب أداء المتعلم في هذه المجموعة فقط، ولا تتنبأ بنتيجة اختبار أو بالحصول على ترخيص أو بالكفاءة المهنية.",
     freeAccess: "وصول مجاني", futureMembership: "عضوية مستقبلية", accessibleNow: "متاح الآن", plannedInactive: "مخطط · غير مفعل بعد",
     plansEyebrow: "خارطة طريق العضوية", plansTitle: "مسار واضح لدعم الدراسة مستقبلاً", plansBody: "تبقى جميع السيناريوهات ومحتويات بنك الأسئلة الحالية متاحة. توضح الخيارات أدناه بنية معلومات مخططة فقط؛ الاشتراكات والدفع غير مفعّلين.",
-    freePlan: "مجاني", freePlanBody: "استكشف السيناريوهات الحالية والأسئلة التدريبية والتحليلات وروابط المصادر باللغتين ومن دون حساب.", saudiNursingPlan: "مسار دراسة التمريض السعودي", saudiNursingPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق ومراجعته على مدى أطول للمتعلمين في سياق التمريض السعودي.", internationalRnPlan: "مسار دراسة الممرض المسجل الدولي", internationalRnPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق للممرض المسجل ومراجعته على مدى أطول.", computerizedPlan: "مسار التدريب المحوسب", computerizedPlanBody: "العينة الحالية مجانية؛ ويمكن أن تضيف فئة موسعة مستقبلاً بنوكاً مؤقتة أكبر وجدولة للدراسة بعد إنشاء الحسابات والاستحقاقات الآمنة.", institutionalPlan: "للمؤسسات", institutionalPlanBody: "خيار مخطط لمجموعات يقودها المعلمون والحوكمة والتقارير على مستوى المؤسسة.",
-    currentIncludes: "يشمل الوصول الحالي", freeFeatureOne: "كل السيناريوهات الأولية الحالية", freeFeatureTwo: "مجموعات الأسئلة المستقلة الحالية", freeFeatureThree: "المبررات والمراجع ثنائية اللغة", plannedFeatureOne: "بنوك أوسع حسب مجالات التعلم", plannedFeatureTwo: "تخطيط الدراسة وتحليلات أعمق", plannedFeatureThree: "ضوابط وتقارير للمؤسسات", noCheckout: "لا يمكن شراء أي خطة الآن. لا يتضمن هذا النموذج دفعاً أو تحصيلاً مالياً أو تفعيل اشتراك أو مصادقة إنتاجية.",
+    freePlan: "مجاني", freePlanBody: "استكشف السيناريوهات الحالية والأسئلة التدريبية والتحليلات وروابط المصادر باللغتين. يتيح الحساب الاختياري مزامنة سجل التعلم المكتمل.", saudiNursingPlan: "مسار دراسة التمريض السعودي", saudiNursingPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق ومراجعته على مدى أطول للمتعلمين في سياق التمريض السعودي.", internationalRnPlan: "مسار دراسة الممرض المسجل الدولي", internationalRnPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق للممرض المسجل ومراجعته على مدى أطول.", computerizedPlan: "مسار التدريب المحوسب", computerizedPlanBody: "العينة الحالية مجانية؛ ويمكن أن تضيف فئة موسعة مستقبلاً بنوكاً مؤقتة أكبر وجدولة للدراسة بعد وجود استحقاقات يتحقق منها الخادم.", institutionalPlan: "للمؤسسات", institutionalPlanBody: "خيار مخطط لمجموعات يقودها المعلمون والحوكمة والتقارير على مستوى المؤسسة.",
+    currentIncludes: "يشمل الوصول الحالي", freeFeatureOne: "كل السيناريوهات الأولية الحالية", freeFeatureTwo: "مجموعات الأسئلة المستقلة الحالية", freeFeatureThree: "المبررات والمراجع ثنائية اللغة", plannedFeatureOne: "بنوك أوسع حسب مجالات التعلم", plannedFeatureTwo: "تخطيط الدراسة وتحليلات أعمق", plannedFeatureThree: "ضوابط وتقارير للمؤسسات", noCheckout: "لا يمكن شراء أي خطة الآن. تسجيل الحساب ومزامنة سجل التعلم متاحان، لكن الدفع والتحصيل المالي وتفعيل الاشتراكات المدفوعة غير مفعلة.",
     referencesEyebrow: "مكتبة الأدلة", referencesTitle: "ارجع إلى المصدر", referencesBody: "تستخدم السيناريوهات صياغة تعليمية أصلية وتحيل إلى ناشرين وجهات تنظيمية ومنظمات مهنية رسمية. تحقق من الإصدار الحالي وسياسة منشأتك قبل التطبيق.",
     source: "صفحة الناشر/المصدر", accessNote: "ملاحظة الوصول", aboutEyebrow: "عن المنصة", aboutTitle: "مساحة تدريب للاستدلال السريري", aboutLead: "تحوّل فرضيات تمريضية لحظات واقعية لكنها خيالية إلى تدريب مقصود: لاحظ، ورتّب الأولوية، وتدخل، وأعد التقييم، واشرح.",
     purpose: "لأي غرض؟", purposeBody: "للتعلم التمريضي الذاتي والتحليل الميسر ومناقشة تسلسل القرارات الآمنة عبر المجالات السريرية.", method: "كيف بُنيت؟", methodBody: "حالات متفرعة أصلية، وشروح ثنائية اللغة، ودرجات شفافة، ومراجع مرتبطة على مستوى السيناريو.",
     boundaries: "الحدود السريرية", boundariesBody: "لا تحل المنصة محل الإشراف أو السياسة المحلية أو التعليم الرسمي أو التقييم المهني أو الحكم السريري الفوري.", accountModel: "نموذج الحساب التجريبي",
-    accountModelBody: "لا توجد مصادقة إنتاجية أو حساب سحابي في هذا النموذج. التقدم محلي ومحدود عمداً؛ ويجب أن تستخدم خدمة الإنتاج مصادقة مغلقة افتراضياً وتفويضاً على الخادم.",
+    accountModelBody: "تستطيع حسابات البريد مزامنة سجل تعلم محدود عمداً. تعزل سياسات قاعدة البيانات صفوف كل متعلم، بينما يجب أن تبقى الاستحقاقات المدفوعة وأي درجات رسمية تحت تحكم الخادم قبل الإطلاق التجاري.",
     editorial: "منهج الأدلة والتحرير", editorialBody: "تتغير الإرشادات. يذكر كل سيناريو مصادره ويستخدم لغة حذرة وغير آمرة عندما تختلف الأهداف أو الأجهزة أو الأوامر أو معايير التصعيد محلياً.",
     footerLine: "تعلّم. استدل. اعتنِ.", privacy: "الخصوصية", terms: "الشروط", contact: "التواصل والسلامة", copyright: "فرضيات تمريضية. نسخة تعليمية تجريبية.",
   },
@@ -185,22 +227,22 @@ const POLICY_PAGES = {
     privacy: {
       eyebrow: "Transparency for the free beta",
       title: "Privacy notice",
-      lead: "This notice describes the current browser-only beta. It must be updated if accounts, analytics, cloud sync, forms, subscriptions or other processors are added.",
-      effective: "Effective 4 September 2026 · draft pending legal review",
+      lead: "This notice describes the current private beta, including optional email accounts and learning-history sync. It remains a draft pending qualified legal and privacy review before public launch.",
+      effective: "Effective 5 September 2026 · draft pending legal review",
       warning: "Do not enter names, record numbers, clinical notes or any information about a real patient anywhere in this website.",
       sections: [
-        { title: "Information kept in this browser", body: "Three local-storage records may be used: nursing-hypotheses.learning-profile.v1, nursing-hypotheses.exam-profile.v1 and nursing-hypotheses.active-exam-session.v1. They may contain the selected language; scenario, question, option and order identifiers; an active session's absolute deadline; learning-domain labels; recomputed scores; set seeds; and completion metadata. Up to 500 scenario attempts and 100 question sets may be retained. The current interface does not request an email address, real name, account, payment detail or free-text clinical response." },
-        { title: "Local storage is not private storage", body: "This information is unencrypted and can be visible to anyone using the same browser profile or device. It is not synced or recoverable by this beta. Use the Clear learning history control on My learning, clear site data in your browser, or avoid the site on a shared device." },
-        { title: "Hosting and technical records", body: "The website itself sends no learning progress to an application server in this beta. A hosting or CDN provider may still receive standard technical data needed to deliver the page, such as IP address, user agent, requested URL, timestamps and security logs. The production host, countries of processing, log retention and deletion process have not yet been selected; they must be documented before external publication." },
+        { title: "Information used", body: "Without an account, the browser stores language, scenario/question/option identifiers, completed attempts and the active timed session. If you create an account, Supabase processes your email and authentication records, and the site syncs only completed-attempt identifiers, selected option identifiers and completion times. Scores and learning-domain signals are recalculated from the current authored content. Do not enter patient data, clinical free text, payment data, licence numbers or employer information." },
+        { title: "Device storage and account separation", body: "Browser storage is not encrypted and can be visible to anyone using the same browser profile. Signed-in learning rows are isolated by database row-level policies. Signing out removes the local learning cache for that account; on a shared device, sign out and clear browser site data. Authentication tokens are managed by the Supabase browser client and are never copied into the learning records." },
+        { title: "Processors, location and technical records", body: "The private beta uses OpenAI Sites for page delivery and Supabase for authentication and account sync. The primary Supabase database is located in Frankfurt, Germany. Providers may process standard technical and security logs in additional locations under their own terms. A Saudi cross-border-transfer assessment, processor agreement review, retention schedule and backup-deletion statement remain required before public launch." },
         { title: "External source links", body: "Opening a reference sends a request to the third-party publisher. That publisher receives technical data and applies its own privacy and cookie policies. Nursing Hypotheses does not control those services." },
-        { title: "Future changes", body: "Accounts, support forms, analytics, AI, email, n8n workflows and payments are not active. None may be enabled until the data flow, lawful basis, processor terms, region, retention, security controls and user choices are documented in an updated notice." },
+        { title: "Retention, control and future changes", body: "Use Clear learning history to remove completed learning rows from the device and signed-in account. Formal retention, account deletion, verified support, production email, analytics, AI, n8n workflows and payments are not yet active. They must not launch until the lawful basis, processor terms, retention, security controls and user choices are documented in an updated notice." },
       ],
     },
     terms: {
       eyebrow: "Rules for using the free beta",
       title: "Learning terms",
       lead: "These beta terms set educational and acceptable-use boundaries. They are a working draft and are not a substitute for advice from counsel in the launch jurisdictions.",
-      effective: "Effective 4 September 2026 · draft pending legal review",
+      effective: "Effective 5 September 2026 · draft pending legal review",
       warning: "Educational simulation only. Not for real patient care, diagnosis, treatment, triage or emergency use. In a real emergency, contact the responsible clinical team and local emergency service immediately.",
       sections: [
         { title: "Educational scope", body: "The website offers fictional scenarios and independently authored practice questions for self-study and facilitated discussion. It does not provide medical advice, professional supervision, a credential, continuing-education credit, licensure eligibility, a competency decision or a prediction of any examination result." },
@@ -208,7 +250,7 @@ const POLICY_PAGES = {
         { title: "Independent question bank", body: "No recalled, secure or official examination item may be submitted, reconstructed, copied or requested. Similarities to common nursing topics, four-option formats or single-best-answer methods do not make this an official exam product. No regulator or examination owner issues, sponsors, endorses, approves or administers the website." },
         { title: "Acceptable use", body: "Use the beta for lawful personal learning or authorised teaching. Do not enter patient or confidential workplace data; bypass controls; scrape or republish the bank; interfere with service; impersonate a person or organisation; or use the material to provide unsupervised clinical instructions." },
         { title: "Content and external rights", body: "Original site text and presentation remain subject to their applicable rights. Linked publications, names and marks belong to their respective owners. A link is attribution and research traceability, not permission to copy or an endorsement." },
-        { title: "Availability, changes and paid services", body: "Draft content may be corrected, withdrawn or unavailable without notice. No account, subscription, checkout, refund promise or paid entitlement exists in this beta. Separate commercial terms, identity, tax, payment, cancellation and consumer-law review are required before any paid launch." },
+        { title: "Accounts, availability and paid services", body: "Optional beta accounts sync a learner's own formative history; they do not create a credential or paid entitlement. Draft content may be corrected, withdrawn or unavailable without notice. No checkout, payment collection, refund promise or paid subscription is active. Separate commercial terms, tax, payment, cancellation and consumer-law review are required before any paid launch." },
         { title: "Audience and jurisdiction", body: "The beta is intended for adult nursing learners and professionals; younger learners should use it only with an educator or guardian. The initial audience is expected to include Saudi users, but the governing-law, dispute and liability clauses remain open for qualified legal review before public or commercial launch." },
       ],
     },
@@ -229,22 +271,22 @@ const POLICY_PAGES = {
     privacy: {
       eyebrow: "الشفافية للنسخة التجريبية المجانية",
       title: "إشعار الخصوصية",
-      lead: "يصف هذا الإشعار النسخة التجريبية الحالية التي تحفظ التقدم داخل المتصفح فقط. يجب تحديثه عند إضافة الحسابات أو التحليلات أو المزامنة السحابية أو النماذج أو الاشتراكات أو أي معالج بيانات آخر.",
-      effective: "يسري من 4 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
+      lead: "يصف هذا الإشعار النسخة التجريبية الخاصة الحالية، بما في ذلك حسابات البريد الاختيارية ومزامنة سجل التعلم. ويظل مسودة بانتظار مراجعة قانونية وخصوصية مؤهلة قبل الإطلاق العام.",
+      effective: "يسري من 5 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
       warning: "لا تُدخل اسماً أو رقم ملف أو ملاحظة سريرية أو أي معلومات تخص مريضاً حقيقياً في أي موضع من هذا الموقع.",
       sections: [
-        { title: "المعلومات المحفوظة في هذا المتصفح", body: "قد يستخدم الموقع ثلاثة سجلات في التخزين المحلي: nursing-hypotheses.learning-profile.v1 وnursing-hypotheses.exam-profile.v1 وnursing-hypotheses.active-exam-session.v1. وقد تتضمن اللغة المختارة؛ ومعرّفات السيناريوهات والأسئلة والخيارات والترتيب؛ والموعد النهائي المطلق لجلسة اختبار نشطة؛ وتسميات مجالات التعلم؛ والدرجات المعاد احتسابها؛ وبذور المجموعات؛ وبيانات الإكمال. قد يُحتفظ بما يصل إلى 500 محاولة سيناريو و100 مجموعة أسئلة. لا تطلب الواجهة الحالية بريداً إلكترونياً أو اسماً حقيقياً أو حساباً أو بيانات دفع أو إجابة سريرية نصية حرة." },
-        { title: "التخزين المحلي ليس خزنة خاصة", body: "هذه المعلومات غير مشفرة وقد يراها من يستخدم ملف المتصفح أو الجهاز نفسه. لا تزامنها النسخة التجريبية ولا تستطيع استعادتها. استخدم زر «مسح سجل التعلم» في صفحة «تعلّمي»، أو امسح بيانات الموقع من المتصفح، أو تجنب استخدام الموقع على جهاز مشترك." },
-        { title: "الاستضافة والسجلات التقنية", body: "لا ترسل النسخة التجريبية تقدم التعلم إلى خادم تطبيقي. لكن قد يستقبل مزود الاستضافة أو شبكة توزيع المحتوى بيانات تقنية معتادة لازمة لتقديم الصفحة، مثل عنوان IP ونوع المتصفح والرابط المطلوب والطوابع الزمنية وسجلات الأمان. لم يُحدَّد بعد مزود الإنتاج أو دول المعالجة أو مدة الاحتفاظ بالسجلات أو آلية حذفها؛ ويجب توثيق ذلك قبل النشر الخارجي." },
+        { title: "المعلومات المستخدمة", body: "من دون حساب، يحفظ المتصفح اللغة ومعرّفات السيناريوهات والأسئلة والخيارات والمحاولات المكتملة والجلسة المؤقتة النشطة. عند إنشاء حساب، تعالج Supabase البريد وسجلات المصادقة، ويزامن الموقع فقط معرّفات المحاولات المكتملة والخيارات المحددة وأوقات الإكمال. تُعاد حساب الدرجات ومؤشرات مجالات التعلم من المحتوى المؤلف الحالي. لا تدخل بيانات مرضى أو نصاً سريرياً حراً أو بيانات دفع أو رقم ترخيص أو جهة عمل." },
+        { title: "تخزين الجهاز وفصل الحسابات", body: "تخزين المتصفح غير مشفر وقد يراه من يستخدم ملف المتصفح نفسه. تعزل سياسات مستوى الصف سجلات التعلم الخاصة بكل حساب. يؤدي تسجيل الخروج إلى إزالة نسخة التعلم المحلية لذلك الحساب؛ وعلى الجهاز المشترك سجّل الخروج وامسح بيانات الموقع. يدير عميل Supabase رموز المصادقة ولا تُنسخ داخل سجلات التعلم." },
+        { title: "المعالجون والموقع والسجلات التقنية", body: "تستخدم النسخة الخاصة OpenAI Sites لتقديم الصفحات وSupabase للمصادقة ومزامنة الحساب. تقع قاعدة بيانات Supabase الأساسية في فرانكفورت بألمانيا. وقد يعالج المزودون سجلات تقنية وأمنية معتادة في مواقع أخرى وفق شروطهم. يلزم قبل الإطلاق العام تقييم نقل البيانات عبر الحدود للسعودية ومراجعة اتفاقيات المعالجة وجدول الاحتفاظ وبيان حذف النسخ الاحتياطية." },
         { title: "روابط المصادر الخارجية", body: "يؤدي فتح مرجع إلى إرسال طلب إلى موقع الناشر الخارجي. يستقبل ذلك الناشر بيانات تقنية ويطبق سياسة الخصوصية وملفات الارتباط الخاصة به. لا تتحكم «فرضيات تمريضية» في تلك الخدمات." },
-        { title: "التغييرات المستقبلية", body: "الحسابات ونماذج الدعم والتحليلات والذكاء الاصطناعي والبريد وتدفقات n8n والمدفوعات غير مفعلة. ولا يجوز تفعيلها قبل توثيق تدفق البيانات والأساس النظامي وشروط المعالج والمنطقة والاحتفاظ وضوابط الأمان وخيارات المستخدم في إشعار محدث." },
+        { title: "الاحتفاظ والتحكم والتغييرات المستقبلية", body: "استخدم «مسح سجل التعلم» لحذف صفوف التعلم المكتملة من الجهاز والحساب عند تسجيل الدخول. لم تُفعّل بعد سياسة احتفاظ نهائية أو حذف حساب أو دعم متحقق أو بريد إنتاجي أو تحليلات أو ذكاء اصطناعي أو تدفقات n8n أو مدفوعات. ولا يجوز إطلاقها قبل توثيق الأساس النظامي وشروط المعالج والاحتفاظ وضوابط الأمان وخيارات المستخدم." },
       ],
     },
     terms: {
       eyebrow: "قواعد استخدام النسخة التجريبية المجانية",
       title: "شروط التعلم",
       lead: "تحدد هذه الشروط التجريبية الحدود التعليمية والاستخدام المقبول. وهي مسودة عمل وليست بديلاً عن استشارة قانونية في مناطق الإطلاق.",
-      effective: "يسري من 4 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
+      effective: "يسري من 5 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
       warning: "محاكاة تعليمية فقط. ليست لرعاية مريض حقيقي أو التشخيص أو العلاج أو الفرز أو استخدام الطوارئ. في الطوارئ الحقيقية تواصل فوراً مع الفريق السريري المسؤول وخدمة الطوارئ المحلية.",
       sections: [
         { title: "النطاق التعليمي", body: "يقدم الموقع سيناريوهات خيالية وأسئلة تدريبية مؤلفة بصورة مستقلة للتعلم الذاتي والنقاش الميسّر. ولا يقدم نصيحة طبية أو إشرافاً مهنياً أو اعتماداً أو ساعات تعليم مستمر أو أهلية ترخيص أو قرار كفاءة أو توقعاً لنتيجة أي اختبار." },
@@ -252,7 +294,7 @@ const POLICY_PAGES = {
         { title: "بنك أسئلة مستقل", body: "يُحظر إرسال أو إعادة بناء أو نسخ أو طلب أي سؤال اختبار متذكَّر أو سري أو رسمي. ولا تجعل الموضوعات التمريضية الشائعة أو صيغة الخيارات الأربعة أو منهج أفضل إجابة واحدة هذا منتج اختبار رسمي. لا تصدر المنصة عن أي جهة تنظيمية أو مالك اختبار ولا ترعاها أو تؤيدها أو تعتمدها أو تديرها أيٌّ منها." },
         { title: "الاستخدام المقبول", body: "استخدم النسخة للتعلم الشخصي المشروع أو التعليم المصرح. لا تدخل بيانات مرضى أو بيانات عمل سرية؛ ولا تتجاوز الضوابط؛ ولا تجمع البنك آلياً أو تعيد نشره؛ ولا تعطل الخدمة؛ ولا تنتحل شخصاً أو جهة؛ ولا تستخدم المحتوى لتقديم توجيهات سريرية دون إشراف." },
         { title: "المحتوى وحقوق الغير", body: "يخضع نص الموقع الأصلي وعرضه للحقوق المطبقة. وتعود المنشورات والأسماء والعلامات المرتبطة إلى أصحابها. الرابط إسناد وتتبع بحثي وليس إذناً بالنسخ أو تأييداً للمنصة." },
-        { title: "التوفر والتغييرات والخدمات المدفوعة", body: "قد يُصحح المحتوى الأولي أو يُسحب أو يتعذر دون إشعار. لا يوجد في هذه النسخة حساب أو اشتراك أو شراء أو وعد باسترداد أو استحقاق مدفوع. يلزم إعداد شروط تجارية منفصلة ومراجعة الهوية والضرائب والدفع والإلغاء وحماية المستهلك قبل أي إطلاق مدفوع." },
+        { title: "الحسابات والتوفر والخدمات المدفوعة", body: "تزامن الحسابات الاختيارية سجل التعلم التكويني الخاص بالمتعلم؛ ولا تنشئ اعتماداً أو استحقاقاً مدفوعاً. قد يُصحح المحتوى الأولي أو يُسحب أو يتعذر دون إشعار. لا يوجد دفع أو شراء أو وعد باسترداد أو اشتراك مدفوع مفعل. يلزم إعداد شروط تجارية منفصلة ومراجعة الضرائب والدفع والإلغاء وحماية المستهلك قبل أي إطلاق مدفوع." },
         { title: "الجمهور والنطاق النظامي", body: "تستهدف النسخة متعلمي التمريض والمهنيين البالغين؛ وعلى الأصغر سناً استخدامها بإشراف معلم أو ولي. يُتوقع أن يشمل الجمهور الأول مستخدمين في السعودية، لكن بنود النظام الحاكم والنزاعات والمسؤولية ما تزال مفتوحة لمراجعة قانونية مؤهلة قبل الإطلاق العام أو التجاري." },
       ],
     },
@@ -273,17 +315,25 @@ const POLICY_PAGES = {
 
 const NAV_ITEMS = [["home", "home", House], ["scenarios", "simulations", Exam], ["questions", "questionBank", ClipboardText], ["learning", "learning", ChartLineUp], ["resources", "resources", Books], ["membership", "membership", Medal], ["about", "about", Info]];
 
-function readProfile() {
-  if (typeof window === "undefined") return revalidateProfile(parseProfile(""), scenarios);
+function readProfileFromStorage(storageKey = PROFILE_STORAGE_KEY) {
+  if (typeof window === "undefined") return ensureScenarioAttemptMetadata(revalidateProfile(parseProfile(""), scenarios));
   try {
-    return revalidateProfile(parseProfile(window.localStorage.getItem(PROFILE_STORAGE_KEY) ?? ""), scenarios);
+    return ensureScenarioAttemptMetadata(
+      revalidateProfile(parseProfile(window.localStorage.getItem(storageKey) ?? ""), scenarios),
+    );
   } catch {
-    return revalidateProfile(parseProfile(""), scenarios);
+    return ensureScenarioAttemptMetadata(revalidateProfile(parseProfile(""), scenarios));
   }
 }
 
-function persistProfile(profile) {
-  try { window.localStorage.setItem(PROFILE_STORAGE_KEY, serializeProfile(profile)); } catch { /* Usable without persistence. */ }
+function readProfile() {
+  const profile = readProfileFromStorage();
+  persistProfile(profile);
+  return profile;
+}
+
+function persistProfile(profile, storageKey = PROFILE_STORAGE_KEY) {
+  try { window.localStorage.setItem(storageKey, serializeProfile(profile)); } catch { /* Usable without persistence. */ }
 }
 
 function createEmptyExamProfile() {
@@ -317,10 +367,10 @@ function revalidateExamAttempt(value, index) {
   };
 }
 
-function readExamProfile() {
+function readExamProfileFromStorage(storageKey = EXAM_STORAGE_KEY) {
   if (typeof window === "undefined") return createEmptyExamProfile();
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(EXAM_STORAGE_KEY) ?? "{}");
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "{}");
     const attempts = (Array.isArray(parsed?.attempts) ? parsed.attempts : [])
       .slice(-100)
       .map(revalidateExamAttempt)
@@ -331,8 +381,12 @@ function readExamProfile() {
   }
 }
 
-function persistExamProfile(profile) {
-  try { window.localStorage.setItem(EXAM_STORAGE_KEY, JSON.stringify({ schemaVersion: EXAM_PROFILE_VERSION, attempts: profile.attempts.slice(-100) })); } catch { /* Usable without persistence. */ }
+function readExamProfile() {
+  return readExamProfileFromStorage();
+}
+
+function persistExamProfile(profile, storageKey = EXAM_STORAGE_KEY) {
+  try { window.localStorage.setItem(storageKey, JSON.stringify({ schemaVersion: EXAM_PROFILE_VERSION, attempts: profile.attempts.slice(-100) })); } catch { /* Usable without persistence. */ }
 }
 
 function createScenarioSession(scenarioId = null, orderSeed = 0) {
@@ -460,8 +514,16 @@ function SectionIntro({ eyebrow, title, body }) {
   return <header className="section-intro"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{body ? <p className="section-lead">{body}</p> : null}</header>;
 }
 
-function Header({ lang, setLanguage, route, menuOpen, setMenuOpen, t }) {
+function Header({ lang, setLanguage, route, menuOpen, setMenuOpen, t, auth, syncStatus }) {
   const active = routeSection(route);
+  const accountLabel = auth.user?.email ?? t("learner");
+  const accountStatus = auth.user
+    ? syncStatus === "syncing"
+      ? (lang === "ar" ? "جارٍ التزامن" : "Syncing")
+      : syncStatus === "error"
+        ? (lang === "ar" ? "محفوظ محلياً" : "Saved locally")
+        : (lang === "ar" ? "متزامن" : "Synced")
+    : t("localProfileShort");
   return <>
     <a
       className="skip-link"
@@ -486,7 +548,7 @@ function Header({ lang, setLanguage, route, menuOpen, setMenuOpen, t }) {
         </nav>
         <div className="header-actions">
           <div className="language-switch" aria-label={t("language")} role="group"><Globe size={19} aria-hidden="true" /><button type="button" className={lang === "ar" ? "selected" : ""} aria-pressed={lang === "ar"} onClick={() => setLanguage("ar")} lang="ar">العربية</button><button type="button" className={lang === "en" ? "selected" : ""} aria-pressed={lang === "en"} onClick={() => setLanguage("en")} lang="en">English</button></div>
-          <AppLink to="learning" className="profile-link" aria-label={`${t("learner")} — ${t("localProfile")}`}><UserCircle size={31} aria-hidden="true" /><span><strong>{t("learner")}</strong><small>{t("localProfileShort")}</small></span></AppLink>
+          <AppLink to="learning" className="profile-link" aria-label={`${accountLabel} — ${accountStatus}`}><UserCircle size={31} aria-hidden="true" /><span><strong>{accountLabel}</strong><small>{accountStatus}</small></span></AppLink>
           <button type="button" className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? t("closeMenu") : t("menu")}>{menuOpen ? <X size={25} /> : <List size={25} />}</button>
         </div>
       </div>
@@ -666,7 +728,7 @@ function ResultPage({ scenarioId, lang, t, profile, onStart }) {
 
 const allQuestionReferences = references;
 
-function QuestionBankPage({ lang, t, examProfile, onComplete }) {
+function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, historyClearPending }) {
   const [examId, setExamId] = useState("saudi-nursing");
   const [practiceMode, setPracticeMode] = useState("guided");
   const [categoryId, setCategoryId] = useState("all");
@@ -689,7 +751,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete }) {
     lockCurrentAnswer,
     goToNextQuestion,
     clearSession,
-  } = useExamSession({ storageKey: EXAM_SESSION_STORAGE_KEY, questionBank });
+  } = useExamSession({ storageKey, questionBank });
   const quiz = session ? {
     seed: session.metadata?.seed ?? "restored",
     questions: sessionQuestions,
@@ -739,6 +801,10 @@ function QuestionBankPage({ lang, t, examProfile, onComplete }) {
 
   function completeQuiz(completionReason = "completed") {
     if (!quiz || submittedRef.current) return;
+    if (historyClearPending) {
+      setNotice(t("historyClearPending"));
+      return;
+    }
     submittedRef.current = true;
     const effectiveCompletionReason = isExamSessionExpired(session) ? "time-expired" : completionReason;
     const includeUnanswered = effectiveCompletionReason === "time-expired";
@@ -757,7 +823,11 @@ function QuestionBankPage({ lang, t, examProfile, onComplete }) {
       completionReason: effectiveCompletionReason,
       bankVersion: "2026-09-04.3",
     };
-    onComplete(completed);
+    if (onComplete(completed) === false) {
+      submittedRef.current = false;
+      setNotice(t("historyClearPending"));
+      return;
+    }
     setResult(completed);
     clearSession();
     setNotice(effectiveCompletionReason === "time-expired" ? t("timeExpired") : "");
@@ -787,8 +857,8 @@ function QuestionBankPage({ lang, t, examProfile, onComplete }) {
   }
 
   useEffect(() => {
-    if (quiz && isExpired && !result) completeQuiz("time-expired");
-  }, [isExpired, session?.id]);
+    if (quiz && isExpired && !result && !historyClearPending) completeQuiz("time-expired");
+  }, [historyClearPending, isExpired, session?.id]);
 
   if (!quiz && !result) {
     return <div className="page-container question-bank-page"><SectionIntro eyebrow={t("questionBankEyebrow")} title={t("questionBankTitle")} body={t("questionBankBody")} />
@@ -839,8 +909,9 @@ function QuestionBankPage({ lang, t, examProfile, onComplete }) {
   </div>;
 }
 
-function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart }) {
+function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart, auth, syncStatus, entitlement, onSignOut }) {
   const [historyCleared, setHistoryCleared] = useState(false);
+  const [historyClearing, setHistoryClearing] = useState(false);
   const completedAttempts = profile.attempts.filter((item) => item.isComplete);
   const completedExamAttempts = examProfile.attempts.filter((item) => item.isComplete);
   const examInsights = getQuestionCategoryInsights(completedExamAttempts, examCategories).filter((insight) => insight.answeredCount > 0);
@@ -862,12 +933,20 @@ function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart }
   }
   const statusCopy = { "insufficient-data": "insightInsufficient", weakness: "insightWeakness", developing: "insightDeveloping", strength: "insightStrength" };
   const examStatusCopy = { "insufficient-data": "insightInsufficient", review: "morePractice", developing: "developingKnowledge", strength: "strongKnowledge" };
-  function clearHistory() {
+  async function clearHistory() {
+    if (historyClearing) return;
     if (!window.confirm(t("clearHistoryConfirm"))) return;
-    onClearHistory();
-    setHistoryCleared(true);
+    setHistoryClearing(true);
+    setHistoryCleared(false);
+    try {
+      const cleared = await onClearHistory();
+      setHistoryCleared(cleared !== false);
+    } finally {
+      setHistoryClearing(false);
+    }
   }
   return <div className="page-container learning-page"><SectionIntro eyebrow={t("learningEyebrow")} title={t("learningTitle")} body={t("learningBody")} />
+    <AccountPanel auth={auth} lang={lang} syncStatus={syncStatus} entitlement={entitlement} onSignOut={onSignOut} />
     <section className="dashboard-metrics"><div><CheckCircle size={30} weight="duotone" /><span>{t("scenariosCompleted")}</span><strong>{formatNumber(completedCount, lang)} / {formatNumber(scenarios.length, lang)}</strong></div><div><ClipboardText size={30} weight="duotone" /><span>{t("totalAttempts")}</span><strong>{formatNumber(completedAttempts.length, lang)}</strong></div><div><Medal size={30} weight="duotone" /><span>{t("averageScore")}</span><strong>{completedAttempts.length ? `${formatNumber(Math.round(average), lang)}%` : "—"}</strong></div></section>
     <section className="adaptive-next-panel" aria-labelledby="adaptive-next-title"><Brain size={36} weight="duotone" aria-hidden="true" /><div><p className="eyebrow">{t("guidedPractice")}</p><h2 id="adaptive-next-title">{t("adaptiveLearningTitle")}</h2><p>{t("adaptiveLearningBody")}</p>{suggestedScenario && topScenarioRecommendation ? <strong>{t(scenarioRecommendationCopy[topScenarioRecommendation.reason])}: {localize(suggestedScenario.title, lang)}</strong> : null}{guidedQuestionPlan.focusCategories.length ? <div className="guided-focus-list"><span>{t("currentFocus")}:</span>{guidedQuestionPlan.focusCategories.map((focus) => <b key={`${focus.examId}:${focus.categoryId}`}>{localize(focus.label, lang)}</b>)}</div> : null}</div><div className="adaptive-next-actions">{suggestedScenario ? <button type="button" className="button button-primary" onClick={() => onStart(suggestedScenario.id)}>{t("openRecommendedScenario")}</button> : null}<AppLink to="questions" className="button button-secondary">{t("startGuidedQuestions")}</AppLink></div></section>
     {!completedAttempts.length ? <div className="empty-learning"><GraduationCap size={49} weight="duotone" /><div><h2>{t("emptyLearning")}</h2><AppLink to="scenarios" className="button button-primary">{t("chooseFirstScenario")}</AppLink></div></div> : null}
@@ -876,7 +955,7 @@ function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart }
     </section>
     <section className="insights-section"><div className="subsection-heading split-heading"><div><p className="eyebrow">{t("competencies")}</p><h2>{t("competencyMap")}</h2></div><p>{t("competencyBody")}</p></div><ul className="insight-table" aria-label={t("competencyMap")}>{insights.map((insight) => <li className="insight-row" key={insight.competency}><div className="insight-label"><span className={`status-dot ${insight.status}`} /><div><strong>{localize(insight.label, lang)}</strong><small>{formatNumber(insight.decisionCount, lang)} {t("observations")} · {t("across")} {formatNumber(insight.scenarioCount, lang)} {insight.scenarioCount === 1 ? t("caseSingular") : t("casesPlural")}</small></div></div><div className="insight-score"><strong>{insight.score === null ? "—" : `${formatNumber(Math.round(insight.score), lang)}%`}</strong><span className={`insight-status ${insight.status}`}>{t(statusCopy[insight.status])}</span></div>{insight.criticalUnsafeCount > 0 ? <p className="insight-alert"><ShieldWarning size={16} weight="fill" />{t("safetyReviewNeeded")}</p> : null}</li>)}</ul></section>
     {latestAttempts.length ? <section className="attempts-section"><div className="subsection-heading"><p className="eyebrow">{t("scenario")}</p><h2>{t("attemptsHistory")}</h2></div><div className="attempt-list">{latestAttempts.map((attempt) => { const scenario = scenarios.find((item) => item.id === attempt.scenarioId); return <div className="attempt-row" key={attempt.scenarioId}><div><span>{localize(scenario?.department, lang)}</span><h3>{localize(scenario?.title, lang)}</h3></div><strong>{formatNumber(Math.round(attempt.score), lang)}%</strong><AppLink to={`result/${attempt.scenarioId}`} className="inline-link">{t("review")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></div>; })}</div></section> : null}
-    <section className="local-profile-note"><Database size={31} weight="duotone" /><div><h2>{t("localStorageTitle")}</h2><p>{t("localStorageBody")}</p>{historyCleared ? <p className="clear-history-status" role="status">{t("historyCleared")}</p> : null}</div><button type="button" className="button clear-history-button" onClick={clearHistory} disabled={!profile.attempts.length && !examProfile.attempts.length}><Trash size={17} aria-hidden="true" />{t("clearHistory")}</button></section><p className="exam-legal-line">{t("examNonAffiliation")}</p>
+    <section className="local-profile-note"><Database size={31} weight="duotone" /><div><h2>{t("localStorageTitle")}</h2><p>{t("localStorageBody")}</p>{historyCleared ? <p className="clear-history-status" role="status">{t("historyCleared")}</p> : null}</div><button type="button" className="button clear-history-button" onClick={clearHistory} disabled={historyClearing || (!profile.attempts.length && !examProfile.attempts.length)}><Trash size={17} aria-hidden="true" />{t("clearHistory")}</button></section><p className="exam-legal-line">{t("examNonAffiliation")}</p>
   </div>;
 }
 
@@ -917,6 +996,38 @@ function Footer({ lang, t }) {
   return <footer className="site-footer"><div><span className="footer-mark"><Heartbeat size={23} /></span><p>© 2026 Abdulkarim alhejaili</p></div><p className="footer-tagline">{PRODUCT_NAME[lang]} · {t("footerLine")}</p><nav aria-label={lang === "ar" ? "روابط التذييل" : "Footer links"}><AppLink to="resources">{t("resources")}</AppLink><AppLink to="privacy">{t("privacy")}</AppLink><AppLink to="terms">{t("terms")}</AppLink><AppLink to="contact">{t("contact")}</AppLink></nav></footer>;
 }
 
+function mergeAttemptsById(localAttempts, cloudAttempts, limit) {
+  const merged = new Map();
+  for (const [index, attempt] of [...localAttempts, ...cloudAttempts].entries()) {
+    const key = typeof attempt?.id === "string" && attempt.id
+      ? attempt.id
+      : `${attempt?.scenarioId ?? attempt?.examId ?? "attempt"}:${index}`;
+    merged.set(key, attempt);
+  }
+  return [...merged.values()]
+    .sort((left, right) => String(left.completedAt ?? "").localeCompare(String(right.completedAt ?? "")))
+    .slice(-limit);
+}
+
+function rebuildCloudScenarioAttempts(payloads) {
+  return (Array.isArray(payloads) ? payloads : []).map((payload) => {
+    const scenario = scenarios.find((item) => item.id === payload?.scenarioId);
+    if (!scenario || !Array.isArray(payload?.decisions)) return null;
+    const answers = Object.fromEntries(
+      payload.decisions
+        .filter((decision) => typeof decision?.stepId === "string" && typeof decision?.choiceId === "string")
+        .map((decision) => [decision.stepId, decision.choiceId]),
+    );
+    const graded = gradeAttempt(scenario, answers);
+    if (!graded.isComplete) return null;
+    return {
+      ...graded,
+      id: payload.id,
+      completedAt: payload.completedAt,
+    };
+  }).filter(Boolean);
+}
+
 export function App() {
   const [profile, setProfile] = useState(readProfile);
   const [examProfile, setExamProfile] = useState(readExamProfile);
@@ -924,8 +1035,28 @@ export function App() {
   const [route, setRoute] = useState(() => parseRoute());
   const [menuOpen, setMenuOpen] = useState(false);
   const [session, setSession] = useState(() => createScenarioSession());
+  const [syncStatus, setSyncStatus] = useState("idle");
+  const [entitlementState, setEntitlementState] = useState({ userId: "", value: null });
+  const [historyClearPending, setHistoryClearPending] = useState(false);
+  const auth = useAuthSession();
   const mainRef = useRef(null);
+  const profileRef = useRef(profile);
+  const examProfileRef = useRef(examProfile);
+  const langRef = useRef(lang);
+  const cloudQueueRef = useRef(Promise.resolve());
+  const syncGenerationRef = useRef(0);
+  const historyClearPromiseRef = useRef(null);
+  const historyClearPendingRef = useRef(false);
   const t = (key) => copy[lang][key] || copy.en[key] || key;
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+  useEffect(() => { examProfileRef.current = examProfile; }, [examProfile]);
+  useEffect(() => { langRef.current = lang; }, [lang]);
+
+  function enqueueCloud(task) {
+    const request = cloudQueueRef.current.catch(() => undefined).then(task);
+    cloudQueueRef.current = request;
+    return request;
+  }
   useEffect(() => {
     const onHashChange = () => {
       setRoute(parseRoute());
@@ -944,32 +1075,307 @@ export function App() {
     return () => window.cancelAnimationFrame(frame);
   }, [route.page, route.id]);
   useEffect(() => { document.documentElement.lang = lang; document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"; document.title = `${PRODUCT_NAME[lang]} · ${t(routeSection(route))}`; }, [lang, route]);
-  function setLanguage(next) { setLang(next); setProfile((current) => { const updated = { ...current, language: next }; persistProfile(updated); return updated; }); }
-  function startScenario(id) { setSession(createScenarioSession(id, profile.attempts.length + 1)); window.location.hash = `#/scenario/${id}`; }
-  function completeScenario(scenario, answers) { const attempt = gradeAttempt(scenario, answers); if (!attempt.isComplete) return false; setProfile((current) => { const updated = mergeAttempt(current, attempt); persistProfile(updated); return updated; }); window.location.hash = `#/result/${scenario.id}`; return true; }
-  function completeQuestionSet(attempt) { setExamProfile((current) => { const withoutDuplicate = current.attempts.filter((item) => item.id !== attempt.id); const updated = { schemaVersion: EXAM_PROFILE_VERSION, attempts: [...withoutDuplicate, attempt].slice(-100) }; persistExamProfile(updated); return updated; }); }
-  function clearLearningHistory() {
-    const clearedProfile = createEmptyProfile("", lang);
-    try { window.localStorage.removeItem(PROFILE_STORAGE_KEY); } catch { /* In-memory clearing still works. */ }
-    try { window.localStorage.removeItem(EXAM_STORAGE_KEY); } catch { /* In-memory clearing still works. */ }
-    try { window.localStorage.removeItem(EXAM_SESSION_STORAGE_KEY); } catch { /* In-memory clearing still works. */ }
-    persistProfile(clearedProfile);
-    setProfile(clearedProfile);
-    setExamProfile(createEmptyExamProfile());
-    setSession(createScenarioSession());
+  useEffect(() => {
+    if (auth.status !== "ready" || !auth.user) return;
+    if (new URLSearchParams(window.location.search).get("auth") !== "confirmed") return;
+    window.history.replaceState(null, "", `${window.location.pathname}#/learning`);
+    setRoute(parseRoute());
+  }, [auth.status, auth.user?.id]);
+  useEffect(() => {
+    if (auth.status !== "ready") return undefined;
+    const generation = ++syncGenerationRef.current;
+    if (!auth.user) {
+      let owner = "";
+      try { owner = window.localStorage.getItem(CACHE_OWNER_STORAGE_KEY) ?? ""; } catch { /* Ignore unavailable storage. */ }
+      if (owner) {
+        persistProfile(profileRef.current, profileStorageKeyForUser(owner));
+        persistExamProfile(examProfileRef.current, examProfileStorageKeyForUser(owner));
+        const clearedProfile = createEmptyProfile("", lang);
+        const clearedExamProfile = createEmptyExamProfile();
+        persistProfile(clearedProfile);
+        persistExamProfile(clearedExamProfile);
+        try {
+          window.localStorage.removeItem(CACHE_OWNER_STORAGE_KEY);
+        } catch { /* In-memory reset still protects this view. */ }
+        profileRef.current = clearedProfile;
+        examProfileRef.current = clearedExamProfile;
+        setProfile(clearedProfile);
+        setExamProfile(clearedExamProfile);
+        setSession(createScenarioSession());
+      }
+      setEntitlementState({ userId: "", value: null });
+      setSyncStatus("idle");
+      return undefined;
+    }
+
+    let cancelled = false;
+    setEntitlementState({ userId: auth.user.id, value: null });
+    let owner = "";
+    try { owner = window.localStorage.getItem(CACHE_OWNER_STORAGE_KEY) ?? ""; } catch { /* Continue without cache ownership. */ }
+    const claimedAfterAccountCreation = consumeLocalHistoryClaim(auth.user.id);
+    const mayImportLocal = owner === auth.user.id || (!owner && claimedAfterAccountCreation);
+    if (!mayImportLocal) {
+      if (owner) {
+        persistProfile(profileRef.current, profileStorageKeyForUser(owner));
+        persistExamProfile(examProfileRef.current, examProfileStorageKeyForUser(owner));
+      }
+      const accountProfile = readProfileFromStorage(profileStorageKeyForUser(auth.user.id));
+      const accountExamProfile = readExamProfileFromStorage(examProfileStorageKeyForUser(auth.user.id));
+      profileRef.current = accountProfile;
+      examProfileRef.current = accountExamProfile;
+      persistProfile(accountProfile);
+      persistExamProfile(accountExamProfile);
+      setProfile(accountProfile);
+      setExamProfile(accountExamProfile);
+      setSession(createScenarioSession());
+    }
+    try { window.localStorage.setItem(CACHE_OWNER_STORAGE_KEY, auth.user.id); } catch { /* In-memory isolation still applies. */ }
+    const localProfile = profileRef.current;
+    const localExamProfile = examProfileRef.current;
+    persistProfile(localProfile, profileStorageKeyForUser(auth.user.id));
+    persistExamProfile(localExamProfile, examProfileStorageKeyForUser(auth.user.id));
+    setSyncStatus("syncing");
+
+    enqueueCloud(() => syncLearningHistory({
+      userId: auth.user.id,
+      language: langRef.current,
+      scenarioAttempts: localProfile.attempts,
+      questionSetAttempts: localExamProfile.attempts,
+    })).then(({ records, entitlement: nextEntitlement, historyClearedAt }) => {
+      if (cancelled || generation !== syncGenerationRef.current) return;
+      const clearedAt = Date.parse(historyClearedAt ?? "");
+      const isAfterCloudClear = (attempt) => Number.isNaN(clearedAt)
+        || Date.parse(attempt?.completedAt ?? "") > clearedAt;
+      const latestProfile = {
+        ...profileRef.current,
+        attempts: profileRef.current.attempts.filter(isAfterCloudClear),
+      };
+      const latestExamProfile = {
+        ...examProfileRef.current,
+        attempts: examProfileRef.current.attempts.filter(isAfterCloudClear),
+      };
+      const latestLanguage = langRef.current;
+      const cloud = splitLearningRecords(records);
+      const cloudScenarios = rebuildCloudScenarioAttempts(cloud.scenarioAttempts);
+      const mergedProfile = ensureScenarioAttemptMetadata(revalidateProfile({
+        ...latestProfile,
+        language: latestLanguage,
+        attempts: mergeAttemptsById(latestProfile.attempts, cloudScenarios, 500),
+      }, scenarios));
+      const cloudQuestionSets = cloud.questionSetAttempts
+        .map(revalidateExamAttempt)
+        .filter(Boolean);
+      const mergedExamProfile = {
+        schemaVersion: EXAM_PROFILE_VERSION,
+        attempts: mergeAttemptsById(latestExamProfile.attempts, cloudQuestionSets, 100),
+      };
+      persistProfile(mergedProfile);
+      persistExamProfile(mergedExamProfile);
+      persistProfile(mergedProfile, profileStorageKeyForUser(auth.user.id));
+      persistExamProfile(mergedExamProfile, examProfileStorageKeyForUser(auth.user.id));
+      profileRef.current = mergedProfile;
+      examProfileRef.current = mergedExamProfile;
+      setProfile(mergedProfile);
+      setExamProfile(mergedExamProfile);
+      setEntitlementState({ userId: auth.user.id, value: nextEntitlement });
+      setSyncStatus("synced");
+    }).catch(() => {
+      if (!cancelled && generation === syncGenerationRef.current) setSyncStatus("error");
+    });
+
+    return () => { cancelled = true; };
+  }, [auth.status, auth.user?.id]);
+
+  function setLanguage(next) {
+    setLang(next);
+    langRef.current = next;
+    setProfile((current) => {
+      const updated = { ...current, language: next };
+      persistProfile(updated);
+      if (auth.user) persistProfile(updated, profileStorageKeyForUser(auth.user.id));
+      profileRef.current = updated;
+      return updated;
+    });
+    if (auth.user) {
+      const generation = syncGenerationRef.current;
+      void enqueueCloud(() => updateCloudLanguage(auth.user.id, next))
+        .catch(() => {
+          if (generation === syncGenerationRef.current) setSyncStatus("error");
+        });
+    }
   }
+  function startScenario(id) { setSession(createScenarioSession(id, profile.attempts.length + 1)); window.location.hash = `#/scenario/${id}`; }
+  function completeScenario(scenario, answers) {
+    if (historyClearPendingRef.current) {
+      setSession((current) => ({ ...current, notice: t("historyClearPending") }));
+      return false;
+    }
+    const graded = gradeAttempt(scenario, answers);
+    if (!graded.isComplete) return false;
+    const attempt = addScenarioAttemptMetadata(graded);
+    setProfile((current) => {
+      const updated = mergeAttempt(current, attempt);
+      persistProfile(updated);
+      if (auth.user) persistProfile(updated, profileStorageKeyForUser(auth.user.id));
+      profileRef.current = updated;
+      return updated;
+    });
+    if (auth.user) {
+      const generation = syncGenerationRef.current;
+      setSyncStatus("syncing");
+      void enqueueCloud(() => saveLearningAttempt(auth.user.id, "scenario", attempt))
+        .then(() => {
+          if (generation === syncGenerationRef.current) setSyncStatus("synced");
+        })
+        .catch(() => {
+          if (generation === syncGenerationRef.current) setSyncStatus("error");
+        });
+    }
+    window.location.hash = `#/result/${scenario.id}`;
+    return true;
+  }
+  function completeQuestionSet(attempt) {
+    if (historyClearPendingRef.current) return false;
+    setExamProfile((current) => {
+      const withoutDuplicate = current.attempts.filter((item) => item.id !== attempt.id);
+      const updated = { schemaVersion: EXAM_PROFILE_VERSION, attempts: [...withoutDuplicate, attempt].slice(-100) };
+      persistExamProfile(updated);
+      if (auth.user) persistExamProfile(updated, examProfileStorageKeyForUser(auth.user.id));
+      examProfileRef.current = updated;
+      return updated;
+    });
+    if (auth.user) {
+      const generation = syncGenerationRef.current;
+      setSyncStatus("syncing");
+      void enqueueCloud(() => saveLearningAttempt(auth.user.id, "question-set", attempt))
+        .then(() => {
+          if (generation === syncGenerationRef.current) setSyncStatus("synced");
+        })
+        .catch(() => {
+          if (generation === syncGenerationRef.current) setSyncStatus("error");
+        });
+    }
+    return true;
+  }
+  async function clearLearningHistory() {
+    if (historyClearPromiseRef.current) return historyClearPromiseRef.current;
+    historyClearPendingRef.current = true;
+    setHistoryClearPending(true);
+    const userId = auth.user?.id ?? "";
+    const generation = ++syncGenerationRef.current;
+    const scenarioAttemptIdsToClear = new Set(
+      profileRef.current.attempts.filter((attempt) => attempt.isComplete).map((attempt) => attempt.id),
+    );
+    const questionSetIdsToClear = new Set(
+      examProfileRef.current.attempts.filter((attempt) => attempt.isComplete).map((attempt) => attempt.id),
+    );
+    const operation = (async () => {
+      if (userId) {
+        setSyncStatus("syncing");
+        await enqueueCloud(() => deleteCloudLearningHistory(userId));
+      }
+      if (generation !== syncGenerationRef.current) return false;
+      const clearedProfile = {
+        ...profileRef.current,
+        language: langRef.current,
+        attempts: retainAttemptsAfterHistoryClear(
+          profileRef.current.attempts,
+          scenarioAttemptIdsToClear,
+        ),
+      };
+      const clearedExamProfile = {
+        ...examProfileRef.current,
+        attempts: retainAttemptsAfterHistoryClear(
+          examProfileRef.current.attempts,
+          questionSetIdsToClear,
+        ),
+      };
+      persistProfile(clearedProfile);
+      persistExamProfile(clearedExamProfile);
+      if (userId) {
+        persistProfile(clearedProfile, profileStorageKeyForUser(userId));
+        persistExamProfile(clearedExamProfile, examProfileStorageKeyForUser(userId));
+      }
+      profileRef.current = clearedProfile;
+      examProfileRef.current = clearedExamProfile;
+      setProfile(clearedProfile);
+      setExamProfile(clearedExamProfile);
+      if (userId) setSyncStatus("synced");
+      return true;
+    })();
+    historyClearPromiseRef.current = operation;
+    try {
+      return await operation;
+    } catch {
+      if (generation === syncGenerationRef.current) setSyncStatus("error");
+      return false;
+    } finally {
+      if (historyClearPromiseRef.current === operation) historyClearPromiseRef.current = null;
+      historyClearPendingRef.current = false;
+      setHistoryClearPending(false);
+    }
+  }
+  async function signOutCurrentDevice() {
+    const userId = auth.user?.id;
+    if (!userId) return;
+    const generation = ++syncGenerationRef.current;
+    setSyncStatus("syncing");
+    persistProfile(profileRef.current, profileStorageKeyForUser(userId));
+    persistExamProfile(examProfileRef.current, examProfileStorageKeyForUser(userId));
+    try {
+      await enqueueCloud(() => syncLearningHistory({
+        userId,
+        language: langRef.current,
+        scenarioAttempts: profileRef.current.attempts,
+        questionSetAttempts: examProfileRef.current.attempts,
+      }));
+    } catch {
+      if (generation === syncGenerationRef.current) setSyncStatus("error");
+    }
+    const result = await auth.signOut();
+    if (!result.ok) {
+      setSyncStatus("error");
+      return;
+    }
+    const clearedProfile = createEmptyProfile("", langRef.current);
+    const clearedExamProfile = createEmptyExamProfile();
+    persistProfile(clearedProfile);
+    persistExamProfile(clearedExamProfile);
+    try {
+      window.localStorage.removeItem(CACHE_OWNER_STORAGE_KEY);
+      window.localStorage.removeItem(LOCAL_HISTORY_CLAIM_KEY);
+    } catch { /* State reset still completes. */ }
+    profileRef.current = clearedProfile;
+    examProfileRef.current = clearedExamProfile;
+    setProfile(clearedProfile);
+    setExamProfile(clearedExamProfile);
+    setSession(createScenarioSession());
+    setEntitlementState({ userId: "", value: null });
+    setSyncStatus("idle");
+  }
+  let cacheOwner = "";
+  try { cacheOwner = window.localStorage.getItem(CACHE_OWNER_STORAGE_KEY) ?? ""; } catch { /* Default to the empty view below. */ }
+  const cacheIsVisible = !cacheOwner
+    || (auth.status === "ready" && auth.user?.id === cacheOwner);
+  const visibleProfile = cacheIsVisible ? profile : createEmptyProfile("", lang);
+  const visibleExamProfile = cacheIsVisible ? examProfile : createEmptyExamProfile();
+  const visibleScenarioSession = cacheIsVisible ? session : createScenarioSession();
+  const entitlement = selectOwnedEntitlement(entitlementState, auth.user?.id);
   let page;
-  if (route.page === "scenarios") page = <ScenarioLibrary lang={lang} t={t} profile={profile} onStart={startScenario} />;
-  else if (route.page === "scenario") page = <ScenarioPage scenarioId={route.id} lang={lang} t={t} session={session} setSession={setSession} onComplete={completeScenario} />;
-  else if (route.page === "result") page = <ResultPage scenarioId={route.id} lang={lang} t={t} profile={profile} onStart={startScenario} />;
-  else if (route.page === "questions") page = <QuestionBankPage lang={lang} t={t} examProfile={examProfile} onComplete={completeQuestionSet} />;
-  else if (route.page === "learning") page = <LearningPage lang={lang} t={t} profile={profile} examProfile={examProfile} onClearHistory={clearLearningHistory} onStart={startScenario} />;
+  if (route.page === "scenarios") page = <ScenarioLibrary lang={lang} t={t} profile={visibleProfile} onStart={startScenario} />;
+  else if (route.page === "scenario") page = <ScenarioPage scenarioId={route.id} lang={lang} t={t} session={visibleScenarioSession} setSession={setSession} onComplete={completeScenario} />;
+  else if (route.page === "result") page = <ResultPage scenarioId={route.id} lang={lang} t={t} profile={visibleProfile} onStart={startScenario} />;
+  else if (route.page === "questions") {
+    const storageKey = examSessionStorageKey(auth.user?.id);
+    page = <QuestionBankPage key={storageKey} lang={lang} t={t} examProfile={visibleExamProfile} onComplete={completeQuestionSet} storageKey={storageKey} historyClearPending={historyClearPending} />;
+  }
+  else if (route.page === "learning") page = <LearningPage lang={lang} t={t} profile={visibleProfile} examProfile={visibleExamProfile} onClearHistory={clearLearningHistory} onStart={startScenario} auth={auth} syncStatus={syncStatus} entitlement={entitlement} onSignOut={signOutCurrentDevice} />;
   else if (route.page === "resources") page = <ReferencesPage lang={lang} t={t} />;
   else if (route.page === "membership") page = <MembershipPage t={t} />;
   else if (route.page === "about") page = <AboutPage t={t} />;
   else if (route.page === "privacy") page = <PolicyPage kind="privacy" lang={lang} t={t} />;
   else if (route.page === "terms") page = <PolicyPage kind="terms" lang={lang} t={t} />;
   else if (route.page === "contact") page = <PolicyPage kind="contact" lang={lang} t={t} />;
-  else page = <HomePage lang={lang} t={t} onStart={startScenario} profile={profile} />;
-  return <div className="app-shell"><Header lang={lang} setLanguage={setLanguage} route={route} menuOpen={menuOpen} setMenuOpen={setMenuOpen} t={t} /><main id="main-content" ref={mainRef} tabIndex="-1">{page}</main><Footer lang={lang} t={t} /></div>;
+  else page = <HomePage lang={lang} t={t} onStart={startScenario} profile={visibleProfile} />;
+  return <div className="app-shell"><Header lang={lang} setLanguage={setLanguage} route={route} menuOpen={menuOpen} setMenuOpen={setMenuOpen} t={t} auth={auth} syncStatus={syncStatus} /><main id="main-content" ref={mainRef} tabIndex="-1">{page}</main><Footer lang={lang} t={t} /></div>;
 }
