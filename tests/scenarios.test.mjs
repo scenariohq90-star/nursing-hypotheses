@@ -126,7 +126,7 @@ test("all decisions are bilingual, gradable, and include original feedback", () 
 });
 
 test("every cited source is present and uses a fixed HTTPS URL", () => {
-  assert.equal(references.length, 53);
+  assert.equal(references.length, 67);
   const ids = new Set(references.map((reference) => reference.id));
   assert.equal(ids.size, references.length);
 

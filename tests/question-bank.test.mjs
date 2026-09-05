@@ -25,11 +25,11 @@ function assertBilingual(value, label) {
   assert.ok(value.ar.trim(), `${label} Arabic cannot be empty`);
 }
 
-test("question bank contains 47 original bilingual questions across three independent study paths", () => {
-  assert.equal(questionBank.length, 47);
-  assert.equal(questionBank.filter((question) => question.examId === "saudi-nursing").length, 15);
-  assert.equal(questionBank.filter((question) => question.examId === "international-rn").length, 15);
-  assert.equal(questionBank.filter((question) => question.examId === "computerized-practice").length, 17);
+test("question bank contains 71 original bilingual questions across three independent study paths", () => {
+  assert.equal(questionBank.length, 71);
+  assert.equal(questionBank.filter((question) => question.examId === "saudi-nursing").length, 23);
+  assert.equal(questionBank.filter((question) => question.examId === "international-rn").length, 23);
+  assert.equal(questionBank.filter((question) => question.examId === "computerized-practice").length, 25);
   assert.equal(new Set(questionBank.map((question) => question.id)).size, questionBank.length);
   assert.deepEqual(new Set(examTracks.map((track) => track.id)), new Set(["saudi-nursing", "international-rn", "computerized-practice"]));
 
@@ -42,8 +42,8 @@ test("question bank contains 47 original bilingual questions across three indepe
     assert.equal(question.fictional, true);
     assert.equal(question.official, false);
     assert.equal(question.accessTier, "free");
-    assert.equal(question.contentVersion, "1.3.1");
-    assert.equal(question.learningModelVersion, "Independent nursing learning domains v1.3");
+    assert.equal(question.contentVersion, "1.4.0");
+    assert.equal(question.learningModelVersion, "Independent nursing learning domains v1.4");
     assert.equal(question.sourceUse, "independent-clinical-context");
     assert.equal(question.reviewStatus, "draft");
     assert.equal(question.clinicalReviewDate, null);
@@ -94,6 +94,10 @@ test("high-alert questions expose explicit review metadata and direct topic refe
     ["international-physiological-asthma-028", "gina-asthma-2026"],
     ["computerized-medication-hypoglycemia-042", "ada-hospital-care-2026"],
     ["computerized-acute-sepsis-047", "ssc-2026"],
+    ["saudi-nursing-maternal-preeclampsia-052", "nice-hypertension-pregnancy-ng133"],
+    ["international-risk-ng-tube-063", "nhs-ng-tube-safety"],
+    ["computerized-acute-meningitis-064", "nice-bacterial-meningitis-ng240"],
+    ["computerized-medication-opioid-068", "aha-opioid-emergency-2025"],
   ]);
   for (const [questionId, sourceId] of expectedSources) {
     const question = questionBank.find((item) => item.id === questionId);
