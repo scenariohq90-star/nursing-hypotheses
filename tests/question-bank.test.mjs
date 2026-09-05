@@ -7,6 +7,7 @@ import {
   examReferences,
   examTracks,
   questionBank,
+  questionIntakePolicy,
 } from "../src/data/question-bank.js";
 import { references } from "../src/data/scenarios.js";
 import {
@@ -44,6 +45,7 @@ test("question bank contains 71 original bilingual questions across three indepe
     assert.equal(question.accessTier, "free");
     assert.equal(question.contentVersion, "1.4.0");
     assert.equal(question.learningModelVersion, "Independent nursing learning domains v1.4");
+    assert.equal(question.intakePolicyVersion, questionIntakePolicy.version);
     assert.equal(question.sourceUse, "independent-clinical-context");
     assert.equal(question.reviewStatus, "draft");
     assert.equal(question.clinicalReviewDate, null);
@@ -77,6 +79,22 @@ test("question bank contains 71 original bilingual questions across three indepe
       assert.ok(sourceIds.has(referenceId), `${question.id} cites missing source ${referenceId}`);
     }
   }
+});
+
+test("unverified study material stays outside authoring while evidence remains an internal quality gate", () => {
+  assert.deepEqual(questionIntakePolicy, {
+    version: "2026-09-05",
+    unverifiedMaterialDisposition: "retain-local-review-only",
+    unverifiedTextMayEnterAuthoring: false,
+    recalledOrSecureItemUseAllowed: false,
+    generalTopicRequiresIndependentPublicConfirmation: true,
+    independentAuthorshipRequired: true,
+    internalClinicalEvidenceRequired: true,
+    learnerFacingCitationRequired: false,
+    humanReviewRequiredBeforePublicClinicalUse: true,
+  });
+  assert.ok(Object.isFrozen(questionIntakePolicy));
+  assert.ok(questionBank.every((question) => question.referenceIds.length >= 1));
 });
 
 test("high-alert questions expose explicit review metadata and direct topic references", () => {

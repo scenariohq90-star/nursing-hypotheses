@@ -37,6 +37,18 @@ const categoryById = Object.fromEntries(
 // intentionally excluded until a documented rights and trademark review is complete.
 export const examReferences = [];
 
+export const questionIntakePolicy = Object.freeze({
+  version: "2026-09-05",
+  unverifiedMaterialDisposition: "retain-local-review-only",
+  unverifiedTextMayEnterAuthoring: false,
+  recalledOrSecureItemUseAllowed: false,
+  generalTopicRequiresIndependentPublicConfirmation: true,
+  independentAuthorshipRequired: true,
+  internalClinicalEvidenceRequired: true,
+  learnerFacingCitationRequired: false,
+  humanReviewRequiredBeforePublicClinicalUse: true,
+});
+
 export const examTracks = [
   {
     id: "saudi-nursing",
@@ -2175,6 +2187,7 @@ export const questionBank = authoredQuestions.map((question) => {
       referenceIds: clinicalReferenceIdsByQuestionId[question.id] ?? [],
       status: "mapped-pending-human-verification",
     }],
+    intakePolicyVersion: questionIntakePolicy.version,
     sourceUse: "independent-clinical-context",
     accessTier: "free",
     learningModelVersion: "Independent nursing learning domains v1.4",
