@@ -251,7 +251,7 @@ main {
 }
 
 .language-switch {
-  height: 36px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   padding-inline-start: 10px;
@@ -322,6 +322,7 @@ main {
 .safety-strip {
   min-height: 35px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -337,6 +338,16 @@ main {
 
 .safety-strip svg {
   color: #bb7200;
+}
+
+.safety-strip a {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  color: #754b00;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .button {
@@ -3687,6 +3698,12 @@ html[dir="rtl"] .decision-actions {
   gap: 20px;
 }
 
+.site-footer a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .site-footer a:hover {
   color: var(--teal-700);
   text-decoration: underline;
@@ -4077,7 +4094,11 @@ html[dir="rtl"] .decision-actions {
     align-items: flex-start;
     padding: 7px 14px;
     text-align: start;
-    font-size: 9px;
+    font-size: 12px;
+  }
+
+  .safety-strip a {
+    min-height: 44px;
   }
 
   .hero-content,

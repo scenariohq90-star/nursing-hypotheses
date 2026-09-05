@@ -6,6 +6,7 @@ import worker, { createWorker, extractAssistantResult } from "../worker/index.js
 function assistantEnv(overrides = {}) {
   return {
     OPENAI_API_KEY: "test-only-key",
+    NURSING_ASSISTANT_ENABLED: "true",
     ASSETS: {
       fetch: async () => {
         throw new Error("Assistant requests must not reach static assets");
@@ -14,6 +15,29 @@ function assistantEnv(overrides = {}) {
     ...overrides,
   };
 }
+
+test("keeps the assistant endpoint disabled by default for the public guest beta", async () => {
+  let upstreamCalls = 0;
+  let assetCalls = 0;
+  const assistantWorker = createWorker({
+    fetchImpl: async () => {
+      upstreamCalls += 1;
+      return Response.json(successfulAssistantPayload());
+    },
+  });
+  const response = await assistantWorker.fetch(
+    assistantRequest({ question: "Explain sepsis for nursing learners", language: "en" }),
+    assistantEnv({
+      NURSING_ASSISTANT_ENABLED: "",
+      ASSETS: { fetch: async () => { assetCalls += 1; return new Response("missing", { status: 404 }); } },
+    }),
+  );
+
+  assert.equal(response.status, 404);
+  assert.equal((await response.json()).error.code, "not_found");
+  assert.equal(upstreamCalls, 0);
+  assert.equal(assetCalls, 0);
+});
 
 function assistantRequest(payload, options = {}) {
   return new Request("https://example.test/api/nursing-assistant", {

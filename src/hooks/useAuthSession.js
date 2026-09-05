@@ -17,13 +17,19 @@ function appRedirectUrl(marker) {
   return `${window.location.origin}/?auth=${marker}`;
 }
 
-export function useAuthSession() {
+export function useAuthSession({ enabled = true } = {}) {
+  const authEnabled = enabled && isSupabaseConfigured;
   const [session, setSession] = useState(null);
-  const [status, setStatus] = useState(isSupabaseConfigured ? "loading" : "unavailable");
+  const [status, setStatus] = useState(authEnabled ? "loading" : "ready");
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return undefined;
+    if (!authEnabled) {
+      setSession(null);
+      setStatus("ready");
+      setRecoveryMode(false);
+      return undefined;
+    }
     let active = true;
     let subscription;
 
@@ -54,17 +60,19 @@ export function useAuthSession() {
       active = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [authEnabled]);
 
   const signIn = useCallback(async ({ email, password }) => {
+    if (!authEnabled) return { ok: false, code: "unavailable" };
     const supabase = await loadSupabase();
     if (!supabase) return { ok: false, code: "unavailable" };
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { ok: false, code: "sign-in-failed", error };
     return { ok: true, code: "signed-in", session: data.session };
-  }, []);
+  }, [authEnabled]);
 
   const signUp = useCallback(async ({ email, password }) => {
+    if (!authEnabled) return { ok: false, code: "unavailable" };
     const supabase = await loadSupabase();
     if (!supabase) return { ok: false, code: "unavailable" };
     const { data, error } = await supabase.auth.signUp({
@@ -93,18 +101,20 @@ export function useAuthSession() {
       code: data.session ? "signed-in" : "confirmation-sent",
       session: data.session,
     };
-  }, []);
+  }, [authEnabled]);
 
   const requestPasswordReset = useCallback(async ({ email }) => {
+    if (!authEnabled) return { ok: false, code: "unavailable" };
     const supabase = await loadSupabase();
     if (!supabase) return { ok: false, code: "unavailable" };
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: appRedirectUrl("recovery"),
     });
     return error ? { ok: false, code: "reset-failed", error } : { ok: true, code: "reset-sent" };
-  }, []);
+  }, [authEnabled]);
 
   const updatePassword = useCallback(async ({ password }) => {
+    if (!authEnabled) return { ok: false, code: "unavailable" };
     const supabase = await loadSupabase();
     if (!supabase) return { ok: false, code: "unavailable" };
     const { error } = await supabase.auth.updateUser({ password });
@@ -114,17 +124,18 @@ export function useAuthSession() {
       window.history.replaceState(null, "", `${window.location.pathname}#/learning`);
     }
     return { ok: true, code: "password-updated" };
-  }, []);
+  }, [authEnabled]);
 
   const signOut = useCallback(async () => {
+    if (!authEnabled) return { ok: true };
     const supabase = await loadSupabase();
     if (!supabase) return { ok: true };
     const { error } = await supabase.auth.signOut({ scope: "local" });
     return error ? { ok: false, error } : { ok: true };
-  }, []);
+  }, [authEnabled]);
 
   return {
-    configured: isSupabaseConfigured,
+    configured: authEnabled,
     session,
     user: session?.user ?? null,
     status,

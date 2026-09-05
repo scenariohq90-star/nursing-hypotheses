@@ -3,6 +3,10 @@ const MAX_REQUEST_BYTES = 8 * 1024;
 const MAX_QUESTION_LENGTH = 1200;
 const DEFAULT_TIMEOUT_MS = 35_000;
 const DEFAULT_MODEL = "gpt-5.6-luna";
+
+function isExplicitlyEnabled(value) {
+  return String(value ?? "").trim().toLowerCase() === "true";
+}
 const AUTHORITATIVE_DOMAINS = [
   "moh.gov.sa",
   "scfhs.org.sa",
@@ -465,6 +469,9 @@ export function createWorker({ fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS
     async fetch(request, env) {
       const url = new URL(request.url);
       if (url.pathname.replace(/\/+$/, "") === ASSISTANT_PATH) {
+        if (!isExplicitlyEnabled(env?.NURSING_ASSISTANT_ENABLED)) {
+          return jsonResponse({ error: { code: "not_found" } }, 404);
+        }
         return handleNursingAssistant(request, env, { fetchImpl, timeoutMs });
       }
 
