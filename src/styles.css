@@ -114,10 +114,6 @@ main {
   flex: 1;
 }
 
-main:focus {
-  outline: none;
-}
-
 .sr-only {
   position: absolute;
   width: 1px;

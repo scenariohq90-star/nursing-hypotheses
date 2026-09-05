@@ -4,11 +4,17 @@ import test from "node:test";
 import {
   examCategories,
   examDifficulties,
+  examDomains,
   examReferences,
   examTracks,
   questionBank,
   questionIntakePolicy,
 } from "../src/data/question-bank.js";
+import {
+  questionBankExpansionDistribution,
+  validateQuestionBankExpansion,
+} from "../src/data/question-bank-expansion.js";
+import { questionBankExpansionBDrafts } from "../src/data/question-bank-expansion-b.js";
 import { references } from "../src/data/scenarios.js";
 import {
   createGuidedQuiz,
@@ -26,25 +32,35 @@ function assertBilingual(value, label) {
   assert.ok(value.ar.trim(), `${label} Arabic cannot be empty`);
 }
 
-test("question bank contains 71 original bilingual questions across three independent study paths", () => {
-  assert.equal(questionBank.length, 71);
-  assert.equal(questionBank.filter((question) => question.examId === "saudi-nursing").length, 23);
-  assert.equal(questionBank.filter((question) => question.examId === "international-rn").length, 23);
-  assert.equal(questionBank.filter((question) => question.examId === "computerized-practice").length, 25);
+test("question bank contains 101 original bilingual questions across three independent study paths", () => {
+  assert.equal(questionBank.length, 101);
+  assert.equal(questionBank.filter((question) => question.examId === "saudi-nursing").length, 39);
+  assert.equal(questionBank.filter((question) => question.examId === "international-rn").length, 31);
+  assert.equal(questionBank.filter((question) => question.examId === "computerized-practice").length, 31);
   assert.equal(new Set(questionBank.map((question) => question.id)).size, questionBank.length);
   assert.deepEqual(new Set(examTracks.map((track) => track.id)), new Set(["saudi-nursing", "international-rn", "computerized-practice"]));
 
   const categoryIds = new Set(examCategories.map((category) => category.id));
   const difficultyIds = new Set(examDifficulties.map((difficulty) => difficulty.id));
+  const domainIds = new Set(examDomains.map((domain) => domain.id));
   const sourceIds = new Set([...examReferences, ...references].map((reference) => reference.id));
+  const sourceRecords = [...new Map(
+    [...examReferences, ...references].map((reference) => [reference.id, reference]),
+  ).values()];
+  assert.equal(sourceRecords.length, 73);
+  assert.equal(new Set(sourceRecords.map((reference) => reference.url)).size, 72);
 
   for (const question of questionBank) {
     assert.match(question.id, /^[a-z0-9-]+$/);
     assert.equal(question.fictional, true);
     assert.equal(question.official, false);
     assert.equal(question.accessTier, "free");
-    assert.equal(question.contentVersion, "1.4.0");
-    assert.equal(question.learningModelVersion, "Independent nursing learning domains v1.4");
+    assert.ok(["1.4.0", "1.5.0-expansion-draft", "1.6.0-expansion-b-draft"].includes(question.contentVersion));
+    assert.ok([
+      "Independent nursing learning domains v1.4",
+      "Independent nursing learning domains v1.5",
+      "Independent nursing learning domains v1.6",
+    ].includes(question.learningModelVersion));
     assert.equal(question.intakePolicyVersion, questionIntakePolicy.version);
     assert.equal(question.sourceUse, "independent-clinical-context");
     assert.equal(question.reviewStatus, "draft");
@@ -57,13 +73,15 @@ test("question bank contains 71 original bilingual questions across three indepe
     assert.equal(question.evidenceReview.status, "mapped-pending-human-verification");
     assert.equal(question.evidenceClaims.length, 1);
     assert.deepEqual(question.evidenceClaims[0].referenceIds, question.referenceIds);
-    assert.equal(question.provenance.origin, "independently-authored");
+    assert.ok(["independently-authored", "independently-authored-clean-room"].includes(question.provenance.origin));
     assert.equal(question.claims.official, false);
     assert.equal(question.claims.examEquivalent, false);
     assert.equal(question.claims.adaptive, false);
     assert.equal(question.claims.predictive, false);
     assert.ok(categoryIds.has(question.categoryId));
     assert.ok(difficultyIds.has(question.difficultyId));
+    assert.ok(domainIds.has(question.domainId));
+    assertBilingual(question.domain, `${question.id} domain`);
     assertBilingual(question.stem, `${question.id} stem`);
     assertBilingual(question.topic, `${question.id} topic`);
     assertBilingual(question.rationale, `${question.id} rationale`);
@@ -79,6 +97,27 @@ test("question bank contains 71 original bilingual questions across three indepe
       assert.ok(sourceIds.has(referenceId), `${question.id} cites missing source ${referenceId}`);
     }
   }
+});
+
+test("the two clean-room expansion passes preserve their promised domain coverage", () => {
+  const expansionA = validateQuestionBankExpansion();
+  assert.equal(expansionA.valid, true, expansionA.errors.join("\n"));
+  assert.equal(expansionA.questionCount, 15);
+  assert.deepEqual(expansionA.distribution, questionBankExpansionDistribution);
+
+  const expansionBDistribution = Object.fromEntries(
+    ["mental-health", "pharmacology", "fundamentals", "management-safety"].map((domainId) => [
+      domainId,
+      questionBankExpansionBDrafts.filter((question) => question.domainId === domainId).length,
+    ]),
+  );
+  assert.equal(questionBankExpansionBDrafts.length, 15);
+  assert.deepEqual(expansionBDistribution, {
+    "mental-health": 4,
+    pharmacology: 4,
+    fundamentals: 3,
+    "management-safety": 4,
+  });
 });
 
 test("unverified study material stays outside authoring while evidence remains an internal quality gate", () => {
@@ -125,7 +164,15 @@ test("high-alert questions expose explicit review metadata and direct topic refe
 });
 
 test("public study-path metadata is independent and excludes examination-owner references", () => {
-  assert.deepEqual(examReferences, []);
+  assert.ok(examReferences.length >= 6);
+  assert.equal(new Set(examReferences.map((reference) => reference.id)).size, examReferences.length);
+  assert.ok(examReferences.every((reference) => /^https:\/\//.test(reference.url)));
+  for (const reference of examReferences) {
+    assertBilingual(reference.title, `${reference.id} title`);
+    assertBilingual(reference.organization, `${reference.id} organization`);
+    assertBilingual(reference.accessNote, `${reference.id} access note`);
+    assertBilingual(reference.licensingNote, `${reference.id} licensing note`);
+  }
   const publicMetadata = JSON.stringify({
     tracks: examTracks.map(({ label, shortLabel, description }) => ({ label, shortLabel, description })),
     categories: examCategories.map(({ label }) => label),
@@ -160,6 +207,15 @@ test("quiz creation filters and shuffles deterministically without mutating auth
   assert.deepEqual(shuffleWithSeed([1, 2, 3, 4], "x"), shuffleWithSeed([1, 2, 3, 4], "x"));
 });
 
+test("a learner can build a 30-question fixed set from every study path", () => {
+  for (const examId of ["saudi-nursing", "international-rn", "computerized-practice"]) {
+    const quiz = createQuiz(questionBank, { examId, limit: 30, seed: `large-set-${examId}` });
+    assert.equal(quiz.length, 30);
+    assert.ok(quiz.every((question) => question.examId === examId));
+    assert.equal(new Set(quiz.map((question) => question.id)).size, 30);
+  }
+});
+
 test("grading reports incomplete work and calculates completed sets from authored answers", () => {
   const questions = createQuiz(questionBank, { examId: "international-rn", limit: 5, seed: "grade" });
   const partial = gradeQuiz(questions, { [questions[0].id]: questions[0].correctOptionId });
@@ -178,9 +234,14 @@ test("grading reports incomplete work and calculates completed sets from authore
   assert.equal(invalid.answeredCount, 0);
 });
 
-test("category insights cannot be inflated by repeating one question", () => {
-  const category = examCategories.find((item) => item.id === "saudi-nursing-fundamentals");
-  const three = questionBank.filter((question) => question.categoryId === category.id).slice(0, 3);
+test("learning-domain insights cannot be inflated by repeating one question", () => {
+  const domain = {
+    ...examDomains.find((item) => item.id === "fundamentals"),
+    examId: "saudi-nursing",
+  };
+  const three = questionBank.filter((question) => (
+    question.examId === domain.examId && question.domainId === domain.id
+  )).slice(0, 3);
   const one = three.slice(0, 1);
   const repeatedAnswer = { [one[0].id]: one[0].correctOptionId };
   const repeatedAttempts = Array.from({ length: 4 }, (_, index) => ({
@@ -188,14 +249,14 @@ test("category insights cannot be inflated by repeating one question", () => {
     id: `repeat-${index}`,
   }));
 
-  let [insight] = getQuestionCategoryInsights(repeatedAttempts, [category]);
+  let [insight] = getQuestionCategoryInsights(repeatedAttempts, [domain]);
   assert.equal(insight.uniqueQuestionCount, 1);
   assert.equal(insight.completedSetCount, 4);
   assert.equal(insight.status, "insufficient-data");
 
   const firstSet = gradeQuiz(three.slice(0, 2), Object.fromEntries(three.slice(0, 2).map((question) => [question.id, question.correctOptionId])));
   const secondSet = gradeQuiz(three.slice(2), { [three[2].id]: three[2].correctOptionId });
-  insight = getQuestionCategoryInsights([{ ...firstSet, id: "set-a" }, { ...secondSet, id: "set-b" }], [category])[0];
+  insight = getQuestionCategoryInsights([{ ...firstSet, id: "set-a" }, { ...secondSet, id: "set-b" }], [domain])[0];
   assert.equal(insight.uniqueQuestionCount, 3);
   assert.equal(insight.completedSetCount, 2);
   assert.equal(insight.status, "strength");

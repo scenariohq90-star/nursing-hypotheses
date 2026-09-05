@@ -13,6 +13,7 @@ import {
   analyzePerformance,
   getPerformanceByCategory,
 } from "../src/lib/question-engine.js";
+import { questionBank } from "../src/data/question-bank.js";
 
 function makeQuestion(id, categoryId, correctOptionId = "b") {
   return {
@@ -120,6 +121,76 @@ test("performance analysis calculates category accuracy and returns 10 new focus
   assert.ok(focused.every((question) => !Object.hasOwn(answers, question.id)));
   assert.notEqual(focused[0], bank.find((question) => question.id === focused[0].id));
   assert.equal(JSON.stringify(bank), snapshot);
+});
+
+test("performance analysis distinguishes authored nursing domains that share one broad category", () => {
+  const withDomain = (question, domainId, en, ar) => ({
+    ...question,
+    categoryId: "maternal-child",
+    domainId,
+    domain: { en, ar },
+  });
+  const bank = [
+    ...Array.from({ length: 12 }, (_, index) => withDomain(
+      makeQuestion(`p-${index + 1}`, "maternal-child"),
+      "pediatrics",
+      "Pediatrics",
+      "تمريض الأطفال",
+    )),
+    ...Array.from({ length: 12 }, (_, index) => withDomain(
+      makeQuestion(`m-${index + 1}`, "maternal-child"),
+      "maternal-newborn",
+      "Maternal-Newborn",
+      "تمريض الأمومة وحديثي الولادة",
+    )),
+  ];
+  const answers = {
+    "p-1": "a",
+    "p-2": "a",
+    "p-3": "a",
+    "m-1": "b",
+    "m-2": "b",
+    "m-3": "b",
+  };
+
+  const performance = getPerformanceByCategory(answers, bank);
+  const focused = analyzePerformance(answers, bank);
+
+  assert.deepEqual(performance.map(({ categoryId, score }) => ({ categoryId, score })), [
+    { categoryId: "pediatrics", score: 0 },
+    { categoryId: "maternal-newborn", score: 100 },
+  ]);
+  assert.equal(focused.length, 10);
+  assert.ok(focused.slice(0, 9).every((question) => question.domainId === "pediatrics"));
+  assert.equal(focused[9].domainId, "maternal-newborn");
+});
+
+test("the real bank keeps legacy and new pediatric evidence separate from maternal-newborn evidence", () => {
+  const pediatricIds = [
+    "saudi-nursing-maternal-pediatric-013",
+    "saudi-nursing-maternal-child-infant-fever-080",
+  ];
+  const maternalIds = [
+    "saudi-nursing-maternal-bleeding-010",
+    "saudi-nursing-maternal-pprom-084",
+  ];
+  const selected = questionBank.filter((question) => (
+    pediatricIds.includes(question.id) || maternalIds.includes(question.id)
+  ));
+  const answers = Object.fromEntries(selected.map((question) => [
+    question.id,
+    pediatricIds.includes(question.id)
+      ? question.options.find((option) => option.id !== question.correctOptionId).id
+      : question.correctOptionId,
+  ]));
+
+  const performance = getPerformanceByCategory(answers, selected);
+
+  assert.equal(selected.length, 4);
+  assert.deepEqual(performance.map(({ categoryId, answeredCount, score }) => ({ categoryId, answeredCount, score })), [
+    { categoryId: "pediatrics", answeredCount: 2, score: 0 },
+    { categoryId: "maternal-newborn", answeredCount: 2, score: 100 },
+  ]);
 });
 
 test("an explicitly unanswered timed item counts as an incorrect category attempt", () => {

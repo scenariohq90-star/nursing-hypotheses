@@ -1,4 +1,15 @@
+import {
+  questionBankExpansionDrafts,
+  questionBankExpansionSources,
+} from "./question-bank-expansion.js";
+import {
+  questionBankExpansionBDrafts,
+  questionBankExpansionBSources,
+} from "./question-bank-expansion-b.js";
+
 const bi = (en, ar) => ({ en, ar });
+
+export const QUESTION_BANK_VERSION = "2026-09-05.4";
 
 export const examDifficulties = [
   { id: "foundation", label: bi("Foundation", "تأسيسي") },
@@ -8,6 +19,21 @@ export const examDifficulties = [
 
 const difficultyById = Object.fromEntries(
   examDifficulties.map((difficulty) => [difficulty.id, difficulty.label]),
+);
+
+export const examDomains = [
+  { id: "adult-medical-surgical", label: bi("Adult / Medical-Surgical", "تمريض البالغين / الباطني والجراحي") },
+  { id: "emergency-critical-care", label: bi("Emergency / Critical Care", "الطوارئ / العناية الحرجة") },
+  { id: "pediatrics", label: bi("Pediatrics", "تمريض الأطفال") },
+  { id: "maternal-newborn", label: bi("Maternal-Newborn", "تمريض الأمومة وحديثي الولادة") },
+  { id: "mental-health", label: bi("Mental Health", "الصحة النفسية") },
+  { id: "pharmacology", label: bi("Pharmacology", "علم الأدوية") },
+  { id: "fundamentals", label: bi("Fundamentals", "أساسيات التمريض") },
+  { id: "management-safety", label: bi("Management / Safety", "الإدارة / السلامة") },
+];
+
+const domainById = Object.fromEntries(
+  examDomains.map((domain) => [domain.id, domain]),
 );
 
 export const examCategories = [
@@ -33,9 +59,46 @@ const categoryById = Object.fromEntries(
   examCategories.map((category) => [category.id, category]),
 );
 
+const defaultDomainIdByCategoryId = {
+  "saudi-nursing-fundamentals": "fundamentals",
+  "saudi-nursing-adult": "adult-medical-surgical",
+  "saudi-nursing-maternal-child": "maternal-newborn",
+  "saudi-nursing-management": "management-safety",
+  "international-management": "management-safety",
+  "international-safety-infection": "fundamentals",
+  "international-health-promotion": "fundamentals",
+  "international-psychosocial": "mental-health",
+  "international-basic-care": "fundamentals",
+  "international-pharmacology": "pharmacology",
+  "international-risk-reduction": "adult-medical-surgical",
+  "international-physiological": "adult-medical-surgical",
+  "computerized-acute-priorities": "emergency-critical-care",
+  "computerized-infection-prevention": "fundamentals",
+  "computerized-medication-safety": "pharmacology",
+  "computerized-family-psychosocial": "mental-health",
+};
+
+const legacyDomainIdByQuestionId = {
+  "saudi-nursing-adult-mental-health-008": "mental-health",
+  "saudi-nursing-maternal-pediatric-013": "pediatrics",
+  "computerized-acute-croup-033": "pediatrics",
+  "computerized-family-antepartum-043": "maternal-newborn",
+  "computerized-family-pph-044": "maternal-newborn",
+  "computerized-family-bronchiolitis-045": "pediatrics",
+  "international-health-promotion-folic-acid-059": "maternal-newborn",
+  "computerized-acute-neonatal-infection-065": "maternal-newborn",
+  "computerized-family-cyanotic-spell-070": "pediatrics",
+  "computerized-family-bronchiolitis-apnoea-071": "pediatrics",
+};
+
 // Public practice content cites clinical sources only. Examination-owner material is
 // intentionally excluded until a documented rights and trademark review is complete.
-export const examReferences = [];
+export const examReferences = [
+  ...new Map(
+    [...questionBankExpansionSources, ...questionBankExpansionBSources]
+      .map((reference) => [reference.id, reference]),
+  ).values(),
+];
 
 export const questionIntakePolicy = Object.freeze({
   version: "2026-09-05",
@@ -2157,8 +2220,14 @@ const highAlertRiskByQuestionId = {
   "computerized-family-bronchiolitis-apnoea-071": ["paediatric-respiratory", "apnoea"],
 };
 
-export const questionBank = authoredQuestions.map((question) => {
+const legacyQuestionBank = authoredQuestions.map((question) => {
   const category = categoryById[question.categoryId];
+  const domainId = legacyDomainIdByQuestionId[question.id]
+    ?? defaultDomainIdByCategoryId[question.categoryId];
+  const domain = domainById[domainId];
+  if (!domain) {
+    throw new Error(`Missing learning domain mapping: ${question.id}`);
+  }
   const distractors = distractorRationalesByQuestionId[question.id] ?? {};
   const missingRationales = question.options
     .filter((answer) => answer.id !== question.correctOptionId)
@@ -2175,6 +2244,8 @@ export const questionBank = authoredQuestions.map((question) => {
   );
   return {
     ...question,
+    domainId,
+    domain: domain.label,
     referenceIds: clinicalReferenceIdsByQuestionId[question.id] ?? [],
     category: category.label,
     difficulty: difficultyById[question.difficultyId],
@@ -2233,3 +2304,9 @@ export const questionBank = authoredQuestions.map((question) => {
     contentVersion: "1.4.0",
   };
 });
+
+export const questionBank = [
+  ...legacyQuestionBank,
+  ...questionBankExpansionDrafts,
+  ...questionBankExpansionBDrafts,
+];

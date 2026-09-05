@@ -155,7 +155,7 @@ export function createGuidedQuiz(questionBank, attempts, categories = [], option
     strength: 40,
   };
   const ranked = unseenEligible.map((question) => {
-    const insight = insightByCategory.get(question.categoryId);
+    const insight = insightByCategory.get(learningGroupId(question));
     const evidenceGap = insight ? Math.max(0, 3 - insight.uniqueQuestionCount) : 3;
     const score =
       (priorityByStatus[insight?.status ?? "insufficient-data"] ?? 0) +
@@ -171,13 +171,14 @@ export function createGuidedQuiz(questionBank, attempts, categories = [], option
   const deferred = [];
   const selectedByCategory = new Map();
   for (const candidate of ranked) {
-    const count = selectedByCategory.get(candidate.question.categoryId) ?? 0;
+    const groupId = learningGroupId(candidate.question);
+    const count = selectedByCategory.get(groupId) ?? 0;
     if (count >= maximumFromOneCategory) {
       deferred.push(candidate);
       continue;
     }
     selected.push(candidate.question);
-    selectedByCategory.set(candidate.question.categoryId, count + 1);
+    selectedByCategory.set(groupId, count + 1);
     if (selected.length === targetCount) break;
   }
   if (selected.length < targetCount) {
@@ -203,6 +204,12 @@ function normalizeAnswers(answers) {
   return new Map();
 }
 
+function learningGroupId(question) {
+  if (typeof question?.domainId === "string" && question.domainId) return question.domainId;
+  if (typeof question?.categoryId === "string" && question.categoryId) return question.categoryId;
+  return "uncategorized";
+}
+
 /** Calculates accuracy for every answered learning domain, lowest score first. */
 export function getPerformanceByCategory(userAnswers, questionBank) {
   const submitted = normalizeAnswers(userAnswers);
@@ -212,10 +219,10 @@ export function getPerformanceByCategory(userAnswers, questionBank) {
   for (const question of questions) {
     if (!submitted.has(question.id)) continue;
     const selectedOptionId = submitted.get(question.id);
-    const categoryId = typeof question.categoryId === "string" ? question.categoryId : "uncategorized";
+    const categoryId = learningGroupId(question);
     const group = performance.get(categoryId) ?? {
       categoryId,
-      category: question.category ?? { en: categoryId, ar: categoryId },
+      category: question.domain ?? question.category ?? { en: categoryId, ar: categoryId },
       answeredCount: 0,
       correctCount: 0,
     };
@@ -258,7 +265,7 @@ export function analyzePerformance(userAnswers, questionBank) {
   const performance = getPerformanceByCategory(submitted, bank);
   if (!performance.length) {
     return [...bank]
-      .sort((left, right) => left.categoryId.localeCompare(right.categoryId) || left.id.localeCompare(right.id))
+      .sort((left, right) => learningGroupId(left).localeCompare(learningGroupId(right)) || left.id.localeCompare(right.id))
       .slice(0, targetCount)
       .map(clonePracticeQuestion);
   }
@@ -269,7 +276,7 @@ export function analyzePerformance(userAnswers, questionBank) {
     const insight = performance[index];
     focusCategoryIds.push(insight.categoryId);
     unseenAvailableInFocus += bank.filter((question) => (
-      question.categoryId === insight.categoryId && !submitted.has(question.id)
+      learningGroupId(question) === insight.categoryId && !submitted.has(question.id)
     )).length;
     const nextInsight = performance[index + 1];
     if (unseenAvailableInFocus >= targetCount && nextInsight?.score !== insight.score) break;
@@ -277,13 +284,13 @@ export function analyzePerformance(userAnswers, questionBank) {
 
   if (unseenAvailableInFocus < targetCount) {
     const assessedCategoryIds = new Set(performance.map((insight) => insight.categoryId));
-    const unassessedCategoryIds = [...new Set(bank.map((question) => question.categoryId))]
+    const unassessedCategoryIds = [...new Set(bank.map(learningGroupId))]
       .filter((categoryId) => !assessedCategoryIds.has(categoryId))
       .sort();
     for (const categoryId of unassessedCategoryIds) {
       focusCategoryIds.push(categoryId);
       unseenAvailableInFocus += bank.filter((question) => (
-        question.categoryId === categoryId && !submitted.has(question.id)
+        learningGroupId(question) === categoryId && !submitted.has(question.id)
       )).length;
       if (unseenAvailableInFocus >= targetCount) break;
     }
@@ -292,11 +299,11 @@ export function analyzePerformance(userAnswers, questionBank) {
   const focusSet = new Set(focusCategoryIds);
   const scoreByCategory = new Map(performance.map((insight) => [insight.categoryId, insight.score]));
   const compareFocusedQuestions = (left, right) => {
-    const scoreDifference = (scoreByCategory.get(left.categoryId) ?? 101) - (scoreByCategory.get(right.categoryId) ?? 101);
+    const scoreDifference = (scoreByCategory.get(learningGroupId(left)) ?? 101) - (scoreByCategory.get(learningGroupId(right)) ?? 101);
     if (scoreDifference) return scoreDifference;
     return left.id.localeCompare(right.id);
   };
-  const focusedQuestions = bank.filter((question) => focusSet.has(question.categoryId));
+  const focusedQuestions = bank.filter((question) => focusSet.has(learningGroupId(question)));
   const unseenQuestions = focusedQuestions
     .filter((question) => !submitted.has(question.id))
     .sort(compareFocusedQuestions);
@@ -327,7 +334,7 @@ export function gradeQuiz(questions, answers, options = {}) {
           correctOptionId: question.correctOptionId,
           isCorrect: false,
           examId: question.examId,
-          categoryId: question.categoryId,
+          categoryId: learningGroupId(question),
         });
       }
       continue;
@@ -338,7 +345,7 @@ export function gradeQuiz(questions, answers, options = {}) {
       correctOptionId: question.correctOptionId,
       isCorrect: selectedOptionId === question.correctOptionId,
       examId: question.examId,
-      categoryId: question.categoryId,
+      categoryId: learningGroupId(question),
     });
   }
 

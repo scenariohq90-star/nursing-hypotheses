@@ -43,7 +43,10 @@ import { references, scenarios, selectScenarioVariant } from "./data/scenarios.j
 import {
   examCategories,
   examDifficulties,
+  examDomains,
+  examReferences,
   examTracks,
+  QUESTION_BANK_VERSION,
   questionBank,
 } from "./data/question-bank.js";
 import {
@@ -83,6 +86,7 @@ import {
   syncLearningHistory,
   updateCloudLanguage,
 } from "./lib/progress-repository.js";
+import { signOutAndClearLocalLearningCache } from "./lib/local-learning-cache.js";
 
 const PROFILE_STORAGE_KEY = "nursing-hypotheses.learning-profile.v1";
 const EXAM_STORAGE_KEY = "nursing-hypotheses.exam-profile.v1";
@@ -90,6 +94,7 @@ const EXAM_SESSION_STORAGE_KEY = "nursing-hypotheses.active-exam-session.v1";
 const CACHE_OWNER_STORAGE_KEY = "nursing-hypotheses.cache-owner.v1";
 const EXAM_PROFILE_VERSION = 1;
 const EXAM_SECONDS_PER_QUESTION = 90;
+const QUIZ_SIZE_OPTIONS = [5, 10, 15, 25, 30];
 const PRODUCT_NAME = { en: "Nursing Hypotheses", ar: "فرضيات تمريضية" };
 
 function examSessionStorageKey(userId) {
@@ -365,7 +370,7 @@ function revalidateExamAttempt(value, index) {
     completedAt: typeof value.completedAt === "string" && !Number.isNaN(Date.parse(value.completedAt)) ? value.completedAt : graded.completedAt,
     selectionMode: allowedSelectionModes.has(value.selectionMode) ? value.selectionMode : "manual",
     completionReason,
-    bankVersion: "2026-09-04.3",
+    bankVersion: QUESTION_BANK_VERSION,
   };
 }
 
@@ -787,7 +792,15 @@ function ResultPage({ scenarioId, lang, t, profile, onStart }) {
   </div>;
 }
 
-const allQuestionReferences = references;
+const allQuestionReferences = [
+  ...new Map(
+    [...examReferences, ...references].map((reference) => [reference.id, reference]),
+  ).values(),
+];
+
+const examLearningDomains = examTracks.flatMap((track) => (
+  examDomains.map((domain) => ({ ...domain, examId: track.id }))
+));
 
 function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, historyClearPending }) {
   const [examId, setExamId] = useState("saudi-nursing");
@@ -827,7 +840,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
   const availableCount = practiceMode === "guided"
     ? filteredQuestions.filter((question) => !answeredQuestionIds.has(question.id)).length
     : filteredQuestions.length;
-  const guidedPlan = getGuidedQuestionPlan(completedSets, examCategories, examId);
+  const guidedPlan = getGuidedQuestionPlan(completedSets, examLearningDomains, examId);
 
   function beginQuiz() {
     const seed = `${examId}:${Date.now()}:${completedSets.length}`;
@@ -839,14 +852,14 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
       seed,
     };
     const questions = practiceMode === "guided"
-      ? createGuidedQuiz(questionBank, completedSets, examCategories, quizOptions)
+      ? createGuidedQuiz(questionBank, completedSets, examLearningDomains, quizOptions)
       : createQuiz(questionBank, quizOptions);
     if (!questions.length) { setNotice(t(practiceMode === "guided" ? "noFreshGuidedQuestions" : "noQuestions")); return; }
     submittedRef.current = false;
     startSession({
       questions,
       durationSeconds: questions.length * EXAM_SECONDS_PER_QUESTION,
-      metadata: { examId, seed, selectionMode: practiceMode, bankVersion: "2026-09-04.3" },
+      metadata: { examId, seed, selectionMode: practiceMode, bankVersion: QUESTION_BANK_VERSION },
     });
     setNotice("");
     setResult(null);
@@ -882,7 +895,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
       seed: quiz.seed,
       selectionMode: activePracticeMode,
       completionReason: effectiveCompletionReason,
-      bankVersion: "2026-09-04.3",
+      bankVersion: QUESTION_BANK_VERSION,
     };
     if (onComplete(completed) === false) {
       submittedRef.current = false;
@@ -912,7 +925,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
     startSession({
       questions,
       durationSeconds: questions.length * EXAM_SECONDS_PER_QUESTION,
-      metadata: { examId: result.examId, seed, selectionMode: "performance-focus", bankVersion: "2026-09-04.3" },
+      metadata: { examId: result.examId, seed, selectionMode: "performance-focus", bankVersion: QUESTION_BANK_VERSION },
     });
     window.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -928,7 +941,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
         <fieldset className="exam-track-list"><legend className="sr-only">{t("selectTrack")}</legend>{examTracks.map((track) => <label key={track.id} className={examId === track.id ? "selected" : ""}><input type="radio" name="exam-track" value={track.id} checked={examId === track.id} onChange={() => { setExamId(track.id); setCategoryId("all"); setNotice(""); }} /><span className="track-check" aria-hidden="true">{examId === track.id ? <Check size={16} weight="bold" /> : null}</span><span><strong>{localize(track.shortLabel, lang)}</strong><small>{localize(track.description, lang)}</small></span></label>)}</fieldset>
         <fieldset className="practice-mode-list"><legend>{t("practiceMode")}</legend><label className={practiceMode === "guided" ? "selected" : ""}><input type="radio" name="practice-mode" value="guided" checked={practiceMode === "guided"} onChange={() => { setPracticeMode("guided"); setNotice(""); }} /><Brain size={23} weight="duotone" aria-hidden="true" /><span><strong>{t("guidedPractice")}</strong><small>{t("guidedPracticeBody")}</small></span></label><label className={practiceMode === "manual" ? "selected" : ""}><input type="radio" name="practice-mode" value="manual" checked={practiceMode === "manual"} onChange={() => { setPracticeMode("manual"); setNotice(""); }} /><ClipboardText size={23} weight="duotone" aria-hidden="true" /><span><strong>{t("manualPractice")}</strong><small>{t("manualPracticeBody")}</small></span></label></fieldset>
         {practiceMode === "guided" ? <div className="guided-plan-note" role="note"><Brain size={27} weight="fill" aria-hidden="true" /><div><strong>{t("guidedPractice")}</strong><p>{t(guidedPlanCopy[guidedPlan.mode])}</p>{guidedPlan.focusCategories.length ? <div className="guided-focus-list"><span>{t("currentFocus")}:</span>{guidedPlan.focusCategories.map((focus) => <b key={focus.categoryId}>{localize(focus.label, lang)}</b>)}</div> : null}<small>{t("guidedFixedSetNotice")}</small></div></div> : null}
-        <div className="quiz-filters"><label><span>{t("quizCategory")}</span><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="all">{t("allCategories")}</option>{categories.map((category) => <option key={category.id} value={category.id}>{localize(category.label, lang)}</option>)}</select></label><label><span>{t("quizDifficulty")}</span><select value={difficultyId} onChange={(event) => setDifficultyId(event.target.value)}><option value="all">{t("allDifficultyLevels")}</option>{examDifficulties.map((difficulty) => <option key={difficulty.id} value={difficulty.id}>{localize(difficulty.label, lang)}</option>)}</select></label><label><span>{t("quizSize")}</span><select value={limit} onChange={(event) => setLimit(Number(event.target.value))}>{[5, 10, 15].map((size) => <option key={size} value={size}>{formatNumber(size, lang)}</option>)}</select></label></div>
+        <div className="quiz-filters"><label><span>{t("quizCategory")}</span><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="all">{t("allCategories")}</option>{categories.map((category) => <option key={category.id} value={category.id}>{localize(category.label, lang)}</option>)}</select></label><label><span>{t("quizDifficulty")}</span><select value={difficultyId} onChange={(event) => setDifficultyId(event.target.value)}><option value="all">{t("allDifficultyLevels")}</option>{examDifficulties.map((difficulty) => <option key={difficulty.id} value={difficulty.id}>{localize(difficulty.label, lang)}</option>)}</select></label><label><span>{t("quizSize")}</span><select value={limit} onChange={(event) => setLimit(Number(event.target.value))}>{QUIZ_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{formatNumber(size, lang)}</option>)}</select></label></div>
         <div className="quiz-builder-footer"><p><strong>{formatNumber(availableCount, lang)}</strong> {t("questionsAvailable")}</p><button type="button" className="button button-primary" onClick={beginQuiz} disabled={availableCount === 0}><Play size={18} weight="fill" aria-hidden="true" />{t("beginQuiz")}</button></div>{notice ? <p className="form-notice" role="alert"><Warning size={18} weight="fill" />{notice}</p> : null}
       </section>
       <section className="exam-summary-strip"><div><ClipboardText size={27} weight="duotone" /><span>{t("setsCompleted")}</span><strong>{formatNumber(completedSets.length, lang)}</strong></div><div><Target size={27} weight="duotone" /><span>{t("questionsAnswered")}</span><strong>{formatNumber(completedSets.reduce((sum, attempt) => sum + attempt.answeredCount, 0), lang)}</strong></div><AppLink to="learning" className="inline-link">{t("continueLearning")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></section>
@@ -975,14 +988,14 @@ function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart, 
   const [historyClearing, setHistoryClearing] = useState(false);
   const completedAttempts = profile.attempts.filter((item) => item.isComplete);
   const completedExamAttempts = examProfile.attempts.filter((item) => item.isComplete);
-  const examInsights = getQuestionCategoryInsights(completedExamAttempts, examCategories).filter((insight) => insight.answeredCount > 0);
+  const examInsights = getQuestionCategoryInsights(completedExamAttempts, examLearningDomains).filter((insight) => insight.answeredCount > 0);
   const examQuestionCount = completedExamAttempts.reduce((sum, attempt) => sum + attempt.answeredCount, 0);
   const completedCount = getCompletedScenarioCount(profile);
   const average = completedAttempts.length ? completedAttempts.reduce((sum, item) => sum + item.score, 0) / completedAttempts.length : 0;
   const insights = getCompetencyInsights(profile, scenarios);
   const [topScenarioRecommendation] = getScenarioRecommendations(profile, scenarios, { limit: 1 });
   const suggestedScenario = scenarios.find((scenario) => scenario.id === topScenarioRecommendation?.scenarioId);
-  const guidedQuestionPlan = getGuidedQuestionPlan(completedExamAttempts, examCategories, "all");
+  const guidedQuestionPlan = getGuidedQuestionPlan(completedExamAttempts, examLearningDomains, "all");
   const latestAttempts = [];
   const seenScenarioIds = new Set();
   for (let index = completedAttempts.length - 1; index >= 0; index -= 1) {
@@ -1380,25 +1393,27 @@ export function App() {
     } catch {
       if (generation === syncGenerationRef.current) setSyncStatus("error");
     }
-    const result = await auth.signOut();
-    if (!result.ok) {
-      setSyncStatus("error");
-      return;
-    }
+    const result = await signOutAndClearLocalLearningCache({
+      signOut: auth.signOut,
+      storage: window.localStorage,
+      keys: [
+        profileStorageKeyForUser(userId),
+        examProfileStorageKeyForUser(userId),
+        examSessionStorageKey(userId),
+        CACHE_OWNER_STORAGE_KEY,
+        LOCAL_HISTORY_CLAIM_KEY,
+      ],
+    });
     const clearedProfile = createEmptyProfile("", langRef.current);
     const clearedExamProfile = createEmptyExamProfile();
     persistProfile(clearedProfile);
     persistExamProfile(clearedExamProfile);
-    try {
-      window.localStorage.removeItem(CACHE_OWNER_STORAGE_KEY);
-      window.localStorage.removeItem(LOCAL_HISTORY_CLAIM_KEY);
-    } catch { /* State reset still completes. */ }
     profileRef.current = clearedProfile;
     examProfileRef.current = clearedExamProfile;
     setProfile(clearedProfile);
     setExamProfile(clearedExamProfile);
     setSession(createScenarioSession());
-    setSyncStatus("idle");
+    setSyncStatus(result.ok ? "idle" : "error");
   }
   function exportLearningData() {
     const payload = {
