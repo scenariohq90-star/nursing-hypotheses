@@ -31,8 +31,9 @@ test("the learning library ships twelve bilingual department scenarios", () => {
     assert.equal(scenario.clinicalReview.status, "pending");
     assert.equal(scenario.legalReview.status, "pending");
     assert.equal(scenario.translationReview.status, "pending");
-    assert.equal(scenario.evidenceReview.status, "pending-claim-mapping");
-    assert.equal(scenario.contentVersion, "1.1.0");
+    assert.equal(scenario.evidenceReview.status, "mapped-pending-human-verification");
+    assert.equal(scenario.evidenceReview.mappedAt, "2026-09-05");
+    assert.equal(scenario.contentVersion, "1.3.0");
     assertBilingual(scenario.title, `${scenario.id} title`);
     assertBilingual(scenario.summary, `${scenario.id} summary`);
     assertBilingual(scenario.department, `${scenario.id} department`);
@@ -49,6 +50,12 @@ test("the learning library ships twelve bilingual department scenarios", () => {
         assertBilingual(change.label, `${variant.id}:${change.id} label`);
         assertBilingual(change.value, `${variant.id}:${change.id} value`);
       }
+    }
+    for (const step of scenario.steps) {
+      for (const vital of step.vitals) assertBilingual(vital.value, `${step.id} vital value`);
+      assert.equal(step.evidenceClaims.length, 1, `${step.id} needs a mapped rationale claim`);
+      assert.equal(step.evidenceClaims[0].status, "mapped-pending-human-verification");
+      assert.deepEqual(step.evidenceClaims[0].referenceIds, step.referenceIds);
     }
   }
 });
@@ -119,7 +126,7 @@ test("all decisions are bilingual, gradable, and include original feedback", () 
 });
 
 test("every cited source is present and uses a fixed HTTPS URL", () => {
-  assert.equal(references.length, 28);
+  assert.equal(references.length, 53);
   const ids = new Set(references.map((reference) => reference.id));
   assert.equal(ids.size, references.length);
 
@@ -139,6 +146,13 @@ test("every cited source is present and uses a fixed HTTPS URL", () => {
       for (const referenceId of step.referenceIds) {
         assert.ok(ids.has(referenceId), `${step.id} cites missing reference ${referenceId}`);
         assert.ok(scenario.referenceIds.includes(referenceId), `${step.id} source must belong to its scenario source set`);
+      }
+    }
+    for (const hypothesis of scenario.hypotheses ?? []) {
+      assert.ok(hypothesis.referenceIds.length > 0, `${hypothesis.id} needs direct references`);
+      for (const referenceId of hypothesis.referenceIds) {
+        assert.ok(ids.has(referenceId), `${hypothesis.id} cites missing reference ${referenceId}`);
+        assert.ok(scenario.referenceIds.includes(referenceId), `${hypothesis.id} source must belong to its scenario source set`);
       }
     }
   }
@@ -161,12 +175,41 @@ test("high-risk draft items cite direct topic sources", () => {
     "nice-bronchiolitis-ng9",
     "joint-commission-suicide-risk-2026",
     "rcuk-anaphylaxis-2021",
+    "nice-violence-aggression-ng10",
+    "nice-perioperative-care-ng180",
+    "rch-paediatric-respiratory-severity",
+    "ismp-high-alert-acute-care-2024",
+    "psmf-medication-errors-2024",
+    "psmf-handoff-communication-2023",
   ]) assert.ok(sourceIds.has(id), `missing direct topic source ${id}`);
+
+  const medicationSafety = references.find((reference) => reference.id === "psmf-medication-errors-2024");
+  assert.equal(medicationSafety.year, 2024);
+  const handoff = references.find((reference) => reference.id === "psmf-handoff-communication-2023");
+  assert.equal(handoff.year, 2023);
+  const paediatricRespiratory = references.find((reference) => reference.id === "rch-paediatric-respiratory-severity");
+  assert.equal(paediatricRespiratory.year, 2024);
 
   const tb = scenarios.find((scenario) => scenario.id === "infection-control-respiratory-risk");
   assert.ok(tb.referenceIds.includes("cdc-tb-infection-control"));
   const oncology = scenarios.find((scenario) => scenario.id === "oncology-fever-between-cycles");
   assert.ok(oncology.referenceIds.includes("nice-neutropenic-sepsis-cg151"));
+  const criticalCare = scenarios.find((scenario) => scenario.id === "icu-postoperative-sepsis");
+  assert.ok(!criticalCare.referenceIds.includes("nice-cg50"));
+  assert.ok(criticalCare.referenceIds.includes("nice-delirium-cg103"));
+  assert.ok(criticalCare.referenceIds.includes("nice-perioperative-care-ng180"));
+});
+
+test("the critical-care scenario includes an educational hypothesis-prioritisation exercise", () => {
+  const scenario = scenarios.find((item) => item.id === "icu-postoperative-sepsis");
+  assert.equal(scenario.hypotheses.length, 3);
+  assert.deepEqual(scenario.hypotheses.map((item) => item.correctPriority), ["high", "medium", "low"]);
+  for (const hypothesis of scenario.hypotheses) {
+    assertBilingual(hypothesis.problem, `${hypothesis.id} problem`);
+    assertBilingual(hypothesis.etiology, `${hypothesis.id} etiology`);
+    assertBilingual(hypothesis.signs, `${hypothesis.id} signs`);
+    assertBilingual(hypothesis.rationale, `${hypothesis.id} rationale`);
+  }
 });
 
 test("the lead emergency case matches the selected visual reference", () => {
@@ -176,7 +219,7 @@ test("the lead emergency case matches the selected visual reference", () => {
 
   const priority = scenario.steps[1];
   const vitals = Object.fromEntries(
-    priority.vitals.map((vital) => [vital.label.en, vital.value]),
+    priority.vitals.map((vital) => [vital.label.en, vital.value.en]),
   );
 
   assert.deepEqual(vitals, {

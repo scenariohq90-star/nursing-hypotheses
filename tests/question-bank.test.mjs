@@ -25,11 +25,11 @@ function assertBilingual(value, label) {
   assert.ok(value.ar.trim(), `${label} Arabic cannot be empty`);
 }
 
-test("question bank contains 46 original bilingual questions across three independent study paths", () => {
-  assert.equal(questionBank.length, 46);
+test("question bank contains 47 original bilingual questions across three independent study paths", () => {
+  assert.equal(questionBank.length, 47);
   assert.equal(questionBank.filter((question) => question.examId === "saudi-nursing").length, 15);
   assert.equal(questionBank.filter((question) => question.examId === "international-rn").length, 15);
-  assert.equal(questionBank.filter((question) => question.examId === "computerized-practice").length, 16);
+  assert.equal(questionBank.filter((question) => question.examId === "computerized-practice").length, 17);
   assert.equal(new Set(questionBank.map((question) => question.id)).size, questionBank.length);
   assert.deepEqual(new Set(examTracks.map((track) => track.id)), new Set(["saudi-nursing", "international-rn", "computerized-practice"]));
 
@@ -42,14 +42,19 @@ test("question bank contains 46 original bilingual questions across three indepe
     assert.equal(question.fictional, true);
     assert.equal(question.official, false);
     assert.equal(question.accessTier, "free");
-    assert.equal(question.contentVersion, "1.2.0");
-    assert.equal(question.learningModelVersion, "Independent nursing learning domains v1.2");
+    assert.equal(question.contentVersion, "1.3.1");
+    assert.equal(question.learningModelVersion, "Independent nursing learning domains v1.3");
     assert.equal(question.sourceUse, "independent-clinical-context");
     assert.equal(question.reviewStatus, "draft");
     assert.equal(question.clinicalReviewDate, null);
     assert.equal(question.clinicalReview.status, "pending");
     assert.equal(question.legalReview.status, "pending");
     assert.equal(question.translationReview.status, "pending");
+    assert.ok(["standard", "high-alert"].includes(question.clinicalRisk));
+    assert.ok(Array.isArray(question.riskDomains) && question.riskDomains.length > 0);
+    assert.equal(question.evidenceReview.status, "mapped-pending-human-verification");
+    assert.equal(question.evidenceClaims.length, 1);
+    assert.deepEqual(question.evidenceClaims[0].referenceIds, question.referenceIds);
     assert.equal(question.provenance.origin, "independently-authored");
     assert.equal(question.claims.official, false);
     assert.equal(question.claims.examEquivalent, false);
@@ -71,6 +76,29 @@ test("question bank contains 46 original bilingual questions across three indepe
     for (const referenceId of question.referenceIds) {
       assert.ok(sourceIds.has(referenceId), `${question.id} cites missing source ${referenceId}`);
     }
+  }
+});
+
+test("high-alert questions expose explicit review metadata and direct topic references", () => {
+  const highAlert = questionBank.filter((question) => question.clinicalRisk === "high-alert");
+  assert.ok(highAlert.length >= 20);
+  assert.ok(highAlert.every((question) => question.riskDomains.length > 0));
+
+  const expectedSources = new Map([
+    ["saudi-nursing-adult-mental-health-008", "joint-commission-suicide-risk-2026"],
+    ["saudi-nursing-adult-stroke-009", "aha-asa-stroke-2026"],
+    ["saudi-nursing-maternal-bleeding-010", "rcog-antepartum-haemorrhage"],
+    ["saudi-nursing-maternal-newborn-012", "who-essential-newborn-care"],
+    ["saudi-nursing-maternal-pediatric-013", "rch-paediatric-respiratory-severity"],
+    ["international-pharmacology-infiltration-025", "ismp-high-alert-acute-care-2024"],
+    ["international-physiological-asthma-028", "gina-asthma-2026"],
+    ["computerized-medication-hypoglycemia-042", "ada-hospital-care-2026"],
+    ["computerized-acute-sepsis-047", "ssc-2026"],
+  ]);
+  for (const [questionId, sourceId] of expectedSources) {
+    const question = questionBank.find((item) => item.id === questionId);
+    assert.equal(question?.clinicalRisk, "high-alert", `${questionId} must remain high-alert`);
+    assert.ok(question?.referenceIds.includes(sourceId));
   }
 });
 

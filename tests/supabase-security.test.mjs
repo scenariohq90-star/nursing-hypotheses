@@ -6,14 +6,23 @@ const migrationUrl = new URL(
   "../supabase/migrations/202609050002_harden_learning_sync.sql",
   import.meta.url,
 );
+const entitlementRetirementUrl = new URL(
+  "../supabase/migrations/202609050003_disable_legacy_entitlements.sql",
+  import.meta.url,
+);
 const repositoryUrl = new URL("../src/lib/progress-repository.js", import.meta.url);
 const appUrl = new URL("../src/App.jsx", import.meta.url);
+const authUrl = new URL("../src/hooks/useAuthSession.js", import.meta.url);
+const accountPanelUrl = new URL("../src/components/AccountPanel.jsx", import.meta.url);
 
 test("cloud learning writes are constrained to identity-bound RPCs", async () => {
-  const [sql, repository, app] = await Promise.all([
+  const [sql, entitlementRetirement, repository, app, auth, accountPanel] = await Promise.all([
     readFile(migrationUrl, "utf8"),
+    readFile(entitlementRetirementUrl, "utf8"),
     readFile(repositoryUrl, "utf8"),
     readFile(appUrl, "utf8"),
+    readFile(authUrl, "utf8"),
+    readFile(accountPanelUrl, "utf8"),
   ]);
   const profileFunction = sql.match(
     /create or replace function public\.save_learner_profile\([\s\S]*?\$\$;/i,
@@ -33,7 +42,16 @@ test("cloud learning writes are constrained to identity-bound RPCs", async () =>
   assert.doesNotMatch(sql, /on conflict[\s\S]*?do update set\s+record_type\s*=/i);
   assert.match(repository, /rpc\("save_learner_profile",\s*\{\s*p_expected_user_id: userId,\s*p_preferred_language:/i);
   assert.doesNotMatch(repository, /\.from\(\s*["']learner_profiles["']\s*\)\s*\.upsert\s*\(/i);
-  assert.match(app, /selectOwnedEntitlement\(entitlementState, auth\.user\?\.id\)/);
+  assert.doesNotMatch(repository, /\.from\(\s*["']entitlements["']\s*\)/i);
+  assert.match(entitlementRetirement, /drop policy if exists entitlements_select_own/i);
+  assert.match(entitlementRetirement, /revoke all on table public\.entitlements from anon, authenticated/i);
+  assert.doesNotMatch(app, /membership|entitlement/i);
+  assert.match(auth, /resetPasswordForEmail\(email/);
+  assert.match(auth, /updateUser\(\{ password \}\)/);
+  assert.match(auth, /adult_self_attestation:\s*["']18-or-older["']/);
+  assert.match(accountPanel, /privacyRead/);
+  assert.match(accountPanel, /adultConfirmed/);
+  assert.match(accountPanel, /mailto:\$\{SUPPORT_EMAIL\}/);
 });
 
 test("history clearing preserves active sessions and gates concurrent completion", async () => {

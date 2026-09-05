@@ -66,6 +66,7 @@ const COMPETENCY_DOMAIN_BY_SKILL = {
   "speak-up-escalation": "escalation-coordination",
   "medication-reconciliation": "safety-quality",
   "teach-back": "person-centred-care",
+  "hypothesis-prioritization": "prioritization-response",
 };
 
 export const competencyDomains = Object.entries(DOMAIN_CATALOG).map(([slug, label]) => ({
@@ -73,13 +74,47 @@ export const competencyDomains = Object.entries(DOMAIN_CATALOG).map(([slug, labe
   label,
 }));
 
+const VITAL_VALUE_AR = {
+  Alert: "واعٍ",
+  Confused: "مشوش",
+  Dizzy: "دوار",
+  None: "لا يوجد",
+  Pacing: "يتحرك بقلق",
+  "Responds to voice": "يستجيب للصوت",
+};
+
 const vital = (en, ar, value, unitEn = "", unitAr = "") => ({
   label: bi(en, ar),
-  value: String(value),
+  value: typeof value === "object"
+    ? value
+    : bi(String(value), VITAL_VALUE_AR[String(value)] ?? String(value)),
   unit: bi(unitEn, unitAr),
 });
 
 const competency = (slug, en, ar) => ({ slug, label: bi(en, ar) });
+
+const clinicalReference = ({
+  id,
+  titleEn,
+  titleAr,
+  organizationEn,
+  organizationAr,
+  year,
+  url,
+  noteEn,
+  noteAr,
+}) => ({
+  id,
+  title: bi(titleEn, titleAr),
+  organization: bi(organizationEn, organizationAr),
+  year,
+  url,
+  accessNote: bi(noteEn, noteAr),
+  licensingNote: bi(
+    "Publisher terms apply. Nursing Hypotheses links to the source and uses independently written educational wording.",
+    "تسري شروط الناشر. تحيل «فرضيات تمريضية» إلى المصدر وتستخدم صياغة تعليمية مستقلة.",
+  ),
+});
 
 const choice = (
   id,
@@ -369,8 +404,8 @@ export const references = [
     year: 2026,
     url: "https://www.moh.gov.sa/ministry/mediacenter/publications/pages/protocols.aspx",
     accessNote: bi(
-      "Official public index for current national protocols, including adult oxygen therapy and maternal and pediatric sepsis.",
-      "فهرس رسمي متاح للعامة للبروتوكولات الوطنية الحالية، ومنها أكسجة البالغين وإنتان الأمهات والأطفال.",
+      "Official public index for current national protocols, including high-flow nasal oxygen and maternal and paediatric sepsis.",
+      "فهرس رسمي متاح للعامة للبروتوكولات الوطنية الحالية، ومنها الأكسجين الأنفي عالي التدفق وإنتان الأمهات والأطفال.",
     ),
     licensingNote: bi(
       "Ministry and linked-document terms apply; institutional protocols and authorised orders take precedence.",
@@ -623,6 +658,281 @@ export const references = [
       "تسري حقوق نشر مجلس الإنعاش البريطاني؛ والسؤال مؤلف بصورة مستقلة ولا يعيد نشر خوارزمية المصدر أو محتوى دوراته.",
     ),
   },
+  clinicalReference({
+    id: "joint-commission-patient-identification-2026",
+    titleEn: "Two Patient Identifiers — Standards FAQ",
+    titleAr: "استخدام معرّفين للمريض — الأسئلة الشائعة للمعايير",
+    organizationEn: "The Joint Commission",
+    organizationAr: "اللجنة المشتركة",
+    year: 2026,
+    url: "https://www.jointcommission.org/en-us/knowledge-library/support-center/standards-interpretation/standards-faqs/000001463",
+    noteEn: "Official FAQ on using two identifiers and labelling specimens in the patient's presence; accessed 2026-09-05.",
+    noteAr: "أسئلة رسمية حول استخدام معرّفين ووضع ملصق العينة بحضور المريض؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "psmf-medication-errors-2024",
+    titleEn: "Medication Errors — Patient Safety Resource",
+    titleAr: "أخطاء الدواء — مورد لسلامة المرضى",
+    organizationEn: "Patient Safety Movement Foundation",
+    organizationAr: "مؤسسة حركة سلامة المرضى",
+    year: 2024,
+    url: "https://psmf.org/aebp-publications/medication-errors/",
+    noteEn: "PSMF practice resource published in August 2023 and majorly revised on 17 April 2024; used for medication-verification and reporting context; accessed 2026-09-05.",
+    noteAr: "مورد ممارسة من مؤسسة حركة سلامة المرضى نُشر في أغسطس 2023 وخضع لمراجعة رئيسية في 17 أبريل 2024؛ يُستخدم لسياق التحقق الدوائي والإبلاغ؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "ismp-high-alert-acute-care-2024",
+    titleEn: "ISMP List of High-Alert Medications in Acute Care Settings",
+    titleAr: "قائمة ISMP للأدوية عالية الخطورة في الرعاية الحادة",
+    organizationEn: "Institute for Safe Medication Practices",
+    organizationAr: "معهد ممارسات الدواء الآمنة",
+    year: 2024,
+    url: "https://www.ismp.org/system/files/resources/2024-01/ISMP_HighAlert_AcuteCare_List_010924_MS5760.pdf",
+    noteEn: "Publisher list identifying parenteral and oral chemotherapeutic agents as high-alert medicines; accessed 2026-09-05.",
+    noteAr: "قائمة الناشر التي تصنف أدوية العلاج الكيميائي الفموية والحقنية أدوية عالية الخطورة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "who-incident-reporting-learning",
+    titleEn: "Incident Reporting and Learning Systems",
+    titleAr: "نظم الإبلاغ عن الحوادث والتعلم منها",
+    organizationEn: "World Health Organization",
+    organizationAr: "منظمة الصحة العالمية",
+    year: 2020,
+    url: "https://www.who.int/teams/integrated-health-services/patient-safety/research/incident-reporting-and-learning-systems",
+    noteEn: "Official resource on reporting, learning and system improvement after incidents and near misses; accessed 2026-09-05.",
+    noteAr: "مورد رسمي حول الإبلاغ والتعلم والتحسين النظامي بعد الحوادث والحوادث الوشيكة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "psmf-handoff-communication-2023",
+    titleEn: "Hand-Off Communication",
+    titleAr: "التواصل عند تسليم الرعاية",
+    organizationEn: "Patient Safety Movement Foundation",
+    organizationAr: "مؤسسة حركة سلامة المرضى",
+    year: 2023,
+    url: "https://psmf.org/aebp-publications/hand-off-communication/",
+    noteEn: "PSMF practice resource published in September 2023 and majorly revised on 27 September 2023; used for structured transfer of essential care information; accessed 2026-09-05.",
+    noteAr: "مورد ممارسة من مؤسسة حركة سلامة المرضى نُشر في سبتمبر 2023 وخضع لمراجعة رئيسية في 27 سبتمبر 2023؛ يُستخدم للتسليم المنظم لمعلومات الرعاية الأساسية؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "cdc-sterilization-summary",
+    titleEn: "Disinfection and Sterilization — Summary Recommendations",
+    titleAr: "التطهير والتعقيم — ملخص التوصيات",
+    organizationEn: "US Centers for Disease Control and Prevention",
+    organizationAr: "المراكز الأمريكية لمكافحة الأمراض والوقاية منها",
+    year: 2024,
+    url: "https://www.cdc.gov/infection-control/hcp/disinfection-sterilization/summary-recommendations.html",
+    noteEn: "Official recommendations on storage and rejection of compromised sterile packaging; accessed 2026-09-05.",
+    noteAr: "توصيات رسمية حول التخزين ورفض العبوات المعقمة المتضررة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "ahrq-teach-back",
+    titleEn: "Use the Teach-Back Method — Health Literacy Universal Precautions",
+    titleAr: "استخدام أسلوب إعادة الشرح — احتياطات الثقافة الصحية",
+    organizationEn: "Agency for Healthcare Research and Quality",
+    organizationAr: "وكالة أبحاث وجودة الرعاية الصحية",
+    year: 2024,
+    url: "https://www.ahrq.gov/health-literacy/improve/precautions/tool5.html",
+    noteEn: "Official tool explaining teach-back as a check of the educator's explanation rather than a test of the learner; accessed 2026-09-05.",
+    noteAr: "أداة رسمية تشرح إعادة الشرح بوصفها تحققاً من وضوح تعليم المعلّم لا اختباراً للمتعلم؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "nice-panic-cg113",
+    titleEn: "CG113 Generalised Anxiety Disorder and Panic Disorder — Recommendations",
+    titleAr: "توصيات CG113 للقلق العام واضطراب الهلع",
+    organizationEn: "National Institute for Health and Care Excellence",
+    organizationAr: "المعهد الوطني للصحة وجودة الرعاية",
+    year: 2020,
+    url: "https://www.nice.org.uk/guidance/cg113/chapter/Recommendations",
+    noteEn: "Official recommendations for assessment and care of panic disorder; accessed 2026-09-05.",
+    noteAr: "توصيات رسمية لتقييم اضطراب الهلع ورعايته؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "nice-violence-aggression-ng10",
+    titleEn: "NG10 Violence and Aggression — Short-Term Management",
+    titleAr: "إرشاد NG10 للتدبير قصير المدى للعنف والعدوانية",
+    organizationEn: "National Institute for Health and Care Excellence",
+    organizationAr: "المعهد الوطني للصحة وجودة الرعاية",
+    year: 2015,
+    url: "https://www.nice.org.uk/guidance/ng10/chapter/Recommendations",
+    noteEn: "Official recommendations on personal space, one primary communicator, non-confrontational communication and de-escalation; current status checked 2026-09-05.",
+    noteAr: "توصيات رسمية حول المساحة الشخصية والمتحدث الأساسي الواحد والتواصل غير التصادمي وخفض التصعيد؛ تحققت الحالة الحالية في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "queensland-mental-health-manual-2025",
+    titleEn: "Primary Clinical Care Manual — Mental Health and Alcohol Withdrawal",
+    titleAr: "دليل الرعاية السريرية الأولية — الصحة النفسية وانسحاب الكحول",
+    organizationEn: "Queensland Health",
+    organizationAr: "وزارة صحة كوينزلاند",
+    year: 2025,
+    url: "https://www.health.qld.gov.au/__data/assets/pdf_file/0020/1215029/5.Mental-health-and-alcohol-withdrawal.pdf",
+    noteEn: "Official clinical manual supporting calm, clear communication, presence and exclusion of urgent physical causes; accessed 2026-09-05.",
+    noteAr: "دليل سريري رسمي يدعم التواصل الهادئ والواضح والبقاء مع المريض واستبعاد الأسباب الجسدية العاجلة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "rch-paediatric-respiratory-severity",
+    titleEn: "Assessment of Severity of Respiratory Conditions",
+    titleAr: "تقييم شدة الحالات التنفسية لدى الأطفال",
+    organizationEn: "Royal Children's Hospital Melbourne",
+    organizationAr: "مستشفى الأطفال الملكي في ملبورن",
+    year: 2024,
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Assessment_of_severity_of_respiratory_conditions/",
+    noteEn: "Official paediatric guidance on severe respiratory distress signs and escalation; last updated September 2024 and accessed 2026-09-05.",
+    noteAr: "إرشاد رسمي للأطفال حول علامات الضائقة التنفسية الشديدة والتصعيد؛ آخر تحديث في سبتمبر 2024 وتم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "nice-pressure-ulcers-cg179",
+    titleEn: "CG179 Pressure Ulcers — Prevention and Management",
+    titleAr: "إرشاد CG179 للوقاية من قرح الضغط وتدبيرها",
+    organizationEn: "National Institute for Health and Care Excellence",
+    organizationAr: "المعهد الوطني للصحة وجودة الرعاية",
+    year: 2014,
+    url: "https://www.nice.org.uk/guidance/cg179/chapter/Recommendations",
+    noteEn: "Official recommendations on repositioning, pressure redistribution and skin care; accessed 2026-09-05.",
+    noteAr: "توصيات رسمية حول تغيير الوضعية وتوزيع الضغط والعناية بالجلد؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "aha-asa-stroke-2026",
+    titleEn: "2026 Guideline for Early Management of Acute Ischemic Stroke",
+    titleAr: "إرشاد 2026 للتدبير المبكر للسكتة الدماغية الإقفارية الحادة",
+    organizationEn: "American Heart Association / American Stroke Association",
+    organizationAr: "جمعية القلب الأمريكية / الجمعية الأمريكية للسكتة الدماغية",
+    year: 2026,
+    url: "https://professional.heart.org/en/guidelines-statements/2026-guideline-for-the-early-management-of-patients-with-acute-ischemic-strokestr0000000000000513",
+    noteEn: "Official guideline page for time-critical stroke recognition and emergency pathway activation; accessed 2026-09-05.",
+    noteAr: "صفحة الإرشاد الرسمية للتعرف الحساس للوقت على السكتة وتفعيل المسار الطارئ؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "rcog-antepartum-haemorrhage",
+    titleEn: "Antepartum Haemorrhage — Green-top Guideline No. 63",
+    titleAr: "النزف قبل الولادة — الإرشاد الأخضر رقم 63",
+    organizationEn: "Royal College of Obstetricians and Gynaecologists",
+    organizationAr: "الكلية الملكية لأطباء النساء والتوليد",
+    year: 2011,
+    url: "https://www.rcog.org.uk/media/pwdi1tef/gtg_63.pdf",
+    noteEn: "Publisher guidance used narrowly for examination precautions before placenta praevia is excluded; verify local obstetric policy; accessed 2026-09-05.",
+    noteAr: "إرشاد ناشر يُستخدم بصورة محدودة لاحتياطات الفحص قبل استبعاد المشيمة المنزاحة؛ تُراجع سياسة التوليد المحلية؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "who-essential-newborn-care",
+    titleEn: "Essential Newborn Care",
+    titleAr: "الرعاية الأساسية لحديثي الولادة",
+    organizationEn: "World Health Organization",
+    organizationAr: "منظمة الصحة العالمية",
+    year: 2024,
+    url: "https://www.who.int/teams/maternal-newborn-child-adolescent-health-and-ageing/newborn-health/essential-newborn-care",
+    noteEn: "Official newborn-care hub covering thermal protection and immediate essential care; accessed 2026-09-05.",
+    noteAr: "بوابة رسمية لرعاية حديثي الولادة تشمل الحماية الحرارية والرعاية الأساسية الفورية؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "saudi-moh-informed-consent",
+    titleEn: "Saudi Guidelines for Informed Consent",
+    titleAr: "الدليل السعودي للموافقة المستنيرة",
+    organizationEn: "Saudi Ministry of Health",
+    organizationAr: "وزارة الصحة السعودية",
+    year: 2019,
+    url: "https://www.moh.gov.sa/en/Ministry/MediaCenter/Ads/Documents/Saudi-Guidelines-for-Informed-Consent.pdf",
+    noteEn: "Official Saudi guidance used for educational discussion of informed choice and refusal; current law and facility policy control practice; accessed 2026-09-05.",
+    noteAr: "دليل سعودي رسمي يُستخدم للنقاش التعليمي حول الاختيار والرفض المستنيرين؛ ويتقدم النظام وسياسة المنشأة في الممارسة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "gina-asthma-2026",
+    titleEn: "Global Strategy for Asthma Management and Prevention 2026",
+    titleAr: "الاستراتيجية العالمية لتدبير الربو والوقاية منه 2026",
+    organizationEn: "Global Initiative for Asthma",
+    organizationAr: "المبادرة العالمية للربو",
+    year: 2026,
+    url: "https://ginasthma.org/wp-content/uploads/2026/05/GINA-2026-Strategy-Report-WMS.pdf",
+    noteEn: "Publisher strategy report used for severe-asthma danger signs and escalation context; accessed 2026-09-05.",
+    noteAr: "تقرير استراتيجية الناشر المستخدم لسياق علامات خطر الربو الشديد والتصعيد؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "cdc-catheter-prevention",
+    titleEn: "Intravascular Catheter-Related Infection — Prevention Strategies",
+    titleAr: "استراتيجيات الوقاية من العدوى المرتبطة بالقساطر داخل الأوعية",
+    organizationEn: "US Centers for Disease Control and Prevention",
+    organizationAr: "المراكز الأمريكية لمكافحة الأمراض والوقاية منها",
+    year: 2024,
+    url: "https://www.cdc.gov/infection-control/hcp/intravascular-catheter-related-infection/prevention-strategies.html",
+    noteEn: "Official recommendations on aseptic catheter access and connector disinfection; accessed 2026-09-05.",
+    noteAr: "توصيات رسمية حول الوصول المعقم للقسطرة وتطهير الموصل؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "ada-hospital-care-2026",
+    titleEn: "Diabetes Care in the Hospital: Standards of Care in Diabetes—2026",
+    titleAr: "رعاية السكري في المستشفى: معايير الرعاية في السكري 2026",
+    organizationEn: "American Diabetes Association",
+    organizationAr: "الجمعية الأمريكية للسكري",
+    year: 2026,
+    url: "https://diabetesjournals.org/care/article/49/Supplement_1/S339/163925/16-Diabetes-Care-in-the-Hospital-Standards-of-Care",
+    noteEn: "Publisher standard used for hospital hypoglycaemia pathways, including people unable to take oral carbohydrate; accessed 2026-09-05.",
+    noteAr: "معيار ناشر يُستخدم لمسارات انخفاض السكر في المستشفى، بما فيها عدم القدرة على تناول الكربوهيدرات فموياً؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "nice-delirium-cg103",
+    titleEn: "CG103 Delirium — Prevention, Diagnosis and Management",
+    titleAr: "إرشاد CG103 للوقاية من الهذيان وتشخيصه وتدبيره",
+    organizationEn: "National Institute for Health and Care Excellence",
+    organizationAr: "المعهد الوطني للصحة وجودة الرعاية",
+    year: 2023,
+    url: "https://www.nice.org.uk/guidance/cg103/chapter/Recommendations",
+    noteEn: "Official recommendations on acute change, assessment and validated delirium tools; accessed 2026-09-05.",
+    noteAr: "توصيات رسمية حول التغير الحاد والتقييم وأدوات الهذيان المعتمدة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "nice-perioperative-care-ng180",
+    titleEn: "NG180 Perioperative Care in Adults — Postoperative Pain",
+    titleAr: "إرشاد NG180 للرعاية المحيطة بالجراحة لدى البالغين — ألم ما بعد الجراحة",
+    organizationEn: "National Institute for Health and Care Excellence",
+    organizationAr: "المعهد الوطني للصحة وجودة الرعاية",
+    year: 2020,
+    url: "https://www.nice.org.uk/guidance/ng180/chapter/Recommendations",
+    noteEn: "Official adult perioperative recommendations covering assessment and planning for postoperative pain; current status checked 2026-09-05.",
+    noteAr: "توصيات رسمية للرعاية المحيطة بالجراحة لدى البالغين تشمل تقييم ألم ما بعد الجراحة والتخطيط له؛ تحققت الحالة الحالية في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "nice-head-injury-ng232",
+    titleEn: "NG232 Head Injury — Assessment and Early Management",
+    titleAr: "إرشاد NG232 لتقييم إصابة الرأس وتدبيرها المبكر",
+    organizationEn: "National Institute for Health and Care Excellence",
+    organizationAr: "المعهد الوطني للصحة وجودة الرعاية",
+    year: 2023,
+    url: "https://www.nice.org.uk/guidance/NG232/chapter/recommendations",
+    noteEn: "Official recommendations on neurological observations and escalation after head injury; accessed 2026-09-05.",
+    noteAr: "توصيات رسمية حول المشاهدات العصبية والتصعيد بعد إصابة الرأس؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "who-surgical-safety-checklist",
+    titleEn: "WHO Surgical Safety Checklist",
+    titleAr: "قائمة منظمة الصحة العالمية للسلامة الجراحية",
+    organizationEn: "World Health Organization",
+    organizationAr: "منظمة الصحة العالمية",
+    year: 2009,
+    url: "https://www.who.int/docs/default-source/patient-safety/9789241598590-eng-checklist.pdf",
+    noteEn: "Official checklist used for team verification and the safety pause; accessed 2026-09-05.",
+    noteAr: "قائمة رسمية تستخدم للتحقق الجماعي وتوقف السلامة؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "saudi-moh-pediatric-sepsis",
+    titleEn: "Management of Pediatric Sepsis and Septic Shock",
+    titleAr: "تدبير إنتان الأطفال والصدمة الإنتانية",
+    organizationEn: "Saudi Ministry of Health",
+    organizationAr: "وزارة الصحة السعودية",
+    year: 2026,
+    url: "https://www.moh.gov.sa/Ministry/MediaCenter/Publications/Documents/management-pediatric-sepsis.pdf",
+    noteEn: "Official Saudi protocol used for paediatric danger recognition and urgent escalation context; accessed 2026-09-05.",
+    noteAr: "بروتوكول سعودي رسمي يستخدم لسياق التعرف على خطر الأطفال والتصعيد العاجل؛ تم الوصول في 2026-09-05.",
+  }),
+  clinicalReference({
+    id: "saudi-moh-maternal-sepsis",
+    titleEn: "Maternal Sepsis Protocol",
+    titleAr: "بروتوكول إنتان الأمومة",
+    organizationEn: "Saudi Ministry of Health",
+    organizationAr: "وزارة الصحة السعودية",
+    year: 2026,
+    url: "https://www.moh.gov.sa/Ministry/MediaCenter/Publications/Documents/maternal-sepsis.pdf",
+    noteEn: "Official Saudi protocol used for maternal-sepsis recognition, escalation and continuity context; accessed 2026-09-05.",
+    noteAr: "بروتوكول سعودي رسمي يستخدم لسياق التعرف على إنتان الأمومة والتصعيد واستمرارية الرعاية؛ تم الوصول في 2026-09-05.",
+  }),
 ];
 
 const authoredScenarios = [
@@ -825,8 +1135,8 @@ const authoredScenarios = [
               "Reduce observation frequency because the saturation has improved once.",
               "قلّل تكرار المراقبة لأن التشبع تحسن في قراءة واحدة.",
             ),
-            20,
-            "gap",
+            0,
+            "unsafe",
             bi("A single improvement does not establish stability.", "لا يثبت التحسن في قراءة واحدة استقرار الحالة."),
             bi(
               "Trend, work of breathing, mental state and persistent symptoms must all inform monitoring intensity.",
@@ -873,7 +1183,7 @@ const authoredScenarios = [
             "ed-dyspnea-deterioration-a",
             bi(
               "Activate the emergency response and begin airway support within your authorised scope.",
-              "فعّل الاستجابة الطارئة وابدأ دعم مجرى الهواء ضمن نطاقك المعتمد.",
+              "فعّل الاستجابة الطارئة وادعم مجرى الهواء ضمن نطاقك المعتمد.",
             ),
             100,
             "safe",
@@ -905,8 +1215,8 @@ const authoredScenarios = [
               "Call the family first to clarify the complete medical history.",
               "اتصل بالعائلة أولاً لتوضيح التاريخ الطبي الكامل.",
             ),
-            15,
-            "delay",
+            0,
+            "unsafe",
             bi("Collateral history can help later, but it must not delay emergency action.", "قد يفيد التاريخ من الأسرة لاحقاً، لكنه يجب ألا يؤخر الإجراء الطارئ."),
             bi(
               "Immediate physiologic support and escalation take precedence over nonessential history at this moment.",
@@ -1573,8 +1883,8 @@ const authoredScenarios = [
               "Ask a nearby colleague whether the label looks familiar and proceed if they agree.",
               "اسأل زميلاً قريباً ما إذا كان الملصق مألوفاً ثم تابع إذا وافق.",
             ),
-            25,
-            "gap",
+            0,
+            "unsafe",
             bi("Informal familiarity is not an independent source verification.", "الألفة غير الرسمية ليست تحققاً مستقلاً من المصدر."),
             bi(
               "The check must compare authoritative patient, order and product information using the defined workflow.",
@@ -1780,8 +2090,8 @@ const authoredScenarios = [
               "Record the values as acceptable and repeat them at the next routine four-hour round.",
               "سجّل القيم على أنها مقبولة وأعدها في جولة الساعات الأربع الروتينية التالية.",
             ),
-            10,
-            "delay",
+            0,
+            "unsafe",
             bi("This misses the meaningful fall from baseline and the new symptom.", "يفوّت هذا الانخفاض المهم عن خط الأساس والعرض الجديد."),
             bi(
               "Clinical concern should increase observation and response, even before severe absolute thresholds are reached.",
@@ -1795,8 +2105,8 @@ const authoredScenarios = [
               "Assume the dizziness is an expected medicine effect and offer reassurance without reassessment.",
               "افترض أن الدوخة أثر دوائي متوقع وقدّم الطمأنة دون إعادة تقييم.",
             ),
-            20,
-            "gap",
+            0,
+            "unsafe",
             bi("A possible explanation should not replace assessment of a new deterioration pattern.", "لا ينبغي لتفسير محتمل أن يحل محل تقييم نمط تدهور جديد."),
             bi(
               "Premature attribution can delay recognition of bleeding, infection or other acute causes.",
@@ -1817,7 +2127,8 @@ const authoredScenarios = [
           vital("Heart rate", "معدل القلب", 120, "bpm", "نبضة/دقيقة"),
           vital("Respiratory rate", "معدل التنفس", 28, "/min", "/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "86/52", "mmHg", "ملم زئبق"),
-          vital("Consciousness", "الوعي", "Alert, dizzy", "AVPU", "مقياس AVPU، مع دوخة"),
+          vital("Consciousness", "الوعي", "Alert", "AVPU", "مقياس AVPU"),
+          vital("Symptom", "العرض", "Dizzy", "reported", "حسب الإفادة"),
         ],
         question: bi(
           "What is the priority now?",
@@ -1860,8 +2171,8 @@ const authoredScenarios = [
               "Send a non-urgent message to the surgical team and continue the medication round.",
               "أرسل رسالة غير عاجلة إلى الفريق الجراحي وواصل جولة الأدوية.",
             ),
-            5,
-            "delay",
+            0,
+            "unsafe",
             bi("The current instability requires an immediate response, not asynchronous review.", "يتطلب عدم الاستقرار الحالي استجابة فورية لا مراجعة غير متزامنة."),
             bi(
               "Competing routine tasks should be handed over when a patient becomes acutely unstable.",
@@ -2017,8 +2328,8 @@ const authoredScenarios = [
               "Ask the caregiver to offer a drink, then reassess after the waiting-room queue clears.",
               "اطلب من المرافق تقديم مشروب ثم أعد التقييم بعد انتهاء قائمة الانتظار.",
             ),
-            15,
-            "delay",
+            0,
+            "unsafe",
             bi("This delays assessment of abnormal perfusion and responsiveness.", "يؤخر هذا تقييم الإرواء والاستجابة غير الطبيعيين."),
             bi(
               "Oral intake is not a substitute for urgent assessment and may be inappropriate if consciousness worsens.",
@@ -2239,8 +2550,8 @@ const authoredScenarios = [
               "Focus on the pain score only and defer the complete observations until after routine care.",
               "ركّز على درجة الألم فقط وأجّل العلامات الحيوية الكاملة إلى ما بعد الرعاية الروتينية.",
             ),
-            20,
-            "gap",
+            0,
+            "unsafe",
             bi("Pain matters, but the systemic pattern needs a full assessment now.", "الألم مهم، لكن النمط الجهازي يحتاج إلى تقييم كامل الآن."),
             bi(
               "Single-symptom assessment can miss worsening circulation, breathing or mentation.",
@@ -2386,8 +2697,8 @@ const authoredScenarios = [
     id: "icu-postoperative-sepsis",
     title: bi("A Quiet Shift Changes", "تحول مفاجئ في مناوبة هادئة"),
     summary: bi(
-      "A post-operative critical-care patient develops signs of possible sepsis and worsening perfusion.",
-      "تظهر على مريض بعد الجراحة في العناية الحرجة علامات إنتان محتمل وتدهور في الإرواء.",
+      "An adult post-operative critical-care patient develops signs of possible sepsis and worsening perfusion.",
+      "تظهر على مريض بالغ بعد الجراحة في العناية الحرجة علامات إنتان محتمل وتدهور في الإرواء.",
     ),
     departmentId: "critical-care",
     department: bi("Critical Care", "العناية الحرجة"),
@@ -2399,11 +2710,78 @@ const authoredScenarios = [
       competency("deterioration-recognition", "Recognition of deterioration", "التعرف على التدهور"),
       competency("sepsis-escalation", "Sepsis pathway escalation", "تفعيل مسار الإنتان"),
       competency("perfusion-reassessment", "Perfusion reassessment", "إعادة تقييم الإرواء"),
+      competency("hypothesis-prioritization", "Nursing hypothesis prioritisation", "ترتيب أولويات الفرضيات التمريضية"),
+    ],
+    hypotheses: [
+      {
+        id: "infection-perfusion",
+        problem: bi(
+          "Possible infection-related deterioration with impaired tissue perfusion",
+          "تدهور محتمل مرتبط بعدوى مع اختلال إرواء الأنسجة",
+        ),
+        etiology: bi(
+          "A suspected systemic response after surgery",
+          "استجابة جهازية مشتبه بها بعد الجراحة",
+        ),
+        signs: bi(
+          "Temperature 38.6 °C, HR 118, RR 28, BP 94/56, falling urine output and acute confusion",
+          "حرارة 38.6°م، نبض 118، تنفس 28، ضغط 94/56، انخفاض البول وتشوش حاد",
+        ),
+        correctPriority: "high",
+        rationale: bi(
+          "The combined breathing, circulation and mentation changes suggest time-sensitive physiological deterioration. This is a learning hypothesis, not a confirmed diagnosis.",
+          "تشير تغيرات التنفس والدوران والوعي مجتمعة إلى تدهور فسيولوجي حساس للوقت. هذه فرضية تعليمية وليست تشخيصاً مؤكداً.",
+        ),
+        referenceIds: ["ssc-2026", "nice-ng253-2025", "rcuk-abcde-2024"],
+      },
+      {
+        id: "acute-confusion-safety",
+        problem: bi(
+          "Acute confusion with immediate safety and reassessment needs",
+          "تشوش حاد مع حاجة فورية للسلامة وإعادة التقييم",
+        ),
+        etiology: bi(
+          "A new change from the documented cognitive baseline",
+          "تغير جديد عن خط الأساس الإدراكي الموثق",
+        ),
+        signs: bi(
+          "New disorientation during a period of physiological deterioration",
+          "تشوش جديد أثناء فترة تدهور فسيولوجي",
+        ),
+        correctPriority: "medium",
+        rationale: bi(
+          "Confusion needs protection and repeated assessment, but the multidomain perfusion threat is prioritised first in this exercise.",
+          "يحتاج التشوش إلى الحماية وإعادة التقييم، لكن خطر الإرواء متعدد الجوانب يأتي أولاً في هذا التمرين.",
+        ),
+        referenceIds: ["nice-delirium-cg103", "rcuk-abcde-2024"],
+      },
+      {
+        id: "postoperative-pain",
+        problem: bi(
+          "Post-operative pain requiring assessment and follow-up",
+          "ألم بعد الجراحة يحتاج إلى التقييم والمتابعة",
+        ),
+        etiology: bi(
+          "Recent surgery and increasing tenderness at the surgical site",
+          "جراحة حديثة وزيادة الإيلام في موضع العملية",
+        ),
+        signs: bi(
+          "Increasing surgical-site tenderness",
+          "زيادة الإيلام في موضع الجراحة",
+        ),
+        correctPriority: "low",
+        rationale: bi(
+          "Pain still requires assessment, but immediate physiological deterioration and acute confusion take precedence in this specific snapshot.",
+          "ما يزال الألم يحتاج إلى التقييم، لكن التدهور الفسيولوجي الفوري والتشوش الحاد يتقدمان عليه في هذه اللقطة المحددة.",
+        ),
+        referenceIds: ["nice-perioperative-care-ng180"],
+      },
     ],
     referenceIds: [
       "ssc-2026",
       "nice-ng253-2025",
-      "nice-cg50",
+      "nice-delirium-cg103",
+      "nice-perioperative-care-ng180",
       "scfhs-scope-2023",
       "saudi-moh-protocols-2026",
     ],
@@ -2412,8 +2790,8 @@ const authoredScenarios = [
         id: "icu-sepsis-recognise",
         time: "00:00",
         narrative: bi(
-          "On post-operative day two, a previously oriented patient is newly confused. Urine output has fallen over the last two observation periods and the surgical site is more tender.",
-          "في اليوم الثاني بعد الجراحة، أصبح مريض كان واعياً بالمكان والزمان مشوشاً حديثاً. انخفض إخراج البول خلال فترتي المراقبة الأخيرتين وأصبح موضع الجراحة أكثر إيلاماً.",
+          "On post-operative day two, a previously oriented adult patient is newly confused. Urine output has fallen over the last two observation periods and the surgical site is more tender.",
+          "في اليوم الثاني بعد الجراحة، أصبح مريض بالغ كان واعياً بالمكان والزمان مشوشاً حديثاً. انخفض إخراج البول خلال فترتي المراقبة الأخيرتين وأصبح موضع الجراحة أكثر إيلاماً.",
         ),
         vitals: [
           vital("Temperature", "الحرارة", 38.6, "°C", "°م"),
@@ -2462,8 +2840,8 @@ const authoredScenarios = [
               "Attribute the confusion and tachycardia to post-operative pain without completing another assessment.",
               "انسب التشوش وتسارع القلب إلى ألم ما بعد الجراحة دون استكمال تقييم آخر.",
             ),
-            30,
-            "gap",
+            0,
+            "unsafe",
             bi("Pain may contribute, but it does not explain away the full deterioration pattern.", "قد يساهم الألم، لكنه لا يفسر نمط التدهور كاملاً."),
             bi(
               "Premature closure can miss infection, shock or another time-critical cause.",
@@ -2512,8 +2890,8 @@ const authoredScenarios = [
               "Wait for the final laboratory results before escalating the blood-pressure change.",
               "انتظر النتائج المخبرية النهائية قبل تصعيد تغير ضغط الدم.",
             ),
-            10,
-            "delay",
+            0,
+            "unsafe",
             bi("Laboratory confirmation must not delay response to current shock signs.", "يجب ألا يؤخر التأكيد المخبري الاستجابة لعلامات الصدمة الحالية."),
             bi(
               "Clinical deterioration can be recognised and supported while diagnostic uncertainty remains.",
@@ -2549,7 +2927,7 @@ const authoredScenarios = [
           vital("Heart rate", "معدل القلب", 112, "bpm", "نبضة/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "98/60", "mmHg", "ملم زئبق"),
           vital("Capillary refill", "امتلاء الشعيرات", 3, "seconds", "ثوانٍ"),
-          vital("Consciousness", "الوعي", "Confused", "AVPU", "مقياس AVPU"),
+          vital("Consciousness", "الوعي", "Confused", "ACVPU", "مقياس ACVPU"),
         ],
         question: bi(
           "Which follow-up best supports ongoing safety?",
@@ -2577,8 +2955,8 @@ const authoredScenarios = [
               "Return immediately to routine observation intervals because the blood pressure has risen.",
               "عُد فوراً إلى فواصل المراقبة الروتينية لأن ضغط الدم ارتفع.",
             ),
-            25,
-            "gap",
+            0,
+            "unsafe",
             bi("Residual confusion and low urine output still require close reassessment.", "ما يزال التشوش ونقص البول يتطلبان إعادة تقييم لصيقة."),
             bi(
               "A partial response should trigger continued trend monitoring, not premature de-escalation.",
@@ -2592,8 +2970,8 @@ const authoredScenarios = [
               "Monitor temperature only because fever is the defining sign of sepsis.",
               "راقب الحرارة فقط لأنها العلامة المحددة للإنتان.",
             ),
-            20,
-            "gap",
+            0,
+            "unsafe",
             bi("Sepsis can progress with many organ signs; fever alone is insufficient.", "قد يتقدم الإنتان بعلامات أعضاء متعددة؛ والحرارة وحدها غير كافية."),
             bi(
               "Perfusion, breathing, consciousness and output are essential parts of the response assessment.",
@@ -2636,13 +3014,13 @@ const authoredScenarios = [
           vital("Heart rate", "معدل القلب", 104, "bpm", "نبضة/دقيقة"),
           vital("Respiratory rate", "معدل التنفس", 22, "/min", "/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "108/66", "mmHg", "ملم زئبق"),
-          vital("Consciousness", "الوعي", "Confused", "AVPU", "مقياس AVPU"),
+          vital("Consciousness", "الوعي", "Confused", "ACVPU", "مقياس ACVPU"),
         ],
         question: bi("What is the priority nursing response?", "ما الاستجابة التمريضية ذات الأولوية؟"),
         choices: [
-          choice("older-adult-recognise-a", bi("Treat the change as acute: assess airway, breathing, circulation, glucose and vital trends, then escalate findings.", "تعامل مع التغير كحالة حادة: قيّم مجرى الهواء والتنفس والدوران والسكر واتجاه العلامات الحيوية، ثم صعّد النتائج."), 100, "safe", bi("Correct: a sudden cognitive change may be the first sign of physiological deterioration.", "صحيح: قد يكون التغير الإدراكي المفاجئ أول علامة على تدهور فسيولوجي."), bi("A structured assessment looks for reversible threats while timely escalation avoids dismissing the change as age-related.", "يبحث التقييم المنظم عن الأخطار القابلة للعكس، ويمنع التصعيد في الوقت المناسب إرجاع التغير إلى العمر فقط."), "delirium-recognition"),
+          choice("older-adult-recognise-a", bi("Treat the change as acute: begin an immediate ABCDE assessment, check glucose and vital trends, complete a focused neurological and head-injury assessment (including GCS, pupils and focal deficits), and escalate urgently. After immediate threats are addressed, use the locally approved validated delirium tool through a competent assessor.", "تعامل مع التغير كحالة حادة: ابدأ فوراً بتقييم ABCDE، وافحص السكر واتجاه العلامات الحيوية، وأكمل تقييماً عصبياً مركزاً ولإصابة الرأس يشمل مقياس غلاسكو والحدقتين والعجز البؤري، ثم صعّد الحالة عاجلاً. بعد التعامل مع الأخطار الفورية، استخدم أداة الهذيان المعتمدة محلياً بواسطة مقيّم مؤهل."), 100, "safe", bi("Correct: sudden cognitive change after a fall requires physiological and neurological assessment before a delirium label is assigned.", "صحيح: يتطلب التغير الإدراكي المفاجئ بعد السقوط تقييماً فسيولوجياً وعصبياً قبل إسناد وصف الهذيان."), bi("ABCDE and urgent head-injury assessment look for immediate reversible threats. Once stabilised, a competent assessor can use 4AT, or CAM-ICU/ICDSC in critical care, according to the local pathway.", "يبحث تقييم ABCDE والتقييم العاجل لإصابة الرأس عن الأخطار الفورية القابلة للعكس. وبعد الاستقرار يمكن لمقيّم مؤهل استخدام 4AT، أو CAM-ICU/ICDSC في العناية الحرجة، وفق المسار المحلي."), "delirium-recognition"),
           choice("older-adult-recognise-b", bi("Document dementia as the cause and wait for the next routine round.", "وثّق الخرف بوصفه السبب وانتظر الجولة الروتينية التالية."), 0, "unsafe", bi("Unsafe: an unverified label can delay recognition of acute deterioration.", "غير آمن: قد يؤخر الوصف غير المتحقق منه اكتشاف التدهور الحاد."), bi("New confusion is a change from baseline and requires prompt assessment rather than assumption.", "التشوش الجديد تغير عن خط الأساس ويتطلب تقييماً سريعاً بدلاً من الافتراض."), "delirium-recognition"),
-          choice("older-adult-recognise-c", bi("Ask the family to reorient the patient and collect a detailed life history before beginning any physiological observations.", "اطلب من الأسرة إعادة توجيه المريض وجمع تاريخ حياته بالتفصيل قبل أن تبدأ أي قياس للعلامات أو تقييم فسيولوجي للحالة الحالية."), 35, "delay", bi("Family support may help, but it must not delay physiological assessment.", "قد يفيد دعم الأسرة، لكنه يجب ألا يؤخر التقييم الفسيولوجي."), bi("Reorientation is supportive care after immediate threats and changes from baseline are assessed.", "إعادة التوجيه رعاية داعمة بعد تقييم الأخطار الفورية والتغيرات عن خط الأساس."), "delirium-recognition"),
+          choice("older-adult-recognise-c", bi("Ask the family to reorient the patient and collect a detailed life history before beginning any physiological observations.", "اطلب من الأسرة إعادة توجيه المريض وجمع تاريخ حياته بالتفصيل قبل أن تبدأ أي قياس للعلامات أو تقييم فسيولوجي للحالة الحالية."), 0, "unsafe", bi("Family support may help, but it must not delay physiological assessment.", "قد يفيد دعم الأسرة، لكنه يجب ألا يؤخر التقييم الفسيولوجي."), bi("Reorientation is supportive care after immediate threats and changes from baseline are assessed.", "إعادة التوجيه رعاية داعمة بعد تقييم الأخطار الفورية والتغيرات عن خط الأساس."), "delirium-recognition"),
         ],
       },
       {
@@ -2653,13 +3031,13 @@ const authoredScenarios = [
           vital("Heart rate", "معدل القلب", 108, "bpm", "نبضة/دقيقة"),
           vital("Respiratory rate", "معدل التنفس", 24, "/min", "/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "104/62", "mmHg", "ملم زئبق"),
-          vital("Consciousness", "الوعي", "Confused", "AVPU", "مقياس AVPU"),
+          vital("Consciousness", "الوعي", "Confused", "ACVPU", "مقياس ACVPU"),
         ],
         question: bi("What should the nurse do first?", "ما الذي ينبغي أن يفعله الممرض أولاً؟"),
         choices: [
           choice("older-adult-mobility-a", bi("Remain with the patient, prevent unassisted standing and arrange safe toileting while continuing assessment.", "ابقَ مع المريض، وامنع الوقوف دون مساعدة، ونظّم قضاء الحاجة بأمان مع استمرار التقييم."), 100, "safe", bi("Correct: immediate supervision reduces harm without unnecessary restraint.", "صحيح: يقلل الإشراف الفوري الضرر دون تقييد غير ضروري."), bi("The response addresses the immediate fall risk while preserving dignity and investigating the acute change.", "تعالج الاستجابة خطر السقوط الفوري مع حفظ الكرامة واستقصاء التغير الحاد."), "mobility-safety"),
           choice("older-adult-mobility-b", bi("Leave briefly to find paperwork because the bed alarm is active.", "غادر لفترة قصيرة للبحث عن الأوراق لأن إنذار السرير مفعل."), 0, "unsafe", bi("Unsafe: an alarm does not replace direct help during an active attempt to stand.", "غير آمن: لا يحل الإنذار محل المساعدة المباشرة أثناء محاولة فعلية للوقوف."), bi("Immediate presence and a safe alternative are needed when risk is already occurring.", "يلزم الحضور الفوري وتوفير بديل آمن عندما يكون الخطر واقعاً بالفعل."), "mobility-safety"),
-          choice("older-adult-mobility-c", bi("Tell the patient not to move and continue documentation at the desk.", "أخبر المريض ألا يتحرك واستمر في التوثيق عند المكتب."), 25, "gap", bi("A verbal instruction alone is unreliable during acute confusion.", "التوجيه اللفظي وحده غير موثوق أثناء التشوش الحاد."), bi("Supervision and assistance are required; communication should be calm, brief and paired with action.", "يلزم الإشراف والمساعدة؛ وينبغي أن يكون التواصل هادئاً ومختصراً ومقترناً بالفعل."), "mobility-safety"),
+          choice("older-adult-mobility-c", bi("Tell the patient not to move and continue documentation at the desk.", "أخبر المريض ألا يتحرك واستمر في التوثيق عند المكتب."), 0, "unsafe", bi("A verbal instruction alone is unreliable during acute confusion.", "التوجيه اللفظي وحده غير موثوق أثناء التشوش الحاد."), bi("Supervision and assistance are required; communication should be calm, brief and paired with action.", "يلزم الإشراف والمساعدة؛ وينبغي أن يكون التواصل هادئاً ومختصراً ومقترناً بالفعل."), "mobility-safety"),
         ],
       },
       {
@@ -2670,13 +3048,13 @@ const authoredScenarios = [
           vital("Heart rate", "معدل القلب", 102, "bpm", "نبضة/دقيقة"),
           vital("Respiratory rate", "معدل التنفس", 22, "/min", "/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "110/68", "mmHg", "ملم زئبق"),
-          vital("Consciousness", "الوعي", "Confused", "AVPU", "مقياس AVPU"),
+          vital("Consciousness", "الوعي", "Confused", "ACVPU", "مقياس ACVPU"),
         ],
         question: bi("Which handover is most useful?", "أي تسليم هو الأكثر فائدة؟"),
         choices: [
           choice("older-adult-handover-a", bi("State the verified baseline, time and features of the change, current observations, assessments completed, safety actions and outstanding concerns.", "اذكر خط الأساس المتحقق منه ووقت التغير وخصائصه والمشاهدات الحالية والتقييمات المنجزة وإجراءات السلامة والمخاوف المتبقية."), 100, "safe", bi("Correct: the handover preserves the trend and the unresolved risk.", "صحيح: يحفظ التسليم اتجاه الحالة والخطر غير المحسوم."), bi("Specific chronology and response information help the next clinician reassess rather than start from an unqualified label.", "تساعد المعلومات المحددة زمنياً ومعلومات الاستجابة الممارس التالي على إعادة التقييم بدلاً من البدء بوصف غير دقيق."), "handover"),
           choice("older-adult-handover-b", bi("Report only that the patient is difficult and keeps trying to get up.", "أبلغ فقط بأن المريض صعب التعامل ويواصل محاولة النهوض."), 15, "gap", bi("This judgemental description omits the acute change and clinical evidence.", "هذا الوصف الحُكمي يغفل التغير الحاد والدليل السريري."), bi("A useful handover is objective, respectful and tied to baseline, assessment and response.", "يكون التسليم المفيد موضوعياً ومحترماً ومرتبطاً بخط الأساس والتقييم والاستجابة."), "handover"),
-          choice("older-adult-handover-c", bi("Wait until every investigation is complete before sharing any update.", "انتظر اكتمال جميع الفحوص قبل مشاركة أي تحديث."), 20, "delay", bi("Delayed handover can interrupt precautions and reassessment.", "قد يعطل تأخر التسليم الاحتياطات وإعادة التقييم."), bi("Communicate what is known, what is uncertain and what is pending at the point of transfer.", "بلّغ بما هو معروف وما هو غير مؤكد وما هو قيد الانتظار عند نقطة الانتقال."), "handover"),
+          choice("older-adult-handover-c", bi("Wait until every investigation is complete before sharing any update.", "انتظر اكتمال جميع الفحوص قبل مشاركة أي تحديث."), 0, "unsafe", bi("Delayed handover can interrupt precautions and reassessment.", "قد يعطل تأخر التسليم الاحتياطات وإعادة التقييم."), bi("Communicate what is known, what is uncertain and what is pending at the point of transfer.", "بلّغ بما هو معروف وما هو غير مؤكد وما هو قيد الانتظار عند نقطة الانتقال."), "handover"),
         ],
       },
     ],
@@ -2700,7 +3078,7 @@ const authoredScenarios = [
     steps: [
       {
         id: "oncology-recognise",
-        time: "00:00",
+        time: bi("At call", "وقت الاتصال"),
         narrative: bi("A patient calls the oncology unit six days after myelosuppressive systemic anticancer therapy. The patient's written oncology plan identifies the measured temperature as meeting the urgent fever threshold. The patient reports shaking chills, marked weakness and a home temperature of 38.3 °C.", "يتصل مريض بوحدة الأورام بعد ستة أيام من علاج جهازي مضاد للسرطان ومثبط لنخاع العظم. تحدد خطة الأورام المكتوبة للمريض أن الحرارة المقاسة بلغت عتبة الحمى التي تستلزم تقييماً عاجلاً. ويبلغ المريض عن قشعريرة شديدة وضعف واضح وحرارة منزلية بلغت 38.3°م."),
         vitals: [
           vital("Temperature", "الحرارة", 38.3, "°C", "°م"),
@@ -2717,13 +3095,13 @@ const authoredScenarios = [
       },
       {
         id: "oncology-escalate",
-        time: "04:00",
-        narrative: bi("The patient arrives for urgent assessment and now appears pale, dizzy and slower to answer than during the call.", "يصل المريض للتقييم العاجل ويبدو الآن شاحباً ودوّاراً وأبطأ في الإجابة مما كان عليه أثناء الاتصال."),
+        time: bi("On arrival", "عند الوصول"),
+        narrative: bi("Later, on arrival for urgent assessment, the patient appears pale, dizzy and slower to answer than during the call.", "لاحقاً، عند الوصول للتقييم العاجل، يبدو المريض شاحباً ودوّاراً وأبطأ في الإجابة مما كان عليه أثناء الاتصال."),
         vitals: [
           vital("Heart rate", "معدل القلب", 124, "bpm", "نبضة/دقيقة"),
           vital("Respiratory rate", "معدل التنفس", 28, "/min", "/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "92/56", "mmHg", "ملم زئبق"),
-          vital("Consciousness", "الوعي", "Confused", "AVPU", "مقياس AVPU"),
+          vital("Consciousness", "الوعي", "Confused", "ACVPU", "مقياس ACVPU"),
         ],
         question: bi("What is the priority now?", "ما الأولوية الآن؟"),
         choices: [
@@ -2734,7 +3112,7 @@ const authoredScenarios = [
       },
       {
         id: "oncology-reassess",
-        time: "08:00",
+        time: bi("+04:00 after arrival", "+04:00 بعد الوصول"),
         narrative: bi("The emergency pathway is active. Blood pressure has improved slightly, but the patient remains drowsy and breathing is still rapid.", "تم تفعيل المسار الطارئ. تحسن ضغط الدم قليلاً، لكن المريض ما يزال نعساً والتنفس ما يزال سريعاً."),
         vitals: [
           vital("Heart rate", "معدل القلب", 114, "bpm", "نبضة/دقيقة"),
@@ -2802,7 +3180,7 @@ const authoredScenarios = [
         choices: [
           choice("perioperative-speak-up-a", bi("Maintain the pause, state the unresolved safety concern clearly and escalate through the local chain until verification is complete.", "حافظ على التوقف، واذكر مخاوف السلامة غير المحسومة بوضوح، وصعّد عبر التسلسل المحلي حتى يكتمل التحقق."), 100, "safe", bi("Correct: schedule pressure does not override an unresolved verification failure.", "صحيح: لا يتغلب ضغط الجدول على إخفاق تحقق غير محسوم."), bi("Respectful, specific speaking up and closed-loop escalation protect the patient and the team.", "يحمي التحدث المحترم والمحدد والتصعيد بحلقة مغلقة المريض والفريق."), "speak-up-escalation"),
           choice("perioperative-speak-up-b", bi("Proceed silently and mention the concern after the procedure.", "استمر بصمت واذكر المخاوف بعد الإجراء."), 0, "unsafe", bi("Unsafe: reporting afterward cannot prevent a wrong-site event.", "غير آمن: لا يستطيع الإبلاغ بعد الإجراء منع حدث في الموضع الخطأ."), bi("The concern must be resolved before the irreversible step.", "يجب حل المخاوف قبل الخطوة غير القابلة للتراجع."), "speak-up-escalation"),
-          choice("perioperative-speak-up-c", bi("Argue about who entered the schedule instead of maintaining the safety pause.", "جادل حول من أدخل الجدول بدلاً من الحفاظ على توقف السلامة."), 20, "gap", bi("Blame distracts from the immediate verification task.", "يصرف اللوم الانتباه عن مهمة التحقق الفورية."), bi("First contain the risk and reconcile the facts; system learning follows after safety is restored.", "احتوِ الخطر أولاً وطابق الحقائق؛ ثم يأتي التعلم من النظام بعد استعادة السلامة."), "speak-up-escalation"),
+          choice("perioperative-speak-up-c", bi("Argue about who entered the schedule instead of maintaining the safety pause.", "جادل حول من أدخل الجدول بدلاً من الحفاظ على توقف السلامة."), 0, "unsafe", bi("Blame distracts from the immediate verification task.", "يصرف اللوم الانتباه عن مهمة التحقق الفورية."), bi("First contain the risk and reconcile the facts; system learning follows after safety is restored.", "احتوِ الخطر أولاً وطابق الحقائق؛ ثم يأتي التعلم من النظام بعد استعادة السلامة."), "speak-up-escalation"),
         ],
       },
       {
@@ -2817,8 +3195,8 @@ const authoredScenarios = [
         ],
         question: bi("What best completes the nursing response?", "ما الذي يكمل الاستجابة التمريضية على أفضل وجه؟"),
         choices: [
-          choice("perioperative-close-loop-a", bi("Document the verified resolution and submit the near-miss through the approved learning system without altering the clinical record.", "وثّق الحل المتحقق منه وقدّم الحادثة الوشيكة عبر نظام التعلم المعتمد دون تغيير السجل السريري."), 100, "safe", bi("Correct: factual documentation and system reporting support continuity and prevention.", "صحيح: يدعم التوثيق الواقعي والإبلاغ النظامي الاستمرارية والوقاية."), bi("A near-miss should produce traceable learning while the health record remains accurate and clinically relevant.", "ينبغي أن تنتج الحادثة الوشيكة تعلماً قابلاً للتتبع مع بقاء السجل الصحي دقيقاً ومرتبطاً بالرعاية."), "near-miss-learning"),
-          choice("perioperative-close-loop-b", bi("Delete the original schedule entry so no discrepancy is visible.", "احذف إدخال الجدول الأصلي حتى لا يظهر الاختلاف."), 0, "unsafe", bi("Unsafe: removing the trace undermines auditability and learning.", "غير آمن: يضعف إزالة الأثر قابلية التدقيق والتعلم."), bi("Corrections and reports must follow authorised, traceable processes.", "يجب أن تتبع التصحيحات والبلاغات إجراءات معتمدة وقابلة للتتبع."), "near-miss-learning"),
+          choice("perioperative-close-loop-a", bi("Record the verified resolution using the facility's authorised documentation-correction process, and submit the near-miss separately through the approved learning system.", "سجّل الحل المتحقق منه باستخدام آلية تصحيح التوثيق المعتمدة في المنشأة، وقدّم بلاغ الحادثة الوشيكة بصورة منفصلة عبر نظام التعلم المعتمد."), 100, "safe", bi("Correct: the approved documentation process and a separate system report support continuity, accountability and prevention.", "صحيح: تدعم آلية التوثيق المعتمدة والبلاغ النظامي المنفصل الاستمرارية والمساءلة والوقاية."), bi("The facility's current record-correction policy governs the clinical record. The separate incident-learning system captures the near-miss for prevention.", "تحكم سياسة المنشأة الحالية لتصحيح السجل عملية التوثيق السريري، بينما يوثق نظام تعلم الحوادث المنفصل الحادثة الوشيكة لأغراض الوقاية."), "near-miss-learning"),
+          choice("perioperative-close-loop-b", bi("Remove the original schedule entry outside the authorised correction process so no discrepancy is visible.", "أزل إدخال الجدول الأصلي خارج آلية التصحيح المعتمدة حتى لا يظهر الاختلاف."), 0, "unsafe", bi("Unsafe: bypassing the authorised record process undermines accountability and learning.", "غير آمن: يضعف تجاوز آلية السجل المعتمدة المساءلة والتعلم."), bi("Documentation corrections and incident reports must follow their separate approved facility processes.", "يجب أن تتبع تصحيحات التوثيق وبلاغات الحوادث آليتي المنشأة المعتمدتين والمنفصلتين."), "near-miss-learning"),
           choice("perioperative-close-loop-c", bi("Avoid reporting because no harm reached the patient.", "تجنب الإبلاغ لأن الضرر لم يصل إلى المريض."), 20, "gap", bi("A near-miss still reveals a preventable system weakness.", "تكشف الحادثة الوشيكة مع ذلك ضعفاً نظامياً قابلاً للوقاية."), bi("Learning systems use near-misses to reduce recurrence without waiting for harm.", "تستخدم أنظمة التعلم الحوادث الوشيكة لتقليل التكرار دون انتظار وقوع الضرر."), "near-miss-learning"),
         ],
       },
@@ -2858,7 +3236,7 @@ const authoredScenarios = [
         choices: [
           choice("home-medication-compare-a", bi("Pause assumptions, collect the available lists and containers, and verify the intended regimen through the authorised prescriber or pharmacy pathway.", "أوقف الافتراضات، واجمع القوائم والعبوات المتاحة، وتحقق من الخطة المقصودة عبر مسار الواصف أو الصيدلية المعتمد."), 100, "safe", bi("Correct: reconciliation resolves discrepancies before new instructions are given.", "صحيح: تحل المطابقة الاختلافات قبل إعطاء تعليمات جديدة."), bi("The nurse gathers the best available history, identifies discrepancies and uses an authorised source to confirm the plan.", "يجمع الممرض أفضل تاريخ متاح ويحدد الاختلافات ويستخدم مصدراً معتمداً لتأكيد الخطة."), "medication-reconciliation"),
           choice("home-medication-compare-b", bi("Choose the newest-looking bottle and tell the patient to discard the rest.", "اختر العبوة الأحدث شكلاً واطلب من المريض التخلص من البقية."), 0, "unsafe", bi("Unsafe: appearance cannot establish the intended regimen.", "غير آمن: لا يثبت شكل العبوة الخطة المقصودة."), bi("Unverified disposal or dosing advice can remove needed medicine or continue a duplicate.", "قد يؤدي التخلص أو توجيه الجرعات دون تحقق إلى إزالة دواء مطلوب أو استمرار تكرار دوائي."), "medication-reconciliation"),
-          choice("home-medication-compare-c", bi("Copy both lists into the note, leave every container in use and postpone verification until the next scheduled home visit.", "انسخ القائمتين في الملاحظة، واترك جميع العبوات قيد الاستخدام، وأجّل التحقق حتى الزيارة المنزلية المجدولة التالية من دون خطة مؤقتة."), 20, "delay", bi("Documentation alone does not resolve a current medication risk.", "لا يحل التوثيق وحده خطراً دوائياً قائماً."), bi("The discrepancy needs timely verification, communication and a clear interim safety plan.", "يحتاج الاختلاف إلى تحقق وتواصل وخطة سلامة مؤقتة واضحة في الوقت المناسب."), "medication-reconciliation"),
+          choice("home-medication-compare-c", bi("Copy both lists into the note, leave every container in use and postpone verification until the next scheduled home visit.", "انسخ القائمتين في الملاحظة، واترك جميع العبوات قيد الاستخدام، وأجّل التحقق حتى الزيارة المنزلية المجدولة التالية من دون خطة مؤقتة."), 0, "unsafe", bi("Documentation alone does not resolve a current medication risk.", "لا يحل التوثيق وحده خطراً دوائياً قائماً."), bi("The discrepancy needs timely verification, communication and a clear interim safety plan.", "يحتاج الاختلاف إلى تحقق وتواصل وخطة سلامة مؤقتة واضحة في الوقت المناسب."), "medication-reconciliation"),
         ],
       },
       {
@@ -2869,13 +3247,14 @@ const authoredScenarios = [
           vital("Heart rate", "معدل القلب", 92, "bpm", "نبضة/دقيقة"),
           vital("Respiratory rate", "معدل التنفس", 18, "/min", "/دقيقة"),
           vital("Blood pressure", "ضغط الدم", "102/64", "mmHg", "ملم زئبق"),
-          vital("Consciousness", "الوعي", "Alert, dizzy", "AVPU", "مقياس AVPU"),
+          vital("Consciousness", "الوعي", "Alert", "AVPU", "مقياس AVPU"),
+          vital("Symptom", "العرض", "Dizzy", "reported", "حسب الإفادة"),
         ],
         question: bi("What is the immediate priority?", "ما الأولوية الفورية؟"),
         choices: [
           choice("home-medication-dizziness-a", bi("Support the patient to a safe seated position, assess the change and escalate according to the home-care pathway while maintaining supervision.", "ادعم المريض للجلوس بأمان، وقيّم التغير، وصعّد وفق مسار الرعاية المنزلية مع استمرار الإشراف."), 100, "safe", bi("Correct: immediate fall prevention and assessment come before finishing the list.", "صحيح: تسبق الوقاية الفورية من السقوط وتقييم الحالة إكمال القائمة."), bi("The response contains the immediate environmental risk and evaluates whether the symptom reflects deterioration or medication-related harm.", "تحتوي الاستجابة الخطر البيئي الفوري وتقيّم ما إذا كان العرض يعكس تدهوراً أو ضرراً مرتبطاً بالدواء."), "mobility-safety"),
           choice("home-medication-dizziness-b", bi("Ask the patient to walk across the room so the dizziness can be observed.", "اطلب من المريض المشي عبر الغرفة حتى يمكن ملاحظة الدوار."), 0, "unsafe", bi("Unsafe: walking increases an active fall risk.", "غير آمن: يزيد المشي خطر سقوط قائم."), bi("First stabilise the situation and assess safely; do not provoke the hazard.", "ثبّت الموقف أولاً وقيّم بأمان؛ ولا تستحث الخطر."), "mobility-safety"),
-          choice("home-medication-dizziness-c", bi("Continue the phone call and ask the patient to sit down independently.", "استمر في المكالمة واطلب من المريض الجلوس بمفرده."), 25, "gap", bi("Verbal direction alone may not prevent a fall already in progress.", "قد لا يمنع التوجيه اللفظي وحده سقوطاً بدأ بالفعل."), bi("Direct support and supervision are required before other tasks resume.", "يلزم الدعم المباشر والإشراف قبل استئناف المهام الأخرى."), "mobility-safety"),
+          choice("home-medication-dizziness-c", bi("Continue the phone call and ask the patient to sit down independently.", "استمر في المكالمة واطلب من المريض الجلوس بمفرده."), 0, "unsafe", bi("Verbal direction alone may not prevent a fall already in progress.", "قد لا يمنع التوجيه اللفظي وحده سقوطاً بدأ بالفعل."), bi("Direct support and supervision are required before other tasks resume.", "يلزم الدعم المباشر والإشراف قبل استئناف المهام الأخرى."), "mobility-safety"),
         ],
       },
       {
@@ -2913,33 +3292,71 @@ if (unsafeChoicesWithCredit.length > 0) {
   );
 }
 
+const contextVariantFactors = {
+  "ed-older-adult-dyspnea": [
+    { id: "ems-prealert", label: bi("EMS pre-alert", "تنبيه مسبق من الإسعاف"), information: bi("Medication list supplied", "قائمة الأدوية متاحة"), setting: bi("Monitored bay prepared", "سرير مراقب مجهز") },
+    { id: "walk-in", label: bi("Walk-in presentation", "حضور مباشر للطوارئ"), information: bi("Medication history incomplete", "تاريخ الأدوية غير مكتمل"), setting: bi("Triage assessment first", "يبدأ بتقييم الفرز") },
+  ],
+  "mental-health-crisis-safety": [
+    { id: "quiet-room", label: bi("Quiet-room assessment", "تقييم في غرفة هادئة"), information: bi("Support person available", "شخص داعم متاح"), setting: bi("Low-stimulation space", "مكان منخفض المحفزات") },
+    { id: "limited-collateral", label: bi("Limited collateral history", "معلومات مساندة محدودة"), information: bi("Patient account only", "إفادة المريض فقط"), setting: bi("Busy assessment area", "منطقة تقييم مزدحمة") },
+  ],
+  "infection-control-respiratory-risk": [
+    { id: "room-ready", label: bi("Isolation room ready", "غرفة العزل جاهزة"), information: bi("Respiratory risk flagged", "خطر العدوى التنفسية محدد"), setting: bi("Airborne room available", "غرفة احتياطات هوائية متاحة") },
+    { id: "room-pending", label: bi("Isolation room pending", "غرفة العزل قيد التجهيز"), information: bi("Procedure request already placed", "طلب الإجراء مسجل مسبقاً"), setting: bi("Temporary separation required", "يلزم فصل مؤقت") },
+  ],
+  "medication-safety-label-mismatch": [
+    { id: "before-infusion", label: bi("Mismatch before infusion", "اختلاف قبل بدء التسريب"), information: bi("Order and label both visible", "الأمر والملصق متاحان"), setting: bi("Infusion not started", "لم يبدأ التسريب") },
+    { id: "during-check", label: bi("Mismatch during independent check", "اختلاف أثناء التحقق المستقل"), information: bi("Allergy record also differs", "سجل الحساسية مختلف أيضاً"), setting: bi("Dedicated line prepared but not connected", "خط مخصص مجهز لكنه غير موصول") },
+  ],
+  "ward-postoperative-deterioration": [
+    { id: "complete-trend", label: bi("Complete observation trend", "اتجاه مراقبة مكتمل"), information: bi("Previous observations available", "المشاهدات السابقة متاحة"), setting: bi("Daytime ward review", "مراجعة جناح نهارية") },
+    { id: "handover-gap", label: bi("Handover information gap", "فجوة معلومات في التسليم"), information: bi("Earlier trend partly missing", "جزء من الاتجاه السابق مفقود"), setting: bi("Overnight cross-cover", "تغطية ليلية بديلة") },
+  ],
+  "pediatric-febrile-deterioration": [
+    { id: "caregiver-history", label: bi("Caregiver history available", "تاريخ مقدم الرعاية متاح"), information: bi("Baseline behaviour described", "السلوك المعتاد موصوف"), setting: bi("Recorded current weight", "الوزن الحالي مسجل") },
+    { id: "limited-history", label: bi("Limited initial history", "تاريخ أولي محدود"), information: bi("Baseline uncertain", "خط الأساس غير مؤكد"), setting: bi("Weight requires verification", "الوزن يحتاج إلى تحقق") },
+  ],
+  "maternity-postpartum-sepsis": [
+    { id: "birth-summary", label: bi("Birth summary available", "ملخص الولادة متاح"), information: bi("Postnatal trend documented", "اتجاه ما بعد الولادة موثق"), setting: bi("Maternity team on site", "فريق الأمومة في الموقع") },
+    { id: "urgent-transfer", label: bi("Urgent postnatal transfer", "نقل عاجل بعد الولادة"), information: bi("Birth record partly available", "سجل الولادة متاح جزئياً"), setting: bi("Receiving team handover", "تسليم إلى الفريق المستقبِل") },
+  ],
+  "icu-postoperative-sepsis": [
+    { id: "electronic-trend", label: bi("Electronic trend available", "الاتجاه الإلكتروني متاح"), information: bi("Two prior observation sets visible", "مجموعتا مراقبة سابقتان ظاهرتان"), setting: bi("Bedside critical-care team", "فريق العناية عند السرير") },
+    { id: "downtime-handover", label: bi("Downtime handover", "تسليم أثناء توقف النظام"), information: bi("Printed trend and verbal update", "اتجاه مطبوع وتحديث شفهي"), setting: bi("Cross-cover team receiving", "فريق بديل يستلم الحالة") },
+  ],
+  "older-adult-acute-confusion": [
+    { id: "baseline-known", label: bi("Verified baseline available", "خط أساس متحقق متاح"), information: bi("Family confirms usual cognition", "الأسرة تؤكد الإدراك المعتاد"), setting: bi("Fall was witnessed", "السقوط كان مشاهداً") },
+    { id: "baseline-uncertain", label: bi("Baseline initially uncertain", "خط الأساس غير مؤكد أولياً"), information: bi("Collateral history pending", "المعلومات المساندة قيد الانتظار"), setting: bi("Fall was unwitnessed", "السقوط لم يكن مشاهداً") },
+  ],
+  "oncology-fever-between-cycles": [
+    { id: "phone-plan-visible", label: bi("Phone triage with plan", "فرز هاتفي مع خطة متاحة"), information: bi("Written fever threshold visible", "عتبة الحمى المكتوبة ظاهرة"), setting: bi("Oncology route activated", "مسار الأورام مفعل") },
+    { id: "urgent-transition", label: bi("Urgent call-to-arrival transition", "انتقال عاجل من الاتصال إلى الوصول"), information: bi("Treatment plan is being retrieved during transfer", "تُسترجع خطة العلاج أثناء الانتقال"), setting: bi("Emergency assessment area after telephone escalation", "منطقة التقييم الطارئ بعد التصعيد الهاتفي") },
+  ],
+  "perioperative-verification-pause": [
+    { id: "planned-list", label: bi("Planned operating list", "قائمة عمليات مخططة"), information: bi("Complete documents present", "المستندات مكتملة"), setting: bi("Original team assembled", "الفريق الأصلي مجتمع") },
+    { id: "urgent-list", label: bi("Urgent list change", "تغيير عاجل في القائمة"), information: bi("Schedule updated recently", "الجدول حُدث حديثاً"), setting: bi("Relief team assembled", "فريق بديل مجتمع") },
+  ],
+  "home-care-medication-reconciliation": [
+    { id: "scheduled-visit", label: bi("Scheduled home visit", "زيارة منزلية مجدولة"), information: bi("Bottles and both lists present", "العبوات والقائمتان متاحة"), setting: bi("Caregiver also present", "مقدم الرعاية حاضر") },
+    { id: "unplanned-review", label: bi("Unplanned medication review", "مراجعة دوائية غير مجدولة"), information: bi("Lists present; bottles incomplete", "القائمتان متاحتان والعبوات ناقصة"), setting: bi("Patient initially alone", "المريض وحده في البداية") },
+  ],
+};
+
 function buildContextVariants(scenario) {
-  return [
-    {
-      id: `${scenario.id}-structured-handover`,
-      label: bi("Structured handover", "تسليم منظم"),
-      setup: bi(
-        `You receive this fictional ${scenario.department.en.toLowerCase()} case during a structured daytime handover. The draft clinical cues and best-response logic remain unchanged.`,
-        `تستلم هذه الحالة الخيالية في ${scenario.department.ar} أثناء تسليم نهاري منظم. تبقى المؤشرات السريرية الأولية ومنطق أفضل استجابة دون تغيير.`,
-      ),
-      changes: [
-        { id: "shift", label: bi("Shift context", "سياق المناوبة"), value: bi("Day shift", "مناوبة نهارية") },
-        { id: "information", label: bi("Information flow", "تدفق المعلومات"), value: bi("Bedside handover", "تسليم عند نقطة الرعاية") },
-      ],
-    },
-    {
-      id: `${scenario.id}-after-hours-escalation`,
-      label: bi("After-hours escalation", "تصعيد خارج ساعات الذروة"),
-      setup: bi(
-        `You meet the same fictional ${scenario.department.en.toLowerCase()} learning case after hours, with information arriving through a brief escalation call. Scoring and the draft decision sequence remain unchanged.`,
-        `تواجه حالة التعلم الخيالية نفسها في ${scenario.department.ar} خارج ساعات الذروة، وتصل المعلومات عبر اتصال تصعيد مختصر. تبقى الدرجات وتسلسل القرار الأولي دون تغيير.`,
-      ),
-      changes: [
-        { id: "shift", label: bi("Shift context", "سياق المناوبة"), value: bi("After hours", "خارج ساعات الذروة") },
-        { id: "information", label: bi("Information flow", "تدفق المعلومات"), value: bi("Escalation call", "اتصال تصعيد") },
-      ],
-    },
-  ];
+  const factors = contextVariantFactors[scenario.id] ?? [];
+  return factors.map((factor) => ({
+    id: `${scenario.id}-${factor.id}`,
+    label: factor.label,
+    setup: bi(
+      `This presentation variation changes the information and setting for the fictional ${scenario.department.en.toLowerCase()} case. The draft clinical cues, scoring and safest-response logic remain unchanged.`,
+      `يغير تنويع العرض هذا المعلومات والبيئة في حالة ${scenario.department.ar} الخيالية. تبقى المؤشرات السريرية الأولية والدرجات ومنطق الاستجابة الأكثر أماناً دون تغيير.`,
+    ),
+    changes: [
+      { id: "information", label: bi("Information available", "المعلومات المتاحة"), value: factor.information },
+      { id: "setting", label: bi("Presentation setting", "بيئة العرض"), value: factor.setting },
+    ],
+  }));
 }
 
 export function selectScenarioVariant(scenario, seed = "default") {
@@ -2953,31 +3370,107 @@ export function selectScenarioVariant(scenario, seed = "default") {
   return variants[(hash >>> 0) % variants.length];
 }
 
-export const scenarios = authoredScenarios.map((scenario) => ({
-  ...scenario,
-  steps: scenario.steps.map((step) => ({
-    ...step,
-    referenceIds: [...new Set(step.referenceIds ?? scenario.referenceIds)],
-  })),
-  contextVariants: buildContextVariants(scenario),
-  accessTier: "free",
-  fictional: true,
-  reviewStatus: "draft",
-  contentDraftDate: "2026-09-04",
-  clinicalReviewDate: null,
-  clinicalReview: {
-    status: "pending",
-    reviewerName: null,
-    reviewerCredential: null,
-    reviewerJurisdiction: null,
-    reviewedAt: null,
-  },
-  legalReview: { status: "pending", jurisdictions: [], reviewedAt: null },
-  translationReview: { status: "pending", languagePair: "en-ar", reviewedAt: null },
-  evidenceReview: { status: "pending-claim-mapping", nextReviewDueAt: null },
-  reviewLabel: bi(
-    "Draft — pending clinical, legal and Arabic-language review.",
-    "مسودة — بانتظار المراجعة السريرية والقانونية واللغوية العربية.",
-  ),
-  contentVersion: "1.1.0",
-}));
+const additionalScenarioReferenceIds = {
+  "ed-older-adult-dyspnea": ["rcuk-abcde-2024", "psmf-handoff-communication-2023"],
+  "mental-health-crisis-safety": ["joint-commission-suicide-risk-2026", "nice-violence-aggression-ng10", "psmf-handoff-communication-2023"],
+  "medication-safety-label-mismatch": ["psmf-medication-errors-2024", "who-incident-reporting-learning"],
+  "ward-postoperative-deterioration": ["rcuk-abcde-2024", "psmf-handoff-communication-2023"],
+  "pediatric-febrile-deterioration": ["saudi-moh-pediatric-sepsis", "rcuk-abcde-2024", "psmf-handoff-communication-2023"],
+  "maternity-postpartum-sepsis": ["saudi-moh-maternal-sepsis", "rcuk-abcde-2024", "psmf-handoff-communication-2023"],
+  "icu-postoperative-sepsis": ["rcuk-abcde-2024"],
+  "older-adult-acute-confusion": ["nice-delirium-cg103", "nice-head-injury-ng232", "rcuk-abcde-2024", "psmf-handoff-communication-2023"],
+  "perioperative-verification-pause": ["who-surgical-safety-checklist", "who-incident-reporting-learning"],
+  "home-care-medication-reconciliation": ["psmf-medication-errors-2024", "ahrq-teach-back", "rcuk-abcde-2024"],
+};
+
+const stepReferenceIds = {
+  "ed-dyspnea-arrival": ["ena-esi-5", "who-bec"],
+  "ed-dyspnea-priority": ["who-bec", "rcuk-abcde-2024", "saudi-moh-protocols-2026"],
+  "ed-dyspnea-reassess": ["nice-cg50", "rcuk-abcde-2024"],
+  "ed-dyspnea-deterioration": ["nice-cg50", "rcuk-abcde-2024"],
+  "ed-dyspnea-team-response": ["nice-cg50", "rcuk-abcde-2024"],
+  "ed-dyspnea-handover": ["psmf-handoff-communication-2023"],
+  "mental-health-screen": ["joint-commission-suicide-risk-2026"],
+  "mental-health-deescalate": ["nice-violence-aggression-ng10"],
+  "mental-health-handover": ["joint-commission-suicide-risk-2026", "psmf-handoff-communication-2023"],
+  "ipc-respiratory-source-control": ["cdc-tb-infection-control"],
+  "ipc-respiratory-procedure": ["cdc-tb-infection-control", "cdc-core-practices-2024"],
+  "ipc-respiratory-exposure": ["cdc-tb-infection-control", "cdc-core-practices-2024"],
+  "medication-mismatch-stop": ["psmf-medication-errors-2024", "who-medication-safety-2024"],
+  "medication-allergy-reconcile": ["psmf-medication-errors-2024", "who-medication-safety-2024"],
+  "medication-near-miss-report": ["who-incident-reporting-learning", "psmf-medication-errors-2024"],
+  "ward-deterioration-trend": ["nice-cg50", "rcuk-abcde-2024"],
+  "ward-deterioration-emergency": ["nice-cg50", "rcuk-abcde-2024"],
+  "ward-deterioration-transfer": ["nice-cg50", "psmf-handoff-communication-2023"],
+  "peds-fever-assess": ["saudi-moh-pediatric-sepsis", "who-bec"],
+  "peds-fever-deteriorate": ["saudi-moh-pediatric-sepsis", "who-bec", "rcuk-abcde-2024"],
+  "peds-fever-handover": ["saudi-moh-pediatric-sepsis", "psmf-handoff-communication-2023"],
+  "maternity-sepsis-recognise": ["saudi-moh-maternal-sepsis", "who-bec"],
+  "maternity-sepsis-emergency": ["saudi-moh-maternal-sepsis", "who-bec", "rcuk-abcde-2024"],
+  "maternity-sepsis-continuity": ["saudi-moh-maternal-sepsis", "psmf-handoff-communication-2023", "who-patient-safety-2021"],
+  "icu-sepsis-recognise": ["ssc-2026", "nice-ng253-2025", "rcuk-abcde-2024"],
+  "icu-sepsis-coordinate": ["ssc-2026", "nice-ng253-2025"],
+  "icu-sepsis-reassess": ["ssc-2026", "rcuk-abcde-2024", "nice-delirium-cg103"],
+  "older-adult-recognise": ["nice-delirium-cg103", "nice-head-injury-ng232", "rcuk-abcde-2024"],
+  "older-adult-mobility": ["nice-delirium-cg103", "nice-head-injury-ng232"],
+  "older-adult-handover": ["psmf-handoff-communication-2023"],
+  "oncology-recognise": ["nice-neutropenic-sepsis-cg151"],
+  "oncology-escalate": ["nice-neutropenic-sepsis-cg151", "ssc-2026"],
+  "oncology-reassess": ["nice-neutropenic-sepsis-cg151", "ssc-2026"],
+  "perioperative-identify": ["who-surgical-safety-checklist"],
+  "perioperative-speak-up": ["who-surgical-safety-checklist", "who-patient-safety-2021"],
+  "perioperative-close-loop": ["who-incident-reporting-learning", "scfhs-scope-2023"],
+  "home-medication-compare": ["psmf-medication-errors-2024", "who-medication-safety-2024"],
+  "home-medication-dizziness": ["rcuk-abcde-2024"],
+  "home-medication-teach-back": ["ahrq-teach-back"],
+};
+
+export const scenarios = authoredScenarios.map((scenario) => {
+  const scenarioReferenceIds = [...new Set([
+    ...scenario.referenceIds,
+    ...(additionalScenarioReferenceIds[scenario.id] ?? []),
+  ])];
+  return {
+    ...scenario,
+    referenceIds: scenarioReferenceIds,
+    steps: scenario.steps.map((step) => {
+      const referenceIds = [...new Set(stepReferenceIds[step.id] ?? scenarioReferenceIds)];
+      return {
+        ...step,
+        referenceIds,
+        evidenceClaims: [{
+          id: `${step.id}-safest-response-rationale`,
+          scope: "safest-response-rationale",
+          referenceIds,
+          status: "mapped-pending-human-verification",
+          mappedAt: "2026-09-05",
+        }],
+      };
+    }),
+    contextVariants: buildContextVariants(scenario),
+    accessTier: "free",
+    fictional: true,
+    reviewStatus: "draft",
+    contentDraftDate: "2026-09-04",
+    clinicalReviewDate: null,
+    clinicalReview: {
+      status: "pending",
+      reviewerName: null,
+      reviewerCredential: null,
+      reviewerJurisdiction: null,
+      reviewedAt: null,
+    },
+    legalReview: { status: "pending", jurisdictions: [], reviewedAt: null },
+    translationReview: { status: "pending", languagePair: "en-ar", reviewedAt: null },
+    evidenceReview: {
+      status: "mapped-pending-human-verification",
+      mappedAt: "2026-09-05",
+      nextReviewDueAt: null,
+    },
+    reviewLabel: bi(
+      "Draft — source mapping added; qualified clinical, legal and Arabic-language review is still pending.",
+      "مسودة — أضيف ربط المصادر، وما زالت المراجعة السريرية والقانونية واللغوية العربية المؤهلة معلقة.",
+    ),
+    contentVersion: "1.3.0",
+  };
+});

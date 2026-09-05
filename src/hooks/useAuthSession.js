@@ -12,14 +12,15 @@ async function loadSupabase() {
   return module.supabase;
 }
 
-function confirmationRedirectUrl() {
+function appRedirectUrl(marker) {
   if (typeof window === "undefined") return undefined;
-  return `${window.location.origin}/?auth=confirmed`;
+  return `${window.location.origin}/?auth=${marker}`;
 }
 
 export function useAuthSession() {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState(isSupabaseConfigured ? "loading" : "unavailable");
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined;
@@ -28,10 +29,12 @@ export function useAuthSession() {
 
     loadSupabase().then((supabase) => {
       if (!active || !supabase) return;
-      ({ data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      ({ data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
         if (!active) return;
         setSession(nextSession);
         setStatus("ready");
+        if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+        if (event === "SIGNED_OUT") setRecoveryMode(false);
       }));
       return supabase.auth.getSession();
     }).then((result) => {
@@ -67,7 +70,14 @@ export function useAuthSession() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: confirmationRedirectUrl() },
+      options: {
+        emailRedirectTo: appRedirectUrl("confirmed"),
+        data: {
+          learning_terms_version: "2026-09-05",
+          privacy_notice_version: "2026-09-05",
+          adult_self_attestation: "18-or-older",
+        },
+      },
     });
     if (error) return { ok: false, code: "sign-up-failed", error };
     if (data.user?.id && typeof window !== "undefined") {
@@ -85,6 +95,27 @@ export function useAuthSession() {
     };
   }, []);
 
+  const requestPasswordReset = useCallback(async ({ email }) => {
+    const supabase = await loadSupabase();
+    if (!supabase) return { ok: false, code: "unavailable" };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: appRedirectUrl("recovery"),
+    });
+    return error ? { ok: false, code: "reset-failed", error } : { ok: true, code: "reset-sent" };
+  }, []);
+
+  const updatePassword = useCallback(async ({ password }) => {
+    const supabase = await loadSupabase();
+    if (!supabase) return { ok: false, code: "unavailable" };
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return { ok: false, code: "update-failed", error };
+    setRecoveryMode(false);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `${window.location.pathname}#/learning`);
+    }
+    return { ok: true, code: "password-updated" };
+  }, []);
+
   const signOut = useCallback(async () => {
     const supabase = await loadSupabase();
     if (!supabase) return { ok: true };
@@ -97,8 +128,11 @@ export function useAuthSession() {
     session,
     user: session?.user ?? null,
     status,
+    recoveryMode,
     signIn,
     signUp,
+    requestPasswordReset,
+    updatePassword,
     signOut,
   };
 }

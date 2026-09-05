@@ -4,7 +4,6 @@ import {
   ensureScenarioAttemptMetadata,
   prepareLearningRecords,
   retainAttemptsAfterHistoryClear,
-  selectOwnedEntitlement,
   splitLearningRecords,
 } from "../src/lib/progress-repository.js";
 
@@ -77,16 +76,6 @@ test("cloud rows split only recognized record types", () => {
 
   assert.deepEqual(split.scenarioAttempts, [{ id: "s1" }]);
   assert.deepEqual(split.questionSetAttempts, [{ id: "q1" }]);
-});
-
-test("an entitlement is visible only to the user that owns it", () => {
-  const entitlement = { plan_code: "future-plan", status: "active" };
-  const state = { userId, value: entitlement };
-
-  assert.equal(selectOwnedEntitlement(state, userId), entitlement);
-  assert.equal(selectOwnedEntitlement(state, "0f28588d-0e36-4f0c-849a-a03028226279"), null);
-  assert.equal(selectOwnedEntitlement(state, ""), null);
-  assert.equal(selectOwnedEntitlement(null, userId), null);
 });
 
 test("history clearing removes only completed attempts present when clear started", () => {

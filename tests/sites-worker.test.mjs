@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 import worker from "../worker/index.js";
 
@@ -16,6 +16,11 @@ test("serves existing static assets without a fallback", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(calls, ["/assets/app.js"]);
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.match(response.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+  assert.match(response.headers.get("content-security-policy"), /https:\/\/dclenqffdwrnyzhkwjuf\.supabase\.co/);
+  assert.doesNotMatch(response.headers.get("content-security-policy"), /\*\.supabase\.co/);
 });
 
 test("falls back to index.html for an unknown app route", async () => {
@@ -39,6 +44,7 @@ test("falls back to index.html for an unknown app route", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(calls, ["/flow/step-two?source=share", "/index.html"]);
+  assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
 });
 
 test("does not turn missing API or write requests into the app shell", async () => {
@@ -65,4 +71,10 @@ test("emits the files required by Sites packaging", async () => {
   await access(new URL("../dist/client/index.html", import.meta.url));
   await access(new URL("../dist/server/index.js", import.meta.url));
   await access(new URL("../dist/.openai/hosting.json", import.meta.url));
+
+  const [sourceWorker, builtWorker] = await Promise.all([
+    readFile(new URL("../worker/index.js", import.meta.url), "utf8"),
+    readFile(new URL("../dist/server/index.js", import.meta.url), "utf8"),
+  ]);
+  assert.equal(builtWorker, sourceWorker, "the packaged worker must match the reviewed source worker");
 });

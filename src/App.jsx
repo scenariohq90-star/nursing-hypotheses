@@ -14,6 +14,7 @@ import {
   Clock,
   Database,
   Drop,
+  EnvelopeSimple,
   Exam,
   FirstAidKit,
   Globe,
@@ -78,7 +79,6 @@ import {
   ensureScenarioAttemptMetadata,
   retainAttemptsAfterHistoryClear,
   saveLearningAttempt,
-  selectOwnedEntitlement,
   splitLearningRecords,
   syncLearningHistory,
   updateCloudLanguage,
@@ -122,11 +122,11 @@ function examProfileStorageKeyForUser(userId) {
 
 const copy = {
   en: {
-    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", learning: "My learning", resources: "References", membership: "Membership", about: "About",
+    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", learning: "My learning", resources: "References", about: "About",
     menu: "Open navigation", closeMenu: "Close navigation", language: "Language", learner: "Learning account", localProfile: "Learning profile", localProfileShort: "Account",
     privacyStrip: "Draft content pending clinical, legal and Arabic review. Fictional education only — not patient care or emergency use. Never enter patient data; follow local policy.",
     simulation: "Educational simulation", eyebrow: "Clinical judgement, practised safely", heroTitle: "Learn to notice what matters — before the next decision.",
-    heroBody: "Branching nursing scenarios for emergency, ward, paediatric, maternity and critical-care decisions. Every choice is explained in Arabic and English and linked to authoritative guidance.",
+    heroBody: "Branching nursing scenarios for emergency, ward, paediatric, maternity and critical-care decisions. Each draft choice is explained in Arabic and English and names the source set used to author it.",
     explore: "Explore scenarios", continueLearning: "View my learning", evidenceLed: "Scenario-level evidence", evidenceLedBody: "Each scenario names the versioned source set used to author it.",
     bilingual: "Truly bilingual", bilingualBody: "Switch the complete experience without losing your place.", privateDemo: "Private by design", privateDemoBody: "Use device-only progress or sign in to sync minimal completed learning records.",
     scenariosCount: "authored scenarios", practiceContexts: "practice contexts", departmentsCount: "clinical areas", referencesCount: "authoritative sources", startFeatured: "Start featured case", featured: "Featured simulation", featuredKicker: "Emergency Department · 12 min",
@@ -140,6 +140,7 @@ const copy = {
     start: "Start scenario", practiseAgain: "Practise again", completed: "Completed", noScenarios: "No scenarios match these filters.", resetFilters: "Reset filters",
     patientStatus: "Patient status", scenario: "Scenario", keyVitals: "Key vital signs", clinicalMoment: "Current clinical picture", step: "Step", of: "of", timeline: "Scenario timeline", current: "Current",
     questionIntro: "Select the best nursing response.", choiceGroup: "Response options", confirm: "Confirm selection", chooseFirst: "Choose one response before confirming.", nextDecision: "Next decision", viewDebrief: "View debrief",
+    hypothesesTitle: "Prioritise the provided nursing hypotheses", hypothesesInstruction: "Use the active cues to rank each provided learning hypothesis for this moment.", hypothesis: "Learning hypothesis", relatedTo: "Related to", evidenceBy: "Supported by cues", priorityHigh: "High priority", priorityMedium: "Medium priority", priorityLow: "Low priority", selectPriority: "Select a priority", completeHypotheses: "Assign a priority to every learning hypothesis before confirming this decision.", hypothesisFeedback: "Hypothesis-priority review", expectedPriority: "Expected in this exercise", yourPriority: "Your ranking", learningHypothesisNote: "These are provided hypotheses for educational reasoning, not diagnoses or patient-care instructions.",
     selectionLocked: "Your answer is locked for this decision.", feedback: "Decision feedback", rationale: "Why this matters", safe: "Strong response", gap: "Learning gap", delay: "Delayed priority", unsafe: "Safety concern",
     progress: "Your progress", learningProgress: "Scenario progress", evidence: "Scenario source set", decisionRecorded: "Decision recorded", currentDecision: "Current decision", upcoming: "Upcoming", viewSources: "View scenario sources",
     important: "Important", localProtocol: "Use current local protocols, authorised orders and escalation pathways.", educationalOnly: "Educational simulation only. Not for real patient care, diagnosis, treatment, triage or emergency use. Never enter real patient information. In a real emergency, immediately contact your clinical team and local emergency service.",
@@ -160,24 +161,21 @@ const copy = {
     question: "Question", selectOneAnswer: "Select one answer before locking it.", lockAnswer: "Lock answer", nextQuestion: "Next question", finishQuiz: "Finish and review", correctAnswer: "Correct response", incorrectAnswer: "Review this response", unansweredAtTimeout: "Unanswered when time ended", answerLocked: "Answer locked", answerRationale: "Answer rationale", questionSources: "Sources for this item", timeRemaining: "Time remaining", timeExpired: "Time ended — the set was submitted with unanswered items marked incorrect.", sessionSaved: "Progress and the absolute deadline are saved in this browser, so refreshing does not restart the timer.", focusedPracticeTitle: "10-question focused follow-up", focusedPracticeBody: "This new set starts with the lowest-scoring learning domains from this completed attempt and favours questions you have not just answered.", startFocusedSet: "Start focused set",
     quizProgress: "Question progress", quizScore: "Practice score", correctAnswers: "Correct answers", quizDebriefEyebrow: "Question-bank debrief", quizDebriefTitle: "Review what you understood and what to revisit", quizIncomplete: "Complete the current question set to see its debrief.", localExamProgress: "Question practice history", localExamProgressBody: "Completed question sets are kept on this device and sync to your private account when signed in. Scores describe this sample and do not predict an examination result, licensure or professional competence.", setsCompleted: "Completed sets", questionsAnswered: "Questions answered", categoryInsights: "Learning-domain review", morePractice: "Lower accuracy in this sample", developingKnowledge: "Mixed performance in this sample", strongKnowledge: "Higher accuracy in this sample", noExamAttempts: "Your first completed question set will appear here.",
     originalPracticeNotice: "Independent original practice only. No recalled, secure or official examination items are used, and scores do not predict an examination result, licensure or competence.", allDifficultyLevels: "All levels", questionsAvailable: "questions available", practiceSet: "Practice set", newVariation: "New variation", viewQuestionBank: "Open question bank", uniqueItems: "unique questions", completedSetsEvidence: "completed sets", earlyIndicator: "Early learning indicator", categoryEvidenceBody: "A learning-domain signal appears only after at least three unique questions across two completed sets. It describes this sample only.", contextVariant: "Practice context", contextDetails: "Context details", contextVariantNote: "Context changes presentation only; the draft clinical cues, scoring and safest response do not change.", guidedScenarioTitle: "Guided scenario order", guidedScenarioBody: "Completed decisions reorder the library so relevant lower-scoring or safety-flagged learning domains appear more often near the top. New scenarios remain in the mix.", recommendedNext: "Recommended next", recommendationExplore: "Broaden the baseline", recommendationEvidence: "Gather more evidence", recommendationDevelopment: "Practise mixed-performance areas", recommendationReview: "Revisit a lower-accuracy area", recommendationSafety: "Review a safety-critical choice", adaptiveLearningTitle: "Suggested next practice", adaptiveLearningBody: "These suggestions use your completed learning activity from this device and, when signed in, your synced account. They guide practice; they do not measure competence or predict an examination result.", openRecommendedScenario: "Open suggested scenario", startGuidedQuestions: "Start guided questions", examNonAffiliation: "Nursing Hypotheses is an independently developed educational resource. It is not issued, sponsored, endorsed, approved or administered by any nursing regulator, examination owner or test-delivery provider. It contains no recalled or secure examination items. Practice scores describe performance only in this question set and do not predict examination results, licensure or professional competence.",
-    freeAccess: "Free access", futureMembership: "Future membership", accessibleNow: "Available now", plannedInactive: "Planned · not yet active",
-    plansEyebrow: "Membership roadmap", plansTitle: "A clear path for future study support", plansBody: "All current scenarios and question-bank content remain accessible. The options below describe planned information architecture only; subscriptions, checkout and payments are not active.",
-    freePlan: "Free", freePlanBody: "Explore the current bilingual scenarios, practice questions, debriefs and source links. An optional account syncs completed learning history.", saudiNursingPlan: "Saudi nursing study path", saudiNursingPlanBody: "A planned study space for deeper independent organisation and longitudinal review for learners in Saudi nursing contexts.", internationalRnPlan: "International RN study path", internationalRnPlanBody: "A planned study space for deeper independent registered-nurse practice organisation and longitudinal review.", computerizedPlan: "Computer-based practice path", computerizedPlanBody: "The current sample is free; a future expanded tier could add larger timed banks and study scheduling after server-verified entitlements exist.", institutionalPlan: "Institutional", institutionalPlanBody: "A planned option for educator-led cohorts, governance and organisation-level reporting.",
-    currentIncludes: "Current access includes", freeFeatureOne: "All current draft scenarios", freeFeatureTwo: "Current independent question sets", freeFeatureThree: "Bilingual rationales and references", plannedFeatureOne: "Expanded learning-domain banks", plannedFeatureTwo: "Study planning and deeper analytics", plannedFeatureThree: "Organisation controls and reporting", noCheckout: "No plan can be purchased yet. Account sign-in and learning-history sync are available, but checkout, payment collection and paid subscription activation are not active.",
+    includedAccess: "Included practice",
     referencesEyebrow: "Evidence library", referencesTitle: "Go back to the source", referencesBody: "Scenarios use original educational wording and point to official publishers, regulators and professional organisations. Check the current version and your facility policy before practice.",
     source: "Publisher/source page", accessNote: "Access note", aboutEyebrow: "About the platform", aboutTitle: "A rehearsal space for clinical reasoning",
     aboutLead: "Nursing Hypotheses turns realistic but fictional moments into deliberate practice: notice, prioritise, act, reassess and explain.", purpose: "What it is for",
     purposeBody: "Self-directed nursing education, facilitated debrief and discussion of safe decision sequences across clinical areas.", method: "How it is built", methodBody: "Original branching cases, bilingual explanations, transparent scores and references mapped at scenario level.",
     boundaries: "Clinical boundaries", boundariesBody: "It does not replace supervision, local policy, formal education, professional assessment or real-time clinical judgement.", accountModel: "Prototype account model",
-    accountModelBody: "Email accounts can sync a deliberately minimised learning history. Database row policies isolate each learner, while paid access and any authoritative scoring must remain server-controlled before a commercial launch.",
+    accountModelBody: "Email accounts can sync a deliberately minimised learning history. Database row policies isolate each learner; the resulting scores remain formative and are never authoritative competency records.",
     editorial: "Evidence and editorial approach", editorialBody: "Guidance changes. Each scenario names its source set and uses cautious, non-prescriptive wording where local targets, devices, orders or escalation criteria differ.",
     footerLine: "Learn. Reason. Care.", privacy: "Privacy", terms: "Terms", contact: "Contact & safety", copyright: "Nursing Hypotheses. Educational beta.",
   },
   ar: {
-    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", learning: "تعلّمي", resources: "المراجع", membership: "العضوية", about: "عن المنصة",
+    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", learning: "تعلّمي", resources: "المراجع", about: "عن المنصة",
     menu: "فتح قائمة التنقل", closeMenu: "إغلاق قائمة التنقل", language: "اللغة", learner: "حساب التعلم", localProfile: "ملف التعلم", localProfileShort: "الحساب",
     privacyStrip: "محتوى أولي بانتظار المراجعة السريرية والقانونية واللغوية العربية. تعليم خيالي فقط — ليس لرعاية المرضى أو الطوارئ. لا تُدخل بيانات مرضى واتبع السياسة المحلية.", simulation: "محاكاة تعليمية", eyebrow: "تدرّب على الحكم السريري بأمان",
-    heroTitle: "تعلّم كيف تلاحظ المهم — قبل القرار التالي.", heroBody: "سيناريوهات تمريضية متفرعة لقرارات الطوارئ والأجنحة والأطفال والولادة والعناية الحرجة. كل اختيار مشروح بالعربية والإنجليزية ومرتبط بإرشادات موثوقة.",
+    heroTitle: "تعلّم كيف تلاحظ المهم — قبل القرار التالي.", heroBody: "سيناريوهات تمريضية متفرعة لقرارات الطوارئ والأجنحة والأطفال والولادة والعناية الحرجة. كل اختيار أولي مشروح بالعربية والإنجليزية ويذكر مجموعة المصادر المستخدمة في تأليفه.",
     explore: "استكشف السيناريوهات", continueLearning: "اعرض تقدمي", evidenceLed: "أدلة على مستوى السيناريو", evidenceLedBody: "يسمي كل سيناريو مجموعة المصادر المؤرخة التي استُخدمت في تأليفه.", bilingual: "ثنائي اللغة بالكامل",
     bilingualBody: "بدّل التجربة كاملة من دون أن تفقد موضعك.", privateDemo: "خصوصية مقصودة", privateDemoBody: "استخدم التقدم المحلي فقط أو سجّل الدخول لمزامنة الحد الأدنى من المحاولات المكتملة.",
     scenariosCount: "سيناريوهات مؤلفة", practiceContexts: "سياقات تدريبية", departmentsCount: "مجالات سريرية", referencesCount: "مصدراً موثوقاً", startFeatured: "ابدأ الحالة المختارة", featured: "محاكاة مختارة", featuredKicker: "قسم الطوارئ · 12 دقيقة",
@@ -189,6 +187,7 @@ const copy = {
     start: "ابدأ السيناريو", practiseAgain: "تدرّب مجدداً", completed: "مكتمل", noScenarios: "لا توجد سيناريوهات مطابقة لهذه المرشحات.", resetFilters: "إعادة ضبط المرشحات",
     patientStatus: "حالة المريض", scenario: "السيناريو", keyVitals: "العلامات الحيوية الأساسية", clinicalMoment: "الصورة السريرية الحالية", step: "الخطوة", of: "من", timeline: "الخط الزمني للسيناريو", current: "الحالية",
     questionIntro: "اختر أفضل استجابة تمريضية.", choiceGroup: "خيارات الاستجابة", confirm: "تأكيد الاختيار", chooseFirst: "اختر استجابة واحدة قبل التأكيد.", nextDecision: "القرار التالي", viewDebrief: "عرض التحليل",
+    hypothesesTitle: "ترتيب الفرضيات التمريضية المعروضة", hypothesesInstruction: "استخدم القرائن الحالية لترتيب كل فرضية تعليمية معروضة في هذه اللحظة.", hypothesis: "فرضية تعليمية", relatedTo: "مرتبطة بـ", evidenceBy: "تدعمها القرائن", priorityHigh: "أولوية عالية", priorityMedium: "أولوية متوسطة", priorityLow: "أولوية منخفضة", selectPriority: "حدد الأولوية", completeHypotheses: "حدّد أولوية لكل فرضية تعليمية قبل تأكيد هذا القرار.", hypothesisFeedback: "مراجعة ترتيب الفرضيات", expectedPriority: "المتوقع في هذا التمرين", yourPriority: "ترتيبك", learningHypothesisNote: "هذه فرضيات معروضة للاستدلال التعليمي وليست تشخيصات أو تعليمات لرعاية مريض.",
     selectionLocked: "تم تثبيت إجابتك لهذا القرار.", feedback: "التغذية الراجعة للقرار", rationale: "لماذا يهم هذا؟", safe: "استجابة قوية", gap: "فجوة تعلم", delay: "تأخير للأولوية", unsafe: "تنبيه سلامة",
     progress: "تقدمك", learningProgress: "تقدم السيناريو", evidence: "مجموعة مصادر السيناريو", decisionRecorded: "تم تسجيل القرار", currentDecision: "القرار الحالي", upcoming: "قادم", viewSources: "عرض مصادر السيناريو",
     important: "مهم", localProtocol: "استخدم البروتوكولات المحلية الحالية والأوامر المعتمدة ومسارات التصعيد.", educationalOnly: "محاكاة تعليمية فقط. ليست لرعاية مريض حقيقي أو التشخيص أو العلاج أو الفرز أو استخدام الطوارئ. لا تُدخل معلومات مريض حقيقي. في الطوارئ الحقيقية تواصل فوراً مع فريقك السريري وخدمة الطوارئ المحلية.",
@@ -208,15 +207,12 @@ const copy = {
     question: "السؤال", selectOneAnswer: "اختر إجابة واحدة قبل تثبيتها.", lockAnswer: "تثبيت الإجابة", nextQuestion: "السؤال التالي", finishQuiz: "إنهاء ومراجعة", correctAnswer: "استجابة صحيحة", incorrectAnswer: "راجع هذه الاستجابة", unansweredAtTimeout: "لم يُجب عنه عند انتهاء الوقت", answerLocked: "تم تثبيت الإجابة", answerRationale: "مبرر الإجابة", questionSources: "مصادر هذا السؤال", timeRemaining: "الوقت المتبقي", timeExpired: "انتهى الوقت — أُرسلت المجموعة واحتُسبت الأسئلة غير المجابة كإجابات غير صحيحة.", sessionSaved: "يُحفظ التقدم والموعد النهائي للعداد في هذا المتصفح، لذلك لا يعيد تحديث الصفحة بدء الوقت.", focusedPracticeTitle: "متابعة مركزة من 10 أسئلة", focusedPracticeBody: "تبدأ هذه المجموعة الجديدة بمجالات التعلم الأقل نتيجة في المحاولة المكتملة، وتفضّل الأسئلة التي لم تُجب عنها للتو.", startFocusedSet: "ابدأ المجموعة المركزة",
     quizProgress: "تقدم الأسئلة", quizScore: "درجة التدريب", correctAnswers: "الإجابات الصحيحة", quizDebriefEyebrow: "تحليل بنك الأسئلة", quizDebriefTitle: "راجع ما فهمته وما يحتاج إلى عودة", quizIncomplete: "أكمل مجموعة الأسئلة الحالية لعرض التحليل.", localExamProgress: "سجل تدريب الأسئلة", localExamProgressBody: "تُحفظ مجموعات الأسئلة المكتملة على هذا الجهاز وتتزامن مع حسابك الخاص عند تسجيل الدخول. تصف الدرجات أداء هذه العينة ولا تتنبأ بنتيجة اختبار أو ترخيص أو كفاءة مهنية.", setsCompleted: "المجموعات المكتملة", questionsAnswered: "الأسئلة المجاب عنها", categoryInsights: "مراجعة مجالات التعلم", morePractice: "دقة أقل في هذه العينة", developingKnowledge: "أداء متباين في هذه العينة", strongKnowledge: "دقة أعلى في هذه العينة", noExamAttempts: "ستظهر أول مجموعة أسئلة مكتملة هنا.",
     originalPracticeNotice: "تدريب مستقل ومؤلف أصلاً فقط. لا يستخدم أسئلة اختبار متذكَّرة أو سرية أو رسمية، ولا تتنبأ الدرجات بنتيجة اختبار أو ترخيص أو كفاءة.", allDifficultyLevels: "كل المستويات", questionsAvailable: "سؤالاً متاحاً", practiceSet: "مجموعة تدريب", newVariation: "تنويع جديد", viewQuestionBank: "فتح بنك الأسئلة", uniqueItems: "أسئلة فريدة", completedSetsEvidence: "مجموعات مكتملة", earlyIndicator: "مؤشر تعلم مبكر", categoryEvidenceBody: "لا يظهر مؤشر لمجال التعلم إلا بعد ثلاثة أسئلة فريدة على الأقل عبر مجموعتين مكتملتين، وهو يصف هذه العينة فقط.", contextVariant: "سياق التدريب", contextDetails: "تفاصيل السياق", contextVariantNote: "يغير السياق طريقة العرض فقط؛ ولا تتغير المؤشرات السريرية الأولية أو الدرجة أو الاستجابة الأكثر أماناً.", guidedScenarioTitle: "ترتيب موجّه للسيناريوهات", guidedScenarioBody: "تعيد القرارات المكتملة ترتيب المكتبة لتظهر مجالات التعلم ذات الدقة الأقل أو اختيارات السلامة قرب الأعلى بصورة أكثر تكراراً، مع إبقاء السيناريوهات الجديدة ضمن التناوب.", recommendedNext: "مقترح تالٍ", recommendationExplore: "توسيع خط الأساس", recommendationEvidence: "جمع أدلة إضافية", recommendationDevelopment: "التدرب على الأداء المتفاوت", recommendationReview: "مراجعة مجال منخفض الدقة", recommendationSafety: "مراجعة اختيار متعلق بالسلامة", adaptiveLearningTitle: "التدريب التالي المقترح", adaptiveLearningBody: "تستخدم هذه الاقتراحات نشاط التعلم المكتمل على هذا الجهاز، ومن الحساب المتزامن عند تسجيل الدخول. وهي توجه التدريب ولا تقيس الكفاءة أو تتنبأ بنتيجة اختبار.", openRecommendedScenario: "فتح السيناريو المقترح", startGuidedQuestions: "بدء أسئلة موجّهة", examNonAffiliation: "فرضيات تمريضية مورد تعليمي مطوّر بصورة مستقلة. لا يصدر عن أي جهة تنظيمية تمريضية أو مالك اختبار أو مزود تقديم اختبارات، ولا ترعاه أو تؤيده أو تعتمده أو تديره أيٌّ منها. ولا يتضمن أسئلة اختبار متذكَّرة أو سرية. تصف درجات التدريب أداء المتعلم في هذه المجموعة فقط، ولا تتنبأ بنتيجة اختبار أو بالحصول على ترخيص أو بالكفاءة المهنية.",
-    freeAccess: "وصول مجاني", futureMembership: "عضوية مستقبلية", accessibleNow: "متاح الآن", plannedInactive: "مخطط · غير مفعل بعد",
-    plansEyebrow: "خارطة طريق العضوية", plansTitle: "مسار واضح لدعم الدراسة مستقبلاً", plansBody: "تبقى جميع السيناريوهات ومحتويات بنك الأسئلة الحالية متاحة. توضح الخيارات أدناه بنية معلومات مخططة فقط؛ الاشتراكات والدفع غير مفعّلين.",
-    freePlan: "مجاني", freePlanBody: "استكشف السيناريوهات الحالية والأسئلة التدريبية والتحليلات وروابط المصادر باللغتين. يتيح الحساب الاختياري مزامنة سجل التعلم المكتمل.", saudiNursingPlan: "مسار دراسة التمريض السعودي", saudiNursingPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق ومراجعته على مدى أطول للمتعلمين في سياق التمريض السعودي.", internationalRnPlan: "مسار دراسة الممرض المسجل الدولي", internationalRnPlanBody: "مساحة دراسية مخططة لتنظيم تدريب مستقل أعمق للممرض المسجل ومراجعته على مدى أطول.", computerizedPlan: "مسار التدريب المحوسب", computerizedPlanBody: "العينة الحالية مجانية؛ ويمكن أن تضيف فئة موسعة مستقبلاً بنوكاً مؤقتة أكبر وجدولة للدراسة بعد وجود استحقاقات يتحقق منها الخادم.", institutionalPlan: "للمؤسسات", institutionalPlanBody: "خيار مخطط لمجموعات يقودها المعلمون والحوكمة والتقارير على مستوى المؤسسة.",
-    currentIncludes: "يشمل الوصول الحالي", freeFeatureOne: "كل السيناريوهات الأولية الحالية", freeFeatureTwo: "مجموعات الأسئلة المستقلة الحالية", freeFeatureThree: "المبررات والمراجع ثنائية اللغة", plannedFeatureOne: "بنوك أوسع حسب مجالات التعلم", plannedFeatureTwo: "تخطيط الدراسة وتحليلات أعمق", plannedFeatureThree: "ضوابط وتقارير للمؤسسات", noCheckout: "لا يمكن شراء أي خطة الآن. تسجيل الحساب ومزامنة سجل التعلم متاحان، لكن الدفع والتحصيل المالي وتفعيل الاشتراكات المدفوعة غير مفعلة.",
+    includedAccess: "تدريب متاح",
     referencesEyebrow: "مكتبة الأدلة", referencesTitle: "ارجع إلى المصدر", referencesBody: "تستخدم السيناريوهات صياغة تعليمية أصلية وتحيل إلى ناشرين وجهات تنظيمية ومنظمات مهنية رسمية. تحقق من الإصدار الحالي وسياسة منشأتك قبل التطبيق.",
     source: "صفحة الناشر/المصدر", accessNote: "ملاحظة الوصول", aboutEyebrow: "عن المنصة", aboutTitle: "مساحة تدريب للاستدلال السريري", aboutLead: "تحوّل فرضيات تمريضية لحظات واقعية لكنها خيالية إلى تدريب مقصود: لاحظ، ورتّب الأولوية، وتدخل، وأعد التقييم، واشرح.",
     purpose: "لأي غرض؟", purposeBody: "للتعلم التمريضي الذاتي والتحليل الميسر ومناقشة تسلسل القرارات الآمنة عبر المجالات السريرية.", method: "كيف بُنيت؟", methodBody: "حالات متفرعة أصلية، وشروح ثنائية اللغة، ودرجات شفافة، ومراجع مرتبطة على مستوى السيناريو.",
     boundaries: "الحدود السريرية", boundariesBody: "لا تحل المنصة محل الإشراف أو السياسة المحلية أو التعليم الرسمي أو التقييم المهني أو الحكم السريري الفوري.", accountModel: "نموذج الحساب التجريبي",
-    accountModelBody: "تستطيع حسابات البريد مزامنة سجل تعلم محدود عمداً. تعزل سياسات قاعدة البيانات صفوف كل متعلم، بينما يجب أن تبقى الاستحقاقات المدفوعة وأي درجات رسمية تحت تحكم الخادم قبل الإطلاق التجاري.",
+    accountModelBody: "تستطيع حسابات البريد مزامنة سجل تعلم محدود عمداً. تعزل سياسات قاعدة البيانات صفوف كل متعلم، وتبقى الدرجات الناتجة تكوينية وليست سجلات كفاءة رسمية.",
     editorial: "منهج الأدلة والتحرير", editorialBody: "تتغير الإرشادات. يذكر كل سيناريو مصادره ويستخدم لغة حذرة وغير آمرة عندما تختلف الأهداف أو الأجهزة أو الأوامر أو معايير التصعيد محلياً.",
     footerLine: "تعلّم. استدل. اعتنِ.", privacy: "الخصوصية", terms: "الشروط", contact: "التواصل والسلامة", copyright: "فرضيات تمريضية. نسخة تعليمية تجريبية.",
   },
@@ -227,15 +223,17 @@ const POLICY_PAGES = {
     privacy: {
       eyebrow: "Transparency for the free beta",
       title: "Privacy notice",
-      lead: "This notice describes the current private beta, including optional email accounts and learning-history sync. It remains a draft pending qualified legal and privacy review before public launch.",
+      lead: "This notice describes the current educational beta, including optional email accounts and learning-history sync. It remains a draft pending qualified Saudi legal and privacy review before public launch.",
       effective: "Effective 5 September 2026 · draft pending legal review",
       warning: "Do not enter names, record numbers, clinical notes or any information about a real patient anywhere in this website.",
       sections: [
+        { title: "Responsible project contact", body: "The responsible project publisher and privacy contact for this beta is Abdulkarim alhejaili, reachable at Scenario.hq90@gmail.com. A formal service address and final controller disclosures remain for qualified counsel to confirm before public launch." },
         { title: "Information used", body: "Without an account, the browser stores language, scenario/question/option identifiers, completed attempts and the active timed session. If you create an account, Supabase processes your email and authentication records, and the site syncs only completed-attempt identifiers, selected option identifiers and completion times. Scores and learning-domain signals are recalculated from the current authored content. Do not enter patient data, clinical free text, payment data, licence numbers or employer information." },
         { title: "Device storage and account separation", body: "Browser storage is not encrypted and can be visible to anyone using the same browser profile. Signed-in learning rows are isolated by database row-level policies. Signing out removes the local learning cache for that account; on a shared device, sign out and clear browser site data. Authentication tokens are managed by the Supabase browser client and are never copied into the learning records." },
-        { title: "Processors, location and technical records", body: "The private beta uses OpenAI Sites for page delivery and Supabase for authentication and account sync. The primary Supabase database is located in Frankfurt, Germany. Providers may process standard technical and security logs in additional locations under their own terms. A Saudi cross-border-transfer assessment, processor agreement review, retention schedule and backup-deletion statement remain required before public launch." },
+        { title: "Processors, location and technical records", body: "The private beta uses OpenAI Sites for page delivery and Supabase for authentication and account sync. The primary Supabase database is located in Frankfurt, Germany. Rights and support emails sent to Scenario.hq90@gmail.com are processed through Google Gmail; never send patient or confidential workplace data. Providers may process standard technical and security logs in additional locations under their own terms. A Saudi cross-border-transfer assessment, processor agreement review, Gmail retention decision and backup-deletion statement remain required before public launch." },
         { title: "External source links", body: "Opening a reference sends a request to the third-party publisher. That publisher receives technical data and applies its own privacy and cookie policies. Nursing Hypotheses does not control those services." },
-        { title: "Retention, control and future changes", body: "Use Clear learning history to remove completed learning rows from the device and signed-in account. Formal retention, account deletion, verified support, production email, analytics, AI, n8n workflows and payments are not yet active. They must not launch until the lawful basis, processor terms, retention, security controls and user choices are documented in an updated notice." },
+        { title: "Purpose and retention", body: "The data is used only to provide the requested educational account, sync completed learning activity, preserve security and respond to support or rights requests. Device data remains until you clear learning history or browser site data. Synced learning rows remain until you clear them or request account deletion. Authentication data remains until the account is deleted. Provider security logs and backups follow provider retention settings and still require final operator documentation before public launch." },
+        { title: "Your controls and requests", body: "The learning dashboard lets you download a copy of current learning data and clear completed learning history. For account access, correction or verified deletion, or to raise a privacy concern, email Scenario.hq90@gmail.com from the account address. The project aims to acknowledge privacy requests within five business days; applicable statutory deadlines and identity checks still govern the final response." },
       ],
     },
     terms: {
@@ -250,20 +248,21 @@ const POLICY_PAGES = {
         { title: "Independent question bank", body: "No recalled, secure or official examination item may be submitted, reconstructed, copied or requested. Similarities to common nursing topics, four-option formats or single-best-answer methods do not make this an official exam product. No regulator or examination owner issues, sponsors, endorses, approves or administers the website." },
         { title: "Acceptable use", body: "Use the beta for lawful personal learning or authorised teaching. Do not enter patient or confidential workplace data; bypass controls; scrape or republish the bank; interfere with service; impersonate a person or organisation; or use the material to provide unsupervised clinical instructions." },
         { title: "Content and external rights", body: "Original site text and presentation remain subject to their applicable rights. Linked publications, names and marks belong to their respective owners. A link is attribution and research traceability, not permission to copy or an endorsement." },
-        { title: "Accounts, availability and paid services", body: "Optional beta accounts sync a learner's own formative history; they do not create a credential or paid entitlement. Draft content may be corrected, withdrawn or unavailable without notice. No checkout, payment collection, refund promise or paid subscription is active. Separate commercial terms, tax, payment, cancellation and consumer-law review are required before any paid launch." },
-        { title: "Audience and jurisdiction", body: "The beta is intended for adult nursing learners and professionals; younger learners should use it only with an educator or guardian. The initial audience is expected to include Saudi users, but the governing-law, dispute and liability clauses remain open for qualified legal review before public or commercial launch." },
+        { title: "Accounts and availability", body: "Optional accounts sync a learner's own formative history; they do not create a credential or verified score. The current project does not offer subscriptions, checkout or payment collection. Draft content may be corrected, withdrawn or unavailable without notice." },
+        { title: "Audience and jurisdiction", body: "Accounts are intended only for people aged 18 or older. The initial audience is expected to include Saudi users, but governing-law, dispute and liability clauses remain open for qualified legal review before public launch." },
       ],
     },
     contact: {
       eyebrow: "Content, safety and rights",
       title: "Contact and safety reporting",
-      lead: "A real monitored support address and responsible publishing entity have not yet been supplied for this beta.",
-      effective: "Launch blocker · configure before external publication",
-      warning: "Do not publish this beta externally until a monitored contact channel, privacy owner and content-safety escalation owner are displayed here.",
+      lead: "Report a content, translation, accessibility, copyright or privacy concern to the responsible project contact.",
+      effective: "Project contact · 5 September 2026",
+      warning: "This email is not an emergency or clinical-advice channel. Never include patient or confidential workplace information.",
+      email: "Scenario.hq90@gmail.com",
       sections: [
         { title: "What a report should include", body: "Identify the page, scenario or question; language; content version; and a concise description of the possible clinical, translation, accessibility, copyright or privacy issue. Do not include any patient, learner or confidential workplace information." },
         { title: "Urgent clinical situations", body: "This page is not monitored for emergencies. If a real person may be at risk, follow the authorised local emergency and escalation pathway now. Do not wait for a website response." },
-        { title: "Before launch", body: "The publisher must add a real monitored email or ticket channel, name the responsible legal entity and privacy contact, define acknowledgement and takedown targets, and test that reports reach the assigned reviewers." },
+        { title: "Response targets", body: "The project aims to acknowledge ordinary reports within five business days and review a credible urgent content-safety or rights takedown report within two business days. These are operational targets, not an emergency response promise. Final legal escalation and statutory response procedures remain pending qualified review." },
       ],
     },
   },
@@ -271,15 +270,17 @@ const POLICY_PAGES = {
     privacy: {
       eyebrow: "الشفافية للنسخة التجريبية المجانية",
       title: "إشعار الخصوصية",
-      lead: "يصف هذا الإشعار النسخة التجريبية الخاصة الحالية، بما في ذلك حسابات البريد الاختيارية ومزامنة سجل التعلم. ويظل مسودة بانتظار مراجعة قانونية وخصوصية مؤهلة قبل الإطلاق العام.",
+      lead: "يصف هذا الإشعار النسخة التعليمية التجريبية الحالية، بما في ذلك حسابات البريد الاختيارية ومزامنة سجل التعلم. ويظل مسودة بانتظار مراجعة قانونية وخصوصية سعودية مؤهلة قبل الإطلاق العام.",
       effective: "يسري من 5 سبتمبر 2026 · مسودة بانتظار المراجعة القانونية",
       warning: "لا تُدخل اسماً أو رقم ملف أو ملاحظة سريرية أو أي معلومات تخص مريضاً حقيقياً في أي موضع من هذا الموقع.",
       sections: [
+        { title: "جهة اتصال المشروع المسؤولة", body: "الناشر المسؤول وجهة اتصال الخصوصية لهذه النسخة هو Abdulkarim alhejaili، ويمكن التواصل عبر Scenario.hq90@gmail.com. يبقى عنوان الخدمة الرسمي وإفصاحات المتحكم النهائية للتأكيد من مستشار مؤهل قبل الإطلاق العام." },
         { title: "المعلومات المستخدمة", body: "من دون حساب، يحفظ المتصفح اللغة ومعرّفات السيناريوهات والأسئلة والخيارات والمحاولات المكتملة والجلسة المؤقتة النشطة. عند إنشاء حساب، تعالج Supabase البريد وسجلات المصادقة، ويزامن الموقع فقط معرّفات المحاولات المكتملة والخيارات المحددة وأوقات الإكمال. تُعاد حساب الدرجات ومؤشرات مجالات التعلم من المحتوى المؤلف الحالي. لا تدخل بيانات مرضى أو نصاً سريرياً حراً أو بيانات دفع أو رقم ترخيص أو جهة عمل." },
         { title: "تخزين الجهاز وفصل الحسابات", body: "تخزين المتصفح غير مشفر وقد يراه من يستخدم ملف المتصفح نفسه. تعزل سياسات مستوى الصف سجلات التعلم الخاصة بكل حساب. يؤدي تسجيل الخروج إلى إزالة نسخة التعلم المحلية لذلك الحساب؛ وعلى الجهاز المشترك سجّل الخروج وامسح بيانات الموقع. يدير عميل Supabase رموز المصادقة ولا تُنسخ داخل سجلات التعلم." },
-        { title: "المعالجون والموقع والسجلات التقنية", body: "تستخدم النسخة الخاصة OpenAI Sites لتقديم الصفحات وSupabase للمصادقة ومزامنة الحساب. تقع قاعدة بيانات Supabase الأساسية في فرانكفورت بألمانيا. وقد يعالج المزودون سجلات تقنية وأمنية معتادة في مواقع أخرى وفق شروطهم. يلزم قبل الإطلاق العام تقييم نقل البيانات عبر الحدود للسعودية ومراجعة اتفاقيات المعالجة وجدول الاحتفاظ وبيان حذف النسخ الاحتياطية." },
+        { title: "المعالجون والموقع والسجلات التقنية", body: "تستخدم النسخة الخاصة OpenAI Sites لتقديم الصفحات وSupabase للمصادقة ومزامنة الحساب. تقع قاعدة بيانات Supabase الأساسية في فرانكفورت بألمانيا. وتُعالج رسائل الحقوق والدعم المرسلة إلى Scenario.hq90@gmail.com عبر Google Gmail؛ فلا ترسل بيانات مريض أو معلومات عمل سرية. وقد يعالج المزودون سجلات تقنية وأمنية معتادة في مواقع أخرى وفق شروطهم. يلزم قبل الإطلاق العام تقييم نقل البيانات عبر الحدود للسعودية ومراجعة اتفاقيات المعالجة وقرار الاحتفاظ في Gmail وبيان حذف النسخ الاحتياطية." },
         { title: "روابط المصادر الخارجية", body: "يؤدي فتح مرجع إلى إرسال طلب إلى موقع الناشر الخارجي. يستقبل ذلك الناشر بيانات تقنية ويطبق سياسة الخصوصية وملفات الارتباط الخاصة به. لا تتحكم «فرضيات تمريضية» في تلك الخدمات." },
-        { title: "الاحتفاظ والتحكم والتغييرات المستقبلية", body: "استخدم «مسح سجل التعلم» لحذف صفوف التعلم المكتملة من الجهاز والحساب عند تسجيل الدخول. لم تُفعّل بعد سياسة احتفاظ نهائية أو حذف حساب أو دعم متحقق أو بريد إنتاجي أو تحليلات أو ذكاء اصطناعي أو تدفقات n8n أو مدفوعات. ولا يجوز إطلاقها قبل توثيق الأساس النظامي وشروط المعالج والاحتفاظ وضوابط الأمان وخيارات المستخدم." },
+        { title: "الغرض والاحتفاظ", body: "تُستخدم البيانات فقط لتقديم حساب التعلم المطلوب، ومزامنة النشاط المكتمل، والحفاظ على الأمان، والاستجابة للدعم أو طلبات الحقوق. تبقى بيانات الجهاز حتى تمسح سجل التعلم أو بيانات الموقع من المتصفح. وتبقى صفوف التعلم المزامنة حتى تمسحها أو تطلب حذف الحساب، بينما تبقى بيانات المصادقة حتى حذف الحساب. تخضع سجلات الأمان والنسخ الاحتياطية لإعدادات المزود، وما زال يلزم توثيقها تشغيلياً قبل الإطلاق العام." },
+        { title: "ضوابطك وطلباتك", body: "تتيح لوحة التعلم تنزيل نسخة من بيانات التعلم الحالية ومسح سجل التعلم المكتمل. للوصول إلى الحساب أو تصحيحه أو حذفه بعد التحقق، أو لرفع ملاحظة خصوصية، راسل Scenario.hq90@gmail.com من بريد الحساب. يستهدف المشروع تأكيد استلام طلب الخصوصية خلال خمسة أيام عمل، مع بقاء المدد النظامية المطبقة والتحقق من الهوية حاكمة للاستجابة النهائية." },
       ],
     },
     terms: {
@@ -294,26 +295,27 @@ const POLICY_PAGES = {
         { title: "بنك أسئلة مستقل", body: "يُحظر إرسال أو إعادة بناء أو نسخ أو طلب أي سؤال اختبار متذكَّر أو سري أو رسمي. ولا تجعل الموضوعات التمريضية الشائعة أو صيغة الخيارات الأربعة أو منهج أفضل إجابة واحدة هذا منتج اختبار رسمي. لا تصدر المنصة عن أي جهة تنظيمية أو مالك اختبار ولا ترعاها أو تؤيدها أو تعتمدها أو تديرها أيٌّ منها." },
         { title: "الاستخدام المقبول", body: "استخدم النسخة للتعلم الشخصي المشروع أو التعليم المصرح. لا تدخل بيانات مرضى أو بيانات عمل سرية؛ ولا تتجاوز الضوابط؛ ولا تجمع البنك آلياً أو تعيد نشره؛ ولا تعطل الخدمة؛ ولا تنتحل شخصاً أو جهة؛ ولا تستخدم المحتوى لتقديم توجيهات سريرية دون إشراف." },
         { title: "المحتوى وحقوق الغير", body: "يخضع نص الموقع الأصلي وعرضه للحقوق المطبقة. وتعود المنشورات والأسماء والعلامات المرتبطة إلى أصحابها. الرابط إسناد وتتبع بحثي وليس إذناً بالنسخ أو تأييداً للمنصة." },
-        { title: "الحسابات والتوفر والخدمات المدفوعة", body: "تزامن الحسابات الاختيارية سجل التعلم التكويني الخاص بالمتعلم؛ ولا تنشئ اعتماداً أو استحقاقاً مدفوعاً. قد يُصحح المحتوى الأولي أو يُسحب أو يتعذر دون إشعار. لا يوجد دفع أو شراء أو وعد باسترداد أو اشتراك مدفوع مفعل. يلزم إعداد شروط تجارية منفصلة ومراجعة الضرائب والدفع والإلغاء وحماية المستهلك قبل أي إطلاق مدفوع." },
-        { title: "الجمهور والنطاق النظامي", body: "تستهدف النسخة متعلمي التمريض والمهنيين البالغين؛ وعلى الأصغر سناً استخدامها بإشراف معلم أو ولي. يُتوقع أن يشمل الجمهور الأول مستخدمين في السعودية، لكن بنود النظام الحاكم والنزاعات والمسؤولية ما تزال مفتوحة لمراجعة قانونية مؤهلة قبل الإطلاق العام أو التجاري." },
+        { title: "الحسابات والتوفر", body: "تزامن الحسابات الاختيارية سجل التعلم التكويني الخاص بالمتعلم؛ ولا تنشئ اعتماداً أو درجة موثقة. لا يقدم المشروع الحالي اشتراكات أو شراء أو تحصيل مدفوعات. وقد يُصحح المحتوى الأولي أو يُسحب أو يتعذر دون إشعار." },
+        { title: "الجمهور والنطاق النظامي", body: "الحسابات مخصصة فقط لمن يبلغ 18 سنة أو أكثر. يُتوقع أن يشمل الجمهور الأول مستخدمين في السعودية، لكن بنود النظام الحاكم والنزاعات والمسؤولية ما تزال مفتوحة لمراجعة قانونية مؤهلة قبل الإطلاق العام." },
       ],
     },
     contact: {
       eyebrow: "المحتوى والسلامة والحقوق",
       title: "التواصل وبلاغات السلامة",
-      lead: "لم يُزوَّد هذا النموذج حتى الآن بعنوان دعم حقيقي خاضع للمراقبة أو باسم الجهة المسؤولة عن النشر.",
-      effective: "مانع إطلاق · يجب ضبطه قبل النشر الخارجي",
-      warning: "لا تنشر هذه النسخة خارجياً حتى تظهر هنا قناة تواصل مراقبة ومسؤول الخصوصية ومسؤول تصعيد سلامة المحتوى.",
+      lead: "أرسل بلاغاً عن مشكلة في المحتوى أو الترجمة أو إمكانية الوصول أو حقوق النشر أو الخصوصية إلى جهة اتصال المشروع المسؤولة.",
+      effective: "جهة اتصال المشروع · 5 سبتمبر 2026",
+      warning: "هذا البريد ليس قناة للطوارئ أو للاستشارة السريرية. لا ترسل أي بيانات مريض أو معلومات عمل سرية.",
+      email: "Scenario.hq90@gmail.com",
       sections: [
         { title: "ماذا يتضمن البلاغ؟", body: "حدد الصفحة أو السيناريو أو السؤال، واللغة، وإصدار المحتوى، ووصفاً موجزاً للمشكلة السريرية أو اللغوية أو المتعلقة بالوصول أو حقوق النشر أو الخصوصية. لا ترفق أي معلومات مريض أو متعلم أو معلومات عمل سرية." },
         { title: "الحالات السريرية العاجلة", body: "هذه الصفحة غير مراقبة للطوارئ. إذا كان شخص حقيقي معرضاً للخطر فاتبع الآن مسار الطوارئ والتصعيد المحلي المعتمد. لا تنتظر رداً من الموقع." },
-        { title: "قبل الإطلاق", body: "يجب على الناشر إضافة بريد مراقب أو نظام تذاكر حقيقي، وتسمية الكيان القانوني المسؤول وجهة اتصال الخصوصية، وتحديد زمن الاستلام والسحب، واختبار وصول البلاغات إلى المراجعين المعينين." },
+        { title: "أهداف الاستجابة", body: "يستهدف المشروع تأكيد استلام البلاغات العادية خلال خمسة أيام عمل، ومراجعة البلاغ الموثوق والعاجل المتعلق بسلامة المحتوى أو سحب مادة بسبب الحقوق خلال يومي عمل. هذه أهداف تشغيلية وليست وعداً بالاستجابة للطوارئ. تبقى إجراءات التصعيد القانوني والمدد النظامية بانتظار مراجعة مؤهلة." },
       ],
     },
   },
 };
 
-const NAV_ITEMS = [["home", "home", House], ["scenarios", "simulations", Exam], ["questions", "questionBank", ClipboardText], ["learning", "learning", ChartLineUp], ["resources", "resources", Books], ["membership", "membership", Medal], ["about", "about", Info]];
+const NAV_ITEMS = [["home", "home", House], ["scenarios", "simulations", Exam], ["questions", "questionBank", ClipboardText], ["learning", "learning", ChartLineUp], ["resources", "resources", Books], ["about", "about", Info]];
 
 function readProfileFromStorage(storageKey = PROFILE_STORAGE_KEY) {
   if (typeof window === "undefined") return ensureScenarioAttemptMetadata(revalidateProfile(parseProfile(""), scenarios));
@@ -397,7 +399,7 @@ function createScenarioSession(scenarioId = null, orderSeed = 0) {
 
 function parseRoute() {
   const [page = "home", id = ""] = window.location.hash.replace(/^#\/?/, "").split("/");
-  const allowed = new Set(["home", "scenarios", "scenario", "result", "questions", "learning", "resources", "membership", "about", "privacy", "terms", "contact"]);
+  const allowed = new Set(["home", "scenarios", "scenario", "result", "questions", "learning", "resources", "about", "privacy", "terms", "contact"]);
   return allowed.has(page) ? { page, id } : { page: "home", id: "" };
 }
 
@@ -412,6 +414,7 @@ function formatCountdown(totalSeconds, lang) {
   return `${twoDigits.format(minutes)}:${twoDigits.format(seconds)}`;
 }
 function localizeVitalValue(value, lang) {
+  if (value && typeof value === "object") return localize(value, lang);
   if (lang !== "ar") return value;
   return { Alert: "واعٍ", Pacing: "يتحرك بقلق", None: "لا يوجد", "Alert, dizzy": "واعٍ مع دوار", Confused: "مشوش" }[value] || value;
 }
@@ -571,7 +574,7 @@ function HomePage({ lang, t, onStart, profile }) {
         <div className="hero-actions"><AppLink to="scenarios" className="button button-primary">{t("explore")} {lang === "ar" ? <ArrowLeft size={19} /> : <ArrowRight size={19} />}</AppLink><AppLink to="learning" className="button button-ghost-light"><ChartLineUp size={19} /> {t("continueLearning")}{completedCount > 0 ? <span className="button-count">{formatNumber(completedCount, lang)}</span> : null}</AppLink></div>
       </div>
       <div className="featured-case" aria-label={t("featured")}><div className="featured-topline"><span>{t("featured")}</span><FirstAidKit size={26} weight="duotone" /></div><p className="featured-kicker">{t("featuredKicker")}</p><h2>{localize(featured.title, lang)}</h2><p>{t("featuredBody")}</p>
-        <div className="mini-vitals" aria-label={t("keyVitals")}>{featured.steps[1].vitals.slice(0, 3).map((vital) => <span key={vital.label.en}><small>{localize(vital.label, lang)}</small><strong>{vital.value}</strong></span>)}</div>
+        <div className="mini-vitals" aria-label={t("keyVitals")}>{featured.steps[1].vitals.slice(0, 3).map((vital) => <span key={vital.label.en}><small>{localize(vital.label, lang)}</small><strong>{localizeVitalValue(vital.value, lang)}</strong></span>)}</div>
         <button type="button" className="text-action light-action" onClick={() => onStart(featured.id)}><Play size={18} weight="fill" /> {t("startFeatured")}</button>
       </div>
     </div></section>
@@ -625,12 +628,42 @@ function PatientRail({ scenario, step, lang, t }) {
 function LearningRail({ scenario, stepIndex, lang, t }) {
   const percentage = Math.round(((stepIndex + 1) / scenario.steps.length) * 100);
   const caseReferences = scenario.referenceIds.map((id) => references.find((reference) => reference.id === id)).filter(Boolean);
-  return <aside className="learning-rail" aria-labelledby="progress-title"><div className="rail-heading"><h2 id="progress-title">{t("progress")}</h2></div><h3>{t("learningProgress")}</h3><div className="progress-meter" role="progressbar" aria-label={t("learningProgress")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percentage}><span style={{ width: `${percentage}%` }} /></div><div className="progress-copy"><strong>{formatNumber(percentage, lang)}%</strong><span>{t("step")} {formatNumber(stepIndex + 1, lang)} {t("of")} {formatNumber(scenario.steps.length, lang)}</span></div><div className="rail-divider" /><h3>{t("evidence")}</h3><ol className="evidence-steps">{scenario.steps.map((step, index) => <li key={step.id} className={index < stepIndex ? "done" : index === stepIndex ? "active" : ""}><span>{index < stepIndex ? <CheckCircle size={21} weight="fill" /> : <ClipboardText size={21} weight="duotone" />}</span><div><strong>{step.time}</strong><small>{index < stepIndex ? t("decisionRecorded") : index === stepIndex ? t("currentDecision") : t("upcoming")}</small></div></li>)}</ol><div className="evidence-box"><BookOpen size={25} weight="duotone" /><div><h3>{t("evidence")}</h3><p>{formatNumber(caseReferences.length, lang)} {t("referencesCount")}</p><AppLink to="resources" className="inline-link">{t("viewSources")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></div></div><div className="protocol-box"><Warning size={24} weight="fill" /><div><h3>{t("important")}</h3><p>{t("localProtocol")}</p></div></div></aside>;
+  return <aside className="learning-rail" aria-labelledby="progress-title"><div className="rail-heading"><h2 id="progress-title">{t("progress")}</h2></div><h3>{t("learningProgress")}</h3><div className="progress-meter" role="progressbar" aria-label={t("learningProgress")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percentage}><span style={{ width: `${percentage}%` }} /></div><div className="progress-copy"><strong>{formatNumber(percentage, lang)}%</strong><span>{t("step")} {formatNumber(stepIndex + 1, lang)} {t("of")} {formatNumber(scenario.steps.length, lang)}</span></div><div className="rail-divider" /><h3>{t("evidence")}</h3><ol className="evidence-steps">{scenario.steps.map((step, index) => <li key={step.id} className={index < stepIndex ? "done" : index === stepIndex ? "active" : ""}><span>{index < stepIndex ? <CheckCircle size={21} weight="fill" /> : <ClipboardText size={21} weight="duotone" />}</span><div><strong>{localize(step.time, lang)}</strong><small>{index < stepIndex ? t("decisionRecorded") : index === stepIndex ? t("currentDecision") : t("upcoming")}</small></div></li>)}</ol><div className="evidence-box"><BookOpen size={25} weight="duotone" /><div><h3>{t("evidence")}</h3><p>{formatNumber(caseReferences.length, lang)} {t("referencesCount")}</p><AppLink to="resources" className="inline-link">{t("viewSources")} {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}</AppLink></div></div><div className="protocol-box"><Warning size={24} weight="fill" /><div><h3>{t("important")}</h3><p>{t("localProtocol")}</p></div></div></aside>;
 }
 
 function ScenarioContext({ variant, lang, t }) {
   if (!variant) return null;
   return <aside className="scenario-context" aria-label={t("contextVariant")}><div className="context-heading"><Pulse size={21} weight="duotone" aria-hidden="true" /><div><span>{t("contextVariant")}</span><strong>{localize(variant.label, lang)}</strong></div></div><dl>{variant.changes.map((change) => <div key={change.id}><dt>{localize(change.label, lang)}</dt><dd>{localize(change.value, lang)}</dd></div>)}</dl><details className="context-details"><summary>{t("contextDetails")}</summary><p>{localize(variant.setup, lang)}</p><small><Info size={14} weight="fill" aria-hidden="true" />{t("contextVariantNote")}</small></details></aside>;
+}
+
+const HYPOTHESIS_PRIORITY_COPY = {
+  high: "priorityHigh",
+  medium: "priorityMedium",
+  low: "priorityLow",
+};
+
+function hypothesisAnswerKey(scenarioId, hypothesisId) {
+  return `hypothesis:${scenarioId}:${hypothesisId}`;
+}
+
+function HypothesisExercise({ scenario, lang, t, answers, confirmed, onChange }) {
+  if (!Array.isArray(scenario.hypotheses) || scenario.hypotheses.length === 0) return null;
+  return <section className="hypothesis-exercise" aria-labelledby="hypotheses-title">
+    <div className="hypothesis-heading"><Brain size={30} weight="duotone" aria-hidden="true" /><div><p className="eyebrow">{t("hypothesisFeedback")}</p><h2 id="hypotheses-title">{t("hypothesesTitle")}</h2><p>{t("hypothesesInstruction")}</p></div></div>
+    <p className="hypothesis-boundary"><ShieldWarning size={17} weight="fill" aria-hidden="true" />{t("learningHypothesisNote")}</p>
+    <div className="hypothesis-grid">{scenario.hypotheses.map((hypothesis, index) => {
+      const answerKey = hypothesisAnswerKey(scenario.id, hypothesis.id);
+      const selectedPriority = answers[answerKey] ?? "";
+      const isCorrect = confirmed && selectedPriority === hypothesis.correctPriority;
+      return <article className={`hypothesis-card ${confirmed ? (isCorrect ? "safe" : "gap") : ""}`} key={hypothesis.id}>
+        <span className="hypothesis-index">{t("hypothesis")} {formatNumber(index + 1, lang)}</span>
+        <h3>{localize(hypothesis.problem, lang)}</h3>
+        <dl><div><dt>{t("relatedTo")}</dt><dd>{localize(hypothesis.etiology, lang)}</dd></div><div><dt>{t("evidenceBy")}</dt><dd>{localize(hypothesis.signs, lang)}</dd></div></dl>
+        <label><span>{t("yourPriority")}</span><select value={selectedPriority} disabled={confirmed} onChange={(event) => onChange(answerKey, event.target.value)} required><option value="">— {t("selectPriority")} —</option><option value="high">{t("priorityHigh")}</option><option value="medium">{t("priorityMedium")}</option><option value="low">{t("priorityLow")}</option></select></label>
+        {confirmed ? <div className="hypothesis-result" role="status"><strong>{isCorrect ? t("safe") : t("gap")}</strong><span>{t("expectedPriority")}: {t(HYPOTHESIS_PRIORITY_COPY[hypothesis.correctPriority])}</span><p>{localize(hypothesis.rationale, lang)}</p></div> : null}
+      </article>;
+    })}</div>
+  </section>;
 }
 
 function ScenarioPage({ scenarioId, lang, t, session, setSession, onComplete }) {
@@ -646,6 +679,7 @@ function ScenarioExperience({ scenario, lang, t, session, setSession, onComplete
   const step = scenario.steps[stepIndex];
   const selectedId = session.answers[step.id] || "";
   const confirmed = session.confirmedStepId === step.id;
+  const hypothesesShown = stepIndex === 0 && Array.isArray(scenario.hypotheses) ? scenario.hypotheses : [];
   const selectedChoice = step.choices.find((choice) => choice.id === selectedId);
   const variant = scenario.contextVariants?.find((item) => item.id === session.variantId) ?? selectScenarioVariant(scenario, session.orderSeed ?? 0);
   const safePositions = useMemo(
@@ -677,7 +711,28 @@ function ScenarioExperience({ scenario, lang, t, session, setSession, onComplete
     }
   }, [step.id]);
   function selectChoice(choiceId) { if (!confirmed) setSession((current) => ({ ...current, answers: { ...current.answers, [step.id]: choiceId }, notice: "" })); }
-  function confirmChoice() { if (!selectedId) { setSession((current) => ({ ...current, notice: t("chooseFirst") })); return; } setSession((current) => ({ ...current, confirmedStepId: step.id, notice: "" })); }
+  function selectHypothesisPriority(answerKey, priority) {
+    if (confirmed) return;
+    setSession((current) => ({
+      ...current,
+      answers: { ...current.answers, [answerKey]: priority },
+      notice: "",
+    }));
+  }
+  function confirmChoice() {
+    if (!selectedId) {
+      setSession((current) => ({ ...current, notice: t("chooseFirst") }));
+      return;
+    }
+    const hasUnrankedHypothesis = hypothesesShown.some((hypothesis) => (
+      !session.answers[hypothesisAnswerKey(scenario.id, hypothesis.id)]
+    ));
+    if (hasUnrankedHypothesis) {
+      setSession((current) => ({ ...current, notice: t("completeHypotheses") }));
+      return;
+    }
+    setSession((current) => ({ ...current, confirmedStepId: step.id, notice: "" }));
+  }
   function advance() {
     if (!confirmed) return;
     if (stepIndex < scenario.steps.length - 1) {
@@ -699,8 +754,9 @@ function ScenarioExperience({ scenario, lang, t, session, setSession, onComplete
   return <div className="scenario-shell"><PatientRail scenario={scenario} step={step} lang={lang} t={t} /><section className="decision-stage">
     <div className="decision-toolbar"><span className="simulation-badge"><Pulse size={19} weight="bold" />{t("simulation")}</span><ProgressSteps stepIndex={stepIndex} count={scenario.steps.length} lang={lang} t={t} /></div>
     <ScenarioContext variant={variant} lang={lang} t={t} />
-    <section className="timeline-block" aria-labelledby="timeline-title"><h2 id="timeline-title">{t("timeline")}</h2><ol>{scenario.steps.slice(Math.max(0, stepIndex - 2), stepIndex + 1).map((timelineStep) => <li key={timelineStep.id} className={timelineStep.id === step.id ? "current" : ""}><span className="timeline-icon"><Pulse size={17} weight={timelineStep.id === step.id ? "fill" : "regular"} /></span><time>{timelineStep.time}</time><p>{localize(timelineStep.narrative, lang)}</p></li>)}</ol></section>
+    <section className="timeline-block" aria-labelledby="timeline-title"><h2 id="timeline-title">{t("timeline")}</h2><ol>{scenario.steps.slice(Math.max(0, stepIndex - 2), stepIndex + 1).map((timelineStep) => <li key={timelineStep.id} className={timelineStep.id === step.id ? "current" : ""}><span className="timeline-icon"><Pulse size={17} weight={timelineStep.id === step.id ? "fill" : "regular"} /></span><time>{localize(timelineStep.time, lang)}</time><p>{localize(timelineStep.narrative, lang)}</p></li>)}</ol></section>
     <div className="decision-question"><div className="question-heading"><span className="question-icon"><Target size={28} weight="duotone" /></span><div><p className="eyebrow">{t("clinicalMoment")}</p><h1 ref={questionRef} tabIndex="-1">{localize(step.question, lang)}</h1><p className="translated-question" lang={alternateLang} dir={alternateLang === "ar" ? "rtl" : "ltr"}>{localize(step.question, alternateLang)}</p></div></div><p className="question-instruction">{t("questionIntro")}</p>
+      {hypothesesShown.length ? <HypothesisExercise scenario={scenario} lang={lang} t={t} answers={session.answers} confirmed={confirmed} onChange={selectHypothesisPriority} /> : null}
       <fieldset className="choice-list"><legend className="sr-only">{t("choiceGroup")}</legend>{orderedChoices.map((choice, index) => { const checked = selectedId === choice.id; return <label key={choice.id} className={`choice-option ${checked ? "selected" : ""} ${confirmed ? "locked" : ""}`}><input type="radio" name={`choice-${step.id}`} value={choice.id} checked={checked} disabled={confirmed} onChange={() => selectChoice(choice.id)} /><span className="choice-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span><span className="choice-text">{localize(choice.text, lang)}</span><span className="radio-visual" aria-hidden="true">{checked ? <Check size={15} weight="bold" /> : null}</span></label>; })}</fieldset>
       {session.notice ? <p className="form-notice" role="alert"><Warning size={18} weight="fill" />{session.notice}</p> : null}
       {confirmed && selectedChoice ? <div className={`decision-feedback ${selectedChoice.classification}`} aria-live="polite">{(() => { const Icon = classificationIcon(selectedChoice.classification); return <Icon size={28} weight="fill" aria-hidden="true" />; })()}<div><p className="feedback-label">{t("feedback")} · {t(selectedChoice.classification)}</p><h2>{localize(selectedChoice.feedback, lang)}</h2><p>{localize(selectedChoice.rationale, lang)}</p><div className="decision-source-list"><strong><BookOpen size={16} weight="duotone" />{t("questionSources")}</strong>{stepReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow">{localize(reference.title, lang)}<ArrowSquareOut size={14} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div><small><LockKey size={14} />{t("selectionLocked")}</small></div></div> : null}
@@ -718,8 +774,13 @@ function ResultPage({ scenarioId, lang, t, profile, onStart }) {
   const attempt = [...profile.attempts].reverse().find((item) => item.scenarioId === scenarioId && item.isComplete);
   if (!scenario || !attempt) return <div className="page-container compact-page"><div className="empty-state"><ClipboardText size={46} weight="duotone" /><h1>{t("noAttempt")}</h1><AppLink className="button button-primary" to={scenario ? `scenario/${scenario.id}` : "scenarios"}>{scenario ? t("openScenario") : t("backLibrary")}</AppLink></div></div>;
   const caseReferences = scenario.referenceIds.map((id) => references.find((item) => item.id === id)).filter(Boolean);
+  const hypothesisDecisions = attempt.decisions.map((decision) => ({
+    decision,
+    hypothesis: scenario.hypotheses?.find((item) => hypothesisAnswerKey(scenario.id, item.id) === decision.stepId),
+  })).filter((item) => item.hypothesis);
   return <div className="page-container debrief-page"><SectionIntro eyebrow={t("debriefEyebrow")} title={t("debriefTitle")} body={localize(scenario.title, lang)} />
     <section className="result-summary"><ScoreRing score={attempt.score} lang={lang} /><div className="result-primary"><span>{t("band")}</span><h2>{t(scoreBandKey(attempt.educationalBand))}</h2><p>{t("learningNotCertification")}</p></div><dl className="result-metrics"><div><dt>{t("answered")}</dt><dd>{formatNumber(attempt.answeredDecisionCount, lang)} / {formatNumber(attempt.totalDecisionCount, lang)}</dd></div><div><dt>{t("safetyFlags")}</dt><dd className={attempt.criticalUnsafeCount > 0 ? "danger-text" : ""}>{formatNumber(attempt.criticalUnsafeCount, lang)}</dd></div></dl></section>
+    {hypothesisDecisions.length ? <section className="debrief-hypotheses"><div className="subsection-heading"><p className="eyebrow">{t("hypothesisFeedback")}</p><h2>{t("hypothesesTitle")}</h2></div><p className="hypothesis-boundary"><ShieldWarning size={17} weight="fill" aria-hidden="true" />{t("learningHypothesisNote")}</p><div className="hypothesis-review-grid">{hypothesisDecisions.map(({ decision, hypothesis }) => { const hypothesisReferences = (hypothesis.referenceIds ?? []).map((id) => references.find((reference) => reference.id === id)).filter(Boolean); return <article className={`hypothesis-review ${decision.classification}`} key={decision.stepId}><div className="review-topline"><span>{decision.classification === "safe" ? <CheckCircle size={18} weight="fill" /> : <Warning size={18} weight="fill" />}{t(decision.classification)}</span><strong>{formatNumber(decision.score, lang)} {t("points")}</strong></div><h3>{localize(hypothesis.problem, lang)}</h3><p><strong>{t("yourPriority")}:</strong> {t(HYPOTHESIS_PRIORITY_COPY[decision.choiceId])}</p><p><strong>{t("expectedPriority")}:</strong> {t(HYPOTHESIS_PRIORITY_COPY[hypothesis.correctPriority])}</p><p>{localize(hypothesis.rationale, lang)}</p><div className="decision-source-list"><strong>{t("questionSources")}</strong>{hypothesisReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow">{localize(reference.title, lang)}<ArrowSquareOut size={14} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div></article>; })}</div></section> : null}
     <section className="debrief-decisions"><div className="subsection-heading"><p className="eyebrow">{t("feedback")}</p><h2>{t("decisionReview")}</h2></div><div className="review-list">{attempt.decisions.map((decision, index) => { const step = scenario.steps.find((item) => item.id === decision.stepId); const choice = step?.choices.find((item) => item.id === decision.choiceId); if (!step || !choice) return null; const Icon = classificationIcon(decision.classification); const decisionReferences = (step.referenceIds ?? scenario.referenceIds).map((id) => references.find((reference) => reference.id === id)).filter(Boolean); return <article className={`review-item ${decision.classification}`} key={decision.stepId}><div className="review-number">{formatNumber(index + 1, lang)}</div><div className="review-body"><div className="review-topline"><span><Icon size={19} weight="fill" />{t(decision.classification)}</span><strong>{formatNumber(decision.score, lang)} {t("points")}</strong></div><h3>{localize(step.question, lang)}</h3><p className="review-choice"><strong>{t("yourChoice")}:</strong> {localize(choice.text, lang)}</p><div className="rationale-copy"><BookOpen size={20} weight="duotone" /><p><strong>{t("rationale")}:</strong> {localize(choice.rationale, lang)}</p></div><div className="decision-source-list"><strong>{t("questionSources")}</strong>{decisionReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow">{localize(reference.title, lang)}<ArrowSquareOut size={14} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div></div></article>; })}</div></section>
     <section className="debrief-evidence"><div className="subsection-heading"><p className="eyebrow">{t("resources")}</p><h2>{t("evidenceForCase")}</h2></div><div className="source-rows compact-sources">{caseReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow" className="source-row"><span className="source-year">{reference.year}</span><div><h3>{localize(reference.title, lang)}</h3><p>{localize(reference.organization, lang)}</p></div><ArrowSquareOut size={19} /><span className="sr-only">{t("opensNewTab")}</span></a>)}</div></section>
     <div className="debrief-actions"><button type="button" className="button button-primary" onClick={() => onStart(scenario.id)}><Play size={18} weight="fill" />{t("tryAgain")}</button><AppLink to="scenarios" className="button button-secondary">{t("backLibrary")}</AppLink></div>
@@ -909,7 +970,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
   </div>;
 }
 
-function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart, auth, syncStatus, entitlement, onSignOut }) {
+function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart, auth, syncStatus, onSignOut, onExportLearningData }) {
   const [historyCleared, setHistoryCleared] = useState(false);
   const [historyClearing, setHistoryClearing] = useState(false);
   const completedAttempts = profile.attempts.filter((item) => item.isComplete);
@@ -946,7 +1007,7 @@ function LearningPage({ lang, t, profile, examProfile, onClearHistory, onStart, 
     }
   }
   return <div className="page-container learning-page"><SectionIntro eyebrow={t("learningEyebrow")} title={t("learningTitle")} body={t("learningBody")} />
-    <AccountPanel auth={auth} lang={lang} syncStatus={syncStatus} entitlement={entitlement} onSignOut={onSignOut} />
+    <AccountPanel auth={auth} lang={lang} syncStatus={syncStatus} onSignOut={onSignOut} onExportLearningData={onExportLearningData} />
     <section className="dashboard-metrics"><div><CheckCircle size={30} weight="duotone" /><span>{t("scenariosCompleted")}</span><strong>{formatNumber(completedCount, lang)} / {formatNumber(scenarios.length, lang)}</strong></div><div><ClipboardText size={30} weight="duotone" /><span>{t("totalAttempts")}</span><strong>{formatNumber(completedAttempts.length, lang)}</strong></div><div><Medal size={30} weight="duotone" /><span>{t("averageScore")}</span><strong>{completedAttempts.length ? `${formatNumber(Math.round(average), lang)}%` : "—"}</strong></div></section>
     <section className="adaptive-next-panel" aria-labelledby="adaptive-next-title"><Brain size={36} weight="duotone" aria-hidden="true" /><div><p className="eyebrow">{t("guidedPractice")}</p><h2 id="adaptive-next-title">{t("adaptiveLearningTitle")}</h2><p>{t("adaptiveLearningBody")}</p>{suggestedScenario && topScenarioRecommendation ? <strong>{t(scenarioRecommendationCopy[topScenarioRecommendation.reason])}: {localize(suggestedScenario.title, lang)}</strong> : null}{guidedQuestionPlan.focusCategories.length ? <div className="guided-focus-list"><span>{t("currentFocus")}:</span>{guidedQuestionPlan.focusCategories.map((focus) => <b key={`${focus.examId}:${focus.categoryId}`}>{localize(focus.label, lang)}</b>)}</div> : null}</div><div className="adaptive-next-actions">{suggestedScenario ? <button type="button" className="button button-primary" onClick={() => onStart(suggestedScenario.id)}>{t("openRecommendedScenario")}</button> : null}<AppLink to="questions" className="button button-secondary">{t("startGuidedQuestions")}</AppLink></div></section>
     {!completedAttempts.length ? <div className="empty-learning"><GraduationCap size={49} weight="duotone" /><div><h2>{t("emptyLearning")}</h2><AppLink to="scenarios" className="button button-primary">{t("chooseFirstScenario")}</AppLink></div></div> : null}
@@ -967,7 +1028,8 @@ function PolicyPage({ kind, lang, t }) {
   const page = POLICY_PAGES[lang]?.[kind] ?? POLICY_PAGES.en[kind];
   return <div className="page-container policy-page"><SectionIntro eyebrow={page.eyebrow} title={page.title} body={page.lead} />
     <div className="policy-meta"><Clock size={18} weight="duotone" aria-hidden="true" /><span>{page.effective}</span></div>
-    <div className={`policy-warning ${kind === "contact" ? "launch-blocker" : ""}`} role="note"><ShieldWarning size={25} weight="fill" aria-hidden="true" /><p>{page.warning}</p></div>
+    <div className="policy-warning" role="note"><ShieldWarning size={25} weight="fill" aria-hidden="true" /><p>{page.warning}</p></div>
+    {page.email ? <a className="policy-email button button-primary" href={`mailto:${page.email}`}><EnvelopeSimple size={18} aria-hidden="true" />{page.email}</a> : null}
     <div className="policy-sections">{page.sections.map((section) => <section key={section.title}><h2>{section.title}</h2><p>{section.body}</p></section>)}</div>
     <p className="exam-legal-line">{t("examNonAffiliation")}</p>
   </div>;
@@ -977,19 +1039,8 @@ function AboutPage({ t }) {
   return <div className="page-container about-page"><SectionIntro eyebrow={t("aboutEyebrow")} title={t("aboutTitle")} body={t("aboutLead")} /><div className="about-grid"><section><Target size={29} weight="duotone" /><div><h2>{t("purpose")}</h2><p>{t("purposeBody")}</p></div></section><section><Brain size={29} weight="duotone" /><div><h2>{t("method")}</h2><p>{t("methodBody")}</p></div></section><section><ShieldWarning size={29} weight="duotone" /><div><h2>{t("boundaries")}</h2><p>{t("boundariesBody")}</p></div></section><section><LockKey size={29} weight="duotone" /><div><h2>{t("accountModel")}</h2><p>{t("accountModelBody")}</p></div></section></div><section className="editorial-band"><div><p className="eyebrow">{t("resources")}</p><h2>{t("editorial")}</h2></div><p>{t("editorialBody")}</p></section><p className="exam-legal-line">{t("examNonAffiliation")}</p></div>;
 }
 
-function AccessBadge({ future = false, t }) {
-  return <span className={`access-badge ${future ? "future" : "free"}`}>{future ? <Clock size={14} weight="bold" aria-hidden="true" /> : <CheckCircle size={14} weight="fill" aria-hidden="true" />}{t(future ? "futureMembership" : "freeAccess")}</span>;
-}
-
-function MembershipPage({ t }) {
-  const plans = [
-    { id: "free", title: "freePlan", body: "freePlanBody", icon: Globe, future: false, features: ["freeFeatureOne", "freeFeatureTwo", "freeFeatureThree"] },
-    { id: "saudi-nursing", title: "saudiNursingPlan", body: "saudiNursingPlanBody", icon: Exam, future: true, features: ["plannedFeatureOne", "plannedFeatureTwo"] },
-    { id: "international", title: "internationalRnPlan", body: "internationalRnPlanBody", icon: GraduationCap, future: true, features: ["plannedFeatureOne", "plannedFeatureTwo"] },
-    { id: "computerized", title: "computerizedPlan", body: "computerizedPlanBody", icon: ClipboardText, future: true, features: ["plannedFeatureOne", "plannedFeatureTwo"] },
-    { id: "institutional", title: "institutionalPlan", body: "institutionalPlanBody", icon: Hospital, future: true, features: ["plannedFeatureThree"] },
-  ];
-  return <div className="page-container plans-page"><SectionIntro eyebrow={t("plansEyebrow")} title={t("plansTitle")} body={t("plansBody")} /><div className="plans-list">{plans.map((plan) => { const Icon = plan.icon; return <section className={`plan-row ${plan.future ? "future" : "current"}`} key={plan.id} aria-labelledby={`plan-${plan.id}`}><div className="plan-icon"><Icon size={31} weight="duotone" aria-hidden="true" /></div><div className="plan-main"><div className="plan-heading"><h2 id={`plan-${plan.id}`}>{t(plan.title)}</h2><AccessBadge future={plan.future} t={t} /></div><p>{t(plan.body)}</p></div><div className="plan-includes"><strong>{t(plan.future ? "plannedInactive" : "currentIncludes")}</strong><ul>{plan.features.map((feature) => <li key={feature}><Check size={15} weight="bold" aria-hidden="true" />{t(feature)}</li>)}</ul></div></section>; })}</div><div className="no-checkout-note" role="note"><ShieldWarning size={25} weight="fill" aria-hidden="true" /><p>{t("noCheckout")}</p></div><p className="exam-legal-line">{t("examNonAffiliation")}</p></div>;
+function AccessBadge({ t }) {
+  return <span className="access-badge free"><CheckCircle size={14} weight="fill" aria-hidden="true" />{t("includedAccess")}</span>;
 }
 
 function Footer({ lang, t }) {
@@ -1036,7 +1087,6 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [session, setSession] = useState(() => createScenarioSession());
   const [syncStatus, setSyncStatus] = useState("idle");
-  const [entitlementState, setEntitlementState] = useState({ userId: "", value: null });
   const [historyClearPending, setHistoryClearPending] = useState(false);
   const auth = useAuthSession();
   const mainRef = useRef(null);
@@ -1077,7 +1127,8 @@ export function App() {
   useEffect(() => { document.documentElement.lang = lang; document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"; document.title = `${PRODUCT_NAME[lang]} · ${t(routeSection(route))}`; }, [lang, route]);
   useEffect(() => {
     if (auth.status !== "ready" || !auth.user) return;
-    if (new URLSearchParams(window.location.search).get("auth") !== "confirmed") return;
+    const authMarker = new URLSearchParams(window.location.search).get("auth");
+    if (authMarker !== "confirmed" && authMarker !== "recovery") return;
     window.history.replaceState(null, "", `${window.location.pathname}#/learning`);
     setRoute(parseRoute());
   }, [auth.status, auth.user?.id]);
@@ -1103,13 +1154,11 @@ export function App() {
         setExamProfile(clearedExamProfile);
         setSession(createScenarioSession());
       }
-      setEntitlementState({ userId: "", value: null });
       setSyncStatus("idle");
       return undefined;
     }
 
     let cancelled = false;
-    setEntitlementState({ userId: auth.user.id, value: null });
     let owner = "";
     try { owner = window.localStorage.getItem(CACHE_OWNER_STORAGE_KEY) ?? ""; } catch { /* Continue without cache ownership. */ }
     const claimedAfterAccountCreation = consumeLocalHistoryClaim(auth.user.id);
@@ -1141,7 +1190,7 @@ export function App() {
       language: langRef.current,
       scenarioAttempts: localProfile.attempts,
       questionSetAttempts: localExamProfile.attempts,
-    })).then(({ records, entitlement: nextEntitlement, historyClearedAt }) => {
+    })).then(({ records, historyClearedAt }) => {
       if (cancelled || generation !== syncGenerationRef.current) return;
       const clearedAt = Date.parse(historyClearedAt ?? "");
       const isAfterCloudClear = (attempt) => Number.isNaN(clearedAt)
@@ -1177,7 +1226,6 @@ export function App() {
       examProfileRef.current = mergedExamProfile;
       setProfile(mergedProfile);
       setExamProfile(mergedExamProfile);
-      setEntitlementState({ userId: auth.user.id, value: nextEntitlement });
       setSyncStatus("synced");
     }).catch(() => {
       if (!cancelled && generation === syncGenerationRef.current) setSyncStatus("error");
@@ -1350,8 +1398,26 @@ export function App() {
     setProfile(clearedProfile);
     setExamProfile(clearedExamProfile);
     setSession(createScenarioSession());
-    setEntitlementState({ userId: "", value: null });
     setSyncStatus("idle");
+  }
+  function exportLearningData() {
+    const payload = {
+      product: "Nursing Hypotheses",
+      purpose: "learner-requested educational data export",
+      exportedAt: new Date().toISOString(),
+      language: langRef.current,
+      scenarioLearning: profileRef.current,
+      questionPractice: examProfileRef.current,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `nursing-hypotheses-learning-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
   let cacheOwner = "";
   try { cacheOwner = window.localStorage.getItem(CACHE_OWNER_STORAGE_KEY) ?? ""; } catch { /* Default to the empty view below. */ }
@@ -1360,7 +1426,6 @@ export function App() {
   const visibleProfile = cacheIsVisible ? profile : createEmptyProfile("", lang);
   const visibleExamProfile = cacheIsVisible ? examProfile : createEmptyExamProfile();
   const visibleScenarioSession = cacheIsVisible ? session : createScenarioSession();
-  const entitlement = selectOwnedEntitlement(entitlementState, auth.user?.id);
   let page;
   if (route.page === "scenarios") page = <ScenarioLibrary lang={lang} t={t} profile={visibleProfile} onStart={startScenario} />;
   else if (route.page === "scenario") page = <ScenarioPage scenarioId={route.id} lang={lang} t={t} session={visibleScenarioSession} setSession={setSession} onComplete={completeScenario} />;
@@ -1369,9 +1434,8 @@ export function App() {
     const storageKey = examSessionStorageKey(auth.user?.id);
     page = <QuestionBankPage key={storageKey} lang={lang} t={t} examProfile={visibleExamProfile} onComplete={completeQuestionSet} storageKey={storageKey} historyClearPending={historyClearPending} />;
   }
-  else if (route.page === "learning") page = <LearningPage lang={lang} t={t} profile={visibleProfile} examProfile={visibleExamProfile} onClearHistory={clearLearningHistory} onStart={startScenario} auth={auth} syncStatus={syncStatus} entitlement={entitlement} onSignOut={signOutCurrentDevice} />;
+  else if (route.page === "learning") page = <LearningPage lang={lang} t={t} profile={visibleProfile} examProfile={visibleExamProfile} onClearHistory={clearLearningHistory} onStart={startScenario} auth={auth} syncStatus={syncStatus} onSignOut={signOutCurrentDevice} onExportLearningData={exportLearningData} />;
   else if (route.page === "resources") page = <ReferencesPage lang={lang} t={t} />;
-  else if (route.page === "membership") page = <MembershipPage t={t} />;
   else if (route.page === "about") page = <AboutPage t={t} />;
   else if (route.page === "privacy") page = <PolicyPage kind="privacy" lang={lang} t={t} />;
   else if (route.page === "terms") page = <PolicyPage kind="terms" lang={lang} t={t} />;

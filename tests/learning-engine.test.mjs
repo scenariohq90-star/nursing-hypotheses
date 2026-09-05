@@ -87,6 +87,49 @@ test("gradeAttempt supports nested, flat, and ordered answer shapes", () => {
   assert.deepEqual(ordered.decisions, nested.decisions);
 });
 
+test("gradeAttempt includes authored nursing-hypothesis priorities without treating them as diagnoses", () => {
+  const hypothesisScenario = {
+    ...scenario("icu-learning", [[choice("assess", 100, "safe")]]),
+    contentVersion: "1.2.0",
+    hypotheses: [
+      { id: "perfusion", correctPriority: "high" },
+      { id: "comfort", correctPriority: "low" },
+    ],
+  };
+  const attempt = gradeAttempt(hypothesisScenario, {
+    "step-1": "assess",
+    "hypothesis:icu-learning:perfusion": "high",
+    "hypothesis:icu-learning:comfort": "medium",
+  });
+
+  assert.equal(attempt.isComplete, true);
+  assert.equal(attempt.totalDecisionCount, 3);
+  assert.equal(attempt.score, 66.67);
+  assert.deepEqual(attempt.decisions.slice(1), [
+    {
+      stepId: "hypothesis:icu-learning:perfusion",
+      choiceId: "high",
+      competency: "prioritization-response",
+      score: 100,
+      classification: "safe",
+    },
+    {
+      stepId: "hypothesis:icu-learning:comfort",
+      choiceId: "medium",
+      competency: "prioritization-response",
+      score: 0,
+      classification: "gap",
+    },
+  ]);
+
+  const incomplete = gradeAttempt(hypothesisScenario, { "step-1": "assess" });
+  assert.equal(incomplete.isComplete, false);
+  assert.deepEqual(incomplete.unansweredStepIds, [
+    "hypothesis:icu-learning:perfusion",
+    "hypothesis:icu-learning:comfort",
+  ]);
+});
+
 test("a partial attempt scores observed choices but is not counted as completed", () => {
   const attempt = gradeAttempt(emergencyScenario, { "step-1": "oxygen" });
   const profile = mergeAttempt(createEmptyProfile("Learner", "en"), attempt);

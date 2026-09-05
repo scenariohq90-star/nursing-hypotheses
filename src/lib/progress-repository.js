@@ -142,11 +142,6 @@ async function saveLearnerProfile(supabase, userId, language) {
   if (error) throw error;
 }
 
-export function selectOwnedEntitlement(entitlementState, userId) {
-  if (!userId || entitlementState?.userId !== userId) return null;
-  return entitlementState.value ?? null;
-}
-
 export function retainAttemptsAfterHistoryClear(attempts, completedAttemptIds) {
   const idsToClear = completedAttemptIds instanceof Set
     ? completedAttemptIds
@@ -182,7 +177,7 @@ export async function syncLearningHistory({ userId, language, scenarioAttempts, 
   const recordsPromise = upsertInBatches(supabase, userId, records);
   await Promise.all([profilePromise, recordsPromise]);
 
-  const [{ data, error }, entitlementResult, profileStateResult] = await Promise.all([
+  const [{ data, error }, profileStateResult] = await Promise.all([
     supabase
       .from("learning_records")
       .select("record_type,payload,completed_at")
@@ -190,22 +185,15 @@ export async function syncLearningHistory({ userId, language, scenarioAttempts, 
       .order("completed_at", { ascending: false })
       .limit(600),
     supabase
-      .from("entitlements")
-      .select("plan_code,status,access_until")
-      .eq("user_id", userId)
-      .maybeSingle(),
-    supabase
       .from("learner_profiles")
       .select("history_cleared_at")
       .eq("user_id", userId)
       .single(),
   ]);
   if (error) throw error;
-  if (entitlementResult.error) throw entitlementResult.error;
   if (profileStateResult.error) throw profileStateResult.error;
   return {
     records: (data ?? []).slice().reverse(),
-    entitlement: entitlementResult.data ?? null,
     historyClearedAt: profileStateResult.data?.history_cleared_at ?? null,
   };
 }

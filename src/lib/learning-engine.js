@@ -171,6 +171,48 @@ function gradableStepsFor(scenario) {
   return steps;
 }
 
+const HYPOTHESIS_PRIORITIES = new Set(["high", "medium", "low"]);
+
+function hypothesisAnswerKey(scenarioId, hypothesisId) {
+  return `hypothesis:${scenarioId}:${hypothesisId}`;
+}
+
+function gradableHypothesesFor(scenario) {
+  if (!isRecord(scenario) || !Array.isArray(scenario.hypotheses)) return [];
+
+  const scenarioId = sanitizeIdentifier(scenario.id);
+  const seen = new Set();
+  const hypotheses = [];
+  for (const rawHypothesis of scenario.hypotheses) {
+    if (!isRecord(rawHypothesis)) continue;
+    const id = sanitizeIdentifier(rawHypothesis.id);
+    const correctPriority = sanitizeIdentifier(rawHypothesis.correctPriority);
+    if (!scenarioId || !id || seen.has(id) || !HYPOTHESIS_PRIORITIES.has(correctPriority)) continue;
+    seen.add(id);
+    hypotheses.push({
+      id,
+      answerKey: hypothesisAnswerKey(scenarioId, id),
+      correctPriority,
+    });
+  }
+  return hypotheses;
+}
+
+function indexHypothesisAnswers(scenarioId, hypotheses, answers) {
+  const indexed = new Map();
+  if (!isRecord(answers)) return indexed;
+  const nested = isRecord(answers[scenarioId]) ? answers[scenarioId] : answers;
+
+  for (const hypothesis of hypotheses) {
+    const rawAnswer = Object.prototype.hasOwnProperty.call(nested, hypothesis.answerKey)
+      ? nested[hypothesis.answerKey]
+      : answers[hypothesis.answerKey];
+    const priority = sanitizeIdentifier(rawAnswer);
+    if (HYPOTHESIS_PRIORITIES.has(priority)) indexed.set(hypothesis.answerKey, priority);
+  }
+  return indexed;
+}
+
 function summarizeAttempt(scenarioId, decisions, totalDecisionCount, isComplete, unansweredStepIds = []) {
   const score = averageScore(decisions);
   const classificationCounts = classificationCountsFor(decisions);
@@ -285,6 +327,8 @@ export function gradeAttempt(scenario, answers = {}) {
 
   const steps = gradableStepsFor(scenario);
   const answerIndex = indexAnswers(scenarioId, steps, answers);
+  const hypotheses = gradableHypothesesFor(scenario);
+  const hypothesisAnswerIndex = indexHypothesisAnswers(scenarioId, hypotheses, answers);
   const decisions = [];
   const unansweredStepIds = [];
 
@@ -311,7 +355,23 @@ export function gradeAttempt(scenario, answers = {}) {
     });
   }
 
-  const totalDecisionCount = steps.length;
+  for (const hypothesis of hypotheses) {
+    const priority = hypothesisAnswerIndex.get(hypothesis.answerKey);
+    if (!priority) {
+      unansweredStepIds.push(hypothesis.answerKey);
+      continue;
+    }
+    const isCorrect = priority === hypothesis.correctPriority;
+    decisions.push({
+      stepId: hypothesis.answerKey,
+      choiceId: priority,
+      competency: "prioritization-response",
+      score: isCorrect ? 100 : 0,
+      classification: isCorrect ? "safe" : "gap",
+    });
+  }
+
+  const totalDecisionCount = steps.length + hypotheses.length;
   const isComplete = totalDecisionCount > 0 && decisions.length === totalDecisionCount;
   return {
     ...summarizeAttempt(scenarioId, decisions, totalDecisionCount, isComplete, unansweredStepIds),
