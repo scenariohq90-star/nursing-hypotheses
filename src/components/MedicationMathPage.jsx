@@ -6,14 +6,23 @@ import {
   CheckCircle,
   Flask,
   Info,
+  Pill,
   ShieldWarning,
   XCircle,
 } from "@phosphor-icons/react";
 import { dosePracticeExercises } from "../data/dose-practice.js";
-import { gradeDosePracticeAnswer } from "../lib/dose-calculator.js";
+import { getNamedDosePreset, namedDosePresets } from "../data/dose-presets.js";
+import { calculateDosePractice, gradeDosePracticeAnswer } from "../lib/dose-calculator.js";
 import "./medication-math.css";
 
 const EMPTY_ANSWERS = Object.freeze({ requiredDoseMg: "", calculatedVolumeMl: "" });
+const EMPTY_CALCULATOR = Object.freeze({
+  medicineId: "custom",
+  weightKg: "",
+  orderedMgPerKg: "",
+  stockStrengthMg: "",
+  stockVolumeMl: "",
+});
 
 const SOURCE_LINKS = Object.freeze([
   Object.freeze({
@@ -26,15 +35,45 @@ const SOURCE_LINKS = Object.freeze([
     en: "FDA guidance on oral liquid dosing devices",
     ar: "إرشادات FDA لأدوات قياس السوائل الفموية",
   }),
+  Object.freeze({
+    href: "https://sfda.gov.sa/sites/default/files/2025-10/Paracetamol%20SFDA%20Drug%20Safety%20Communication.pdf",
+    en: "SFDA safety communication on paediatric paracetamol concentration errors",
+    ar: "تنبيه الهيئة العامة للغذاء والدواء عن أخطاء تركيز الباراسيتامول للأطفال",
+  }),
 ]);
 
 const pageCopy = {
   en: {
-    eyebrow: "Medication-math learning tool",
-    title: "Paediatric medication-math practice",
-    lead: "Solve authored exercises with fictional values, then compare your answer with a transparent, unit-by-unit worked solution.",
-    boundaryTitle: "Arithmetic practice — not a dose recommendation",
-    boundaryBody: "This tool uses fixed fictional problems. It does not select a medicine or dose, validate an order, or check indication, age limits, allergies, contraindications, maximum dose, interval, route, organ function, interactions, formulation, concentration, measuring device or local policy. Do not use it during patient care or an emergency.",
+    eyebrow: "Paediatric medication math",
+    title: "Medication calculator and arithmetic practice",
+    lead: "Use a named label-concentration preset or enter another label, and keep practising with authored fictional exercises.",
+    boundaryTitle: "Calculation only — not a dose recommendation",
+    boundaryBody: "The named medicine options fill concentration fields only. You must enter the authorised mg/kg/dose amount and verify the exact product label. This calculator does not choose a dose or check indication, age limits, allergies, contraindications, maximum daily dose, interval, route, organ function, interactions, formulation, measuring device or local policy. Do not rely on it as the only check during patient care or an emergency.",
+    calculatorTab: "My calculator",
+    practiceTab: "Fictional exercises",
+    calculatorTitle: "Named-medicine liquid calculator",
+    calculatorLead: "Select a listed medicine or enter another one. Presets populate the label concentration only; they never choose the prescribed amount.",
+    calculatorPrivacy: "The values stay in this page until reset or navigation and are not saved to learning history. Do not enter names, record numbers or clinical notes.",
+    medicineLabel: "Medicine and label preset",
+    medicineHint: "Concentrations vary by product and country. The medicine name alone never confirms the concentration.",
+    weightKg: "Weight (kg)",
+    orderedMgPerKg: "Authorised amount for one dose (mg/kg/dose)",
+    stockStrengthMg: "Strength printed on the label (mg)",
+    stockVolumeMl: "Liquid volume paired with that strength (mL)",
+    calculatorFieldHint: "Enter a positive decimal number with no unit or thousands separator.",
+    presetConcentrationHint: "This preset is fixed. Choose Another medicine to enter a different product-label concentration.",
+    calculatorUnitWarning: "Use an order written per dose. Do not enter an mg/kg/day value.",
+    calculatorAcknowledge: "I independently verified that the order is mg/kg/dose and that the current product label exactly matches the concentration entered above.",
+    calculate: "Calculate arithmetic result",
+    calculatorReset: "Reset calculator",
+    calculatorError: "Review the highlighted calculator values.",
+    outsideLimits: "This value is outside the supported arithmetic range.",
+    calculatorAcknowledgeError: "Confirm the order and current product label before calculating.",
+    calculatorResultTitle: "Calculated result",
+    calculatedDose: "Calculated amount",
+    calculatedLiquid: "Calculated liquid volume",
+    calculatorSecondStep: "Step 2 · Convert the current product label to mL/dose",
+    calculatorResultBoundary: "This result confirms arithmetic only. Recheck it against the original order, the current product label, an approved drug reference and local policy before use.",
     privacyNote: "Use the exercise values only. Your two numeric answers stay in this page until you reset or leave; they are not saved to your learning history. Never enter patient information.",
     problemTitle: "Fictional practice problem",
     suppliedOrder: "Exercise amount",
@@ -65,15 +104,40 @@ const pageCopy = {
     resultBoundary: "A matching equation does not establish that any real order, medicine, concentration or administration is safe.",
     checklistTitle: "Before real medication administration",
     checklistBody: "Leave this website and use your authorised medication system, original order and product label. Apply current approved references, facility policy and the required independent check with the responsible clinician or pharmacist.",
-    sourceTitle: "Safety sources for how this exercise is presented",
-    sourceNote: "These sources support unit and measurement safety principles; they do not validate the fictional dose values.",
+    sourceTitle: "Medication calculation and measurement safety sources",
+    sourceNote: "These sources support unit and measurement safety principles; they do not validate a user-entered amount, product or fictional exercise value.",
   },
   ar: {
-    eyebrow: "أداة تعليمية للحساب الدوائي",
-    title: "تدريب على حساب جرعات الأطفال",
-    lead: "حل مسائل مؤلفة بقيم خيالية، ثم قارن إجابتك بحل واضح يبيّن الوحدات خطوة بخطوة.",
-    boundaryTitle: "تدريب حسابي — وليس توصية بجرعة",
-    boundaryBody: "تستخدم الأداة مسائل خيالية ثابتة. ولا تختار دواءً أو جرعة، ولا تتحقق من صحة الأمر أو الاستطباب أو حدود العمر أو الحساسية أو موانع الاستعمال أو الحد الأقصى أو الفاصل أو الطريق أو وظائف الأعضاء أو التداخلات أو المستحضر أو التركيز أو أداة القياس أو سياسة المنشأة. لا تستخدمها أثناء رعاية مريض أو في الطوارئ.",
+    eyebrow: "حسابات أدوية الأطفال",
+    title: "حاسبة الدواء والتدريب الحسابي",
+    lead: "استخدم خيار دواء وتركيز مسمى أو أدخل ملصقاً آخر، واستمر في التدريب على مسائل تعليمية مؤلفة.",
+    boundaryTitle: "عملية حسابية فقط — وليست توصية بجرعة",
+    boundaryBody: "تعبئ خيارات الأدوية المسماة حقول التركيز فقط. يجب أن تدخل أنت كمية mg/kg/dose المعتمدة وتتحقق من ملصق المنتج الفعلي. لا تختار الحاسبة الجرعة ولا تتحقق من الاستطباب أو العمر أو الحساسية أو الموانع أو الحد اليومي الأقصى أو الفاصل أو الطريق أو وظائف الأعضاء أو التداخلات أو المستحضر أو أداة القياس أو سياسة المنشأة. لا تعتمد عليها وحدها أثناء رعاية مريض أو في الطوارئ.",
+    calculatorTab: "حاسبتي",
+    practiceTab: "تمارين خيالية",
+    calculatorTitle: "حاسبة الأدوية السائلة المسماة",
+    calculatorLead: "اختر دواءً مدرجاً أو أدخل دواءً آخر. تعبئ الخيارات تركيز الملصق فقط، ولا تختار أبداً الكمية الموصوفة.",
+    calculatorPrivacy: "تبقى القيم داخل هذه الصفحة حتى المسح أو الانتقال ولا تُحفظ في سجل التعلم. لا تدخل أسماء أو أرقام ملفات أو ملاحظات سريرية.",
+    medicineLabel: "الدواء وخيار تركيز الملصق",
+    medicineHint: "تختلف التركيزات باختلاف المنتج والدولة؛ اسم الدواء وحده لا يؤكد التركيز.",
+    weightKg: "الوزن (kg)",
+    orderedMgPerKg: "الكمية المعتمدة للجرعة الواحدة (mg/kg/dose)",
+    stockStrengthMg: "التركيز المكتوب على الملصق (mg)",
+    stockVolumeMl: "حجم السائل المقابل للتركيز (mL)",
+    calculatorFieldHint: "أدخل رقماً عشرياً موجباً من دون وحدة أو فاصل آلاف.",
+    presetConcentrationHint: "تركيز هذا الخيار ثابت. اختر دواء آخر لإدخال تركيز مختلف من ملصق المنتج.",
+    calculatorUnitWarning: "استخدم أمراً مكتوباً لكل جرعة، ولا تدخل قيمة mg/kg/day.",
+    calculatorAcknowledge: "تحققت بصورة مستقلة أن الأمر مكتوب بوحدة mg/kg/dose وأن ملصق المنتج الحالي يطابق تماماً التركيز المدخل أعلاه.",
+    calculate: "احسب الناتج الحسابي",
+    calculatorReset: "إعادة ضبط الحاسبة",
+    calculatorError: "راجع قيم الحاسبة المحددة.",
+    outsideLimits: "تقع هذه القيمة خارج النطاق الحسابي المدعوم.",
+    calculatorAcknowledgeError: "أكد التحقق من الأمر وملصق المنتج الحالي قبل الحساب.",
+    calculatorResultTitle: "الناتج المحسوب",
+    calculatedDose: "الكمية المحسوبة",
+    calculatedLiquid: "حجم السائل المحسوب",
+    calculatorSecondStep: "الخطوة 2 · التحويل من ملصق المنتج الحالي إلى mL/dose",
+    calculatorResultBoundary: "يؤكد هذا الناتج العملية الحسابية فقط. أعد مطابقته مع الأمر الأصلي وملصق المنتج الحالي ومرجع دوائي معتمد وسياسة المنشأة قبل الاستخدام.",
     privacyNote: "استخدم قيم التمرين فقط. تبقى إجابتك الرقمية داخل الصفحة حتى تمسحها أو تغادر، ولا تُحفظ في سجل تعلمك. لا تدخل أي معلومات تخص مريضاً.",
     problemTitle: "مسألة تدريب خيالية",
     suppliedOrder: "كمية التمرين",
@@ -104,8 +168,8 @@ const pageCopy = {
     resultBoundary: "تطابق المعادلة لا يعني أن أي أمر أو دواء أو تركيز أو إعطاء حقيقي آمن.",
     checklistTitle: "قبل إعطاء دواء حقيقي",
     checklistBody: "غادر هذا الموقع واستخدم نظام الدواء المعتمد والأمر الأصلي وملصق المنتج. طبّق المراجع الحالية المعتمدة وسياسة المنشأة والمراجعة المستقلة المطلوبة مع الممارس المسؤول أو الصيدلي.",
-    sourceTitle: "مصادر السلامة المستخدمة في عرض التمرين",
-    sourceNote: "تدعم هذه المصادر مبادئ سلامة الوحدات والقياس، ولا تعتمد قيم الجرعات الخيالية.",
+    sourceTitle: "مصادر سلامة حساب الدواء وقياسه",
+    sourceNote: "تدعم هذه المصادر مبادئ سلامة الوحدات والقياس، ولا تعتمد كمية أدخلها المستخدم أو منتجاً أو قيمة تمرين خيالي.",
   },
 };
 
@@ -120,8 +184,8 @@ function formatValue(value, lang, maximumFractionDigits = 4) {
   }).format(value);
 }
 
-function AnswerField({ name, value, label, hint, error, onChange, lang }) {
-  const inputId = `dose-practice-${name}`;
+function DecimalField({ idPrefix = "dose-practice", name, value, label, hint, error, onChange, lang, readOnly = false }) {
+  const inputId = `${idPrefix}-${name}`;
   const hintId = `${inputId}-hint`;
   const errorId = `${inputId}-error`;
   return <div className={`dose-field ${error ? "has-error" : ""}`}>
@@ -135,6 +199,7 @@ function AnswerField({ name, value, label, hint, error, onChange, lang }) {
       spellCheck="false"
       value={value}
       onChange={onChange}
+      readOnly={readOnly}
       aria-invalid={Boolean(error)}
       aria-describedby={`${hintId}${error ? ` ${errorId}` : ""}`}
       dir="ltr"
@@ -142,6 +207,148 @@ function AnswerField({ name, value, label, hint, error, onChange, lang }) {
     />
     <small id={hintId}>{hint}</small>
     {error ? <span id={errorId} className="dose-field-error">{error}</span> : null}
+  </div>;
+}
+
+function DoseSafetyAside({ text }) {
+  return <aside className="dose-safety-card">
+    <Info size={28} weight="fill" aria-hidden="true" />
+    <div><h2>{text.checklistTitle}</h2><p>{text.checklistBody}</p></div>
+  </aside>;
+}
+
+function NamedMedicationCalculator({ lang, text }) {
+  const [fields, setFields] = useState(EMPTY_CALCULATOR);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [result, setResult] = useState(null);
+  const formRef = useRef(null);
+  const resultRef = useRef(null);
+
+  function clearResult() {
+    setAcknowledged(false);
+    setErrors({});
+    setResult(null);
+  }
+
+  function handleMedicineChange(event) {
+    const preset = getNamedDosePreset(event.target.value);
+    setFields((current) => ({
+      ...current,
+      medicineId: preset.id,
+      stockStrengthMg: preset.stockStrengthMg === null ? "" : String(preset.stockStrengthMg),
+      stockVolumeMl: preset.stockVolumeMl === null ? "" : String(preset.stockVolumeMl),
+    }));
+    clearResult();
+  }
+
+  function handleFieldChange(event) {
+    const { name, value } = event.target;
+    if (fields.medicineId !== "custom" && (name === "stockStrengthMg" || name === "stockVolumeMl")) return;
+    setFields((current) => ({ ...current, [name]: value }));
+    clearResult();
+  }
+
+  function handleAcknowledgementChange(event) {
+    const checked = event.target.checked;
+    setAcknowledged(checked);
+    setErrors((current) => ({ ...current, acknowledgement: undefined }));
+    if (!checked) setResult(null);
+  }
+
+  function resetCalculator() {
+    setFields(EMPTY_CALCULATOR);
+    clearResult();
+  }
+
+  function fieldError(name) {
+    const code = errors[name];
+    if (!code) return "";
+    if (code === "required") return text.required;
+    if (code === "outsideLimits") return text.outsideLimits;
+    return text.invalid;
+  }
+
+  function submit(event) {
+    event.preventDefault();
+    if (!acknowledged) {
+      setErrors({ acknowledgement: "required" });
+      setResult(null);
+      window.requestAnimationFrame(() => formRef.current?.querySelector('input[type="checkbox"]')?.focus());
+      return;
+    }
+
+    const calculation = calculateDosePractice(fields);
+    if (!calculation.ok) {
+      setErrors(calculation.errors);
+      setResult(null);
+      window.requestAnimationFrame(() => formRef.current?.querySelector('input[aria-invalid="true"]')?.focus());
+      return;
+    }
+
+    setErrors({});
+    setResult(calculation);
+    window.requestAnimationFrame(() => resultRef.current?.focus({ preventScroll: true }));
+  }
+
+  const hasErrors = Object.keys(errors).some((key) => errors[key]);
+  const selectedPreset = getNamedDosePreset(fields.medicineId);
+  const isNamedPreset = fields.medicineId !== "custom";
+
+  return <div className="dose-tools-stack">
+    <form ref={formRef} className="dose-calculator-card named-dose-calculator" onSubmit={submit} noValidate>
+      <div className="dose-card-heading">
+        <span className="dose-card-icon" aria-hidden="true"><Pill size={25} weight="duotone" /></span>
+        <div><h2>{text.calculatorTitle}</h2><p>{text.calculatorLead}</p></div>
+      </div>
+
+      <p className="dose-page-memory-note">{text.calculatorPrivacy}</p>
+
+      {hasErrors ? <div className="dose-error-summary" role="alert">
+        <ShieldWarning size={21} weight="fill" aria-hidden="true" />
+        <p>{errors.acknowledgement ? text.calculatorAcknowledgeError : text.calculatorError}</p>
+      </div> : null}
+
+      <div className="dose-field dose-medicine-field">
+        <label htmlFor="named-dose-medicine">{text.medicineLabel}</label>
+        <select id="named-dose-medicine" value={fields.medicineId} onChange={handleMedicineChange}>
+          {namedDosePresets.map((preset) => <option key={preset.id} value={preset.id}>{localize(preset.label, lang)}</option>)}
+        </select>
+        <small>{text.medicineHint}</small>
+      </div>
+
+      <div className="dose-field-grid named-dose-grid">
+        <DecimalField idPrefix="named-dose" name="weightKg" value={fields.weightKg} label={text.weightKg} hint={text.calculatorFieldHint} error={fieldError("weightKg")} onChange={handleFieldChange} lang={lang} />
+        <DecimalField idPrefix="named-dose" name="orderedMgPerKg" value={fields.orderedMgPerKg} label={text.orderedMgPerKg} hint={text.calculatorFieldHint} error={fieldError("orderedMgPerKg")} onChange={handleFieldChange} lang={lang} />
+        <DecimalField idPrefix="named-dose" name="stockStrengthMg" value={fields.stockStrengthMg} label={text.stockStrengthMg} hint={isNamedPreset ? text.presetConcentrationHint : text.calculatorFieldHint} error={fieldError("stockStrengthMg")} onChange={handleFieldChange} lang={lang} readOnly={isNamedPreset} />
+        <DecimalField idPrefix="named-dose" name="stockVolumeMl" value={fields.stockVolumeMl} label={text.stockVolumeMl} hint={isNamedPreset ? text.presetConcentrationHint : text.calculatorFieldHint} error={fieldError("stockVolumeMl")} onChange={handleFieldChange} lang={lang} readOnly={isNamedPreset} />
+      </div>
+
+      <p className="dose-unit-warning"><ShieldWarning size={17} weight="fill" aria-hidden="true" /> {text.calculatorUnitWarning}</p>
+
+      <label className={`dose-acknowledgement ${errors.acknowledgement ? "has-error" : ""}`}>
+        <input type="checkbox" checked={acknowledged} onChange={handleAcknowledgementChange} />
+        <span>{text.calculatorAcknowledge}</span>
+      </label>
+
+      <div className="dose-form-actions">
+        <button type="submit" className="button button-primary"><Calculator size={19} aria-hidden="true" /> {text.calculate}</button>
+        <button type="button" className="dose-reset-button" onClick={resetCalculator}><ArrowCounterClockwise size={18} aria-hidden="true" /> {text.calculatorReset}</button>
+      </div>
+    </form>
+
+    {result ? <section ref={resultRef} className="dose-result-card named-dose-result is-correct" tabIndex="-1" aria-live="polite">
+      <div className="dose-result-heading"><CheckCircle size={32} weight="fill" aria-hidden="true" /><div><p className="dose-result-medicine">{localize(selectedPreset.label, lang)}</p><h2>{text.calculatorResultTitle}</h2></div></div>
+      <dl className="dose-calculated-values">
+        <div><dt>{text.calculatedDose}</dt><dd dir="ltr">{formatValue(result.requiredDoseMg, lang)} mg/dose</dd></div>
+        <div><dt>{text.calculatedLiquid}</dt><dd dir="ltr">{formatValue(result.calculatedVolumeMl, lang)} mL/dose</dd></div>
+      </dl>
+      <ol className="dose-working">
+        <li><strong>{text.firstStep}</strong><code dir="ltr">{formatValue(result.values.weightKg, lang)} kg × {formatValue(result.values.orderedMgPerKg, lang)} mg/kg/dose = {formatValue(result.requiredDoseMg, lang)} mg/dose</code></li>
+        <li><strong>{text.calculatorSecondStep}</strong><code dir="ltr">{formatValue(result.requiredDoseMg, lang)} mg/dose × {formatValue(result.values.stockVolumeMl, lang)} mL ÷ {formatValue(result.values.stockStrengthMg, lang)} mg = {formatValue(result.calculatedVolumeMl, lang)} mL/dose</code></li>
+      </ol>
+      <p className="dose-result-warning"><ShieldWarning size={20} weight="fill" aria-hidden="true" /> {text.calculatorResultBoundary}</p>
+    </section> : null}
   </div>;
 }
 
@@ -157,6 +364,7 @@ function AnswerReview({ label, submitted, expected, isCorrect, text, lang, unit 
 
 export function MedicationMathPage({ lang }) {
   const text = pageCopy[lang] ?? pageCopy.en;
+  const [activeMode, setActiveMode] = useState("calculator");
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -209,6 +417,18 @@ export function MedicationMathPage({ lang }) {
     clearAnswer();
   }
 
+  function handleModeKeyDown(event) {
+    const forwardKey = lang === "ar" ? "ArrowLeft" : "ArrowRight";
+    const backwardKey = lang === "ar" ? "ArrowRight" : "ArrowLeft";
+    let nextMode = null;
+    if (event.key === forwardKey || event.key === "End") nextMode = "practice";
+    if (event.key === backwardKey || event.key === "Home") nextMode = "calculator";
+    if (!nextMode) return;
+    event.preventDefault();
+    setActiveMode(nextMode);
+    window.requestAnimationFrame(() => document.getElementById(`dose-${nextMode}-tab`)?.focus());
+  }
+
   const hasErrors = Object.keys(errors).some((key) => errors[key]);
   const calculation = result?.calculation;
   const values = calculation?.values;
@@ -225,68 +445,78 @@ export function MedicationMathPage({ lang }) {
       <div><h2>{text.boundaryTitle}</h2><p>{text.boundaryBody}</p></div>
     </section>
 
-    <div className="dose-practice-layout">
-      <form ref={formRef} className="dose-calculator-card" onSubmit={submit} noValidate>
-        <div className="dose-card-heading">
-          <span className="dose-card-icon" aria-hidden="true"><Flask size={25} weight="duotone" /></span>
-          <p>{text.privacyNote}</p>
-        </div>
-
-        {hasErrors ? <div className="dose-error-summary" role="alert">
-          <ShieldWarning size={21} weight="fill" aria-hidden="true" />
-          <p>{errors.acknowledgement ? text.acknowledgeError : text.errorTitle}</p>
-        </div> : null}
-
-        <fieldset className="dose-problem-card">
-          <legend>{text.problemTitle}</legend>
-          <h2>{localize(exercise.label, lang)}</h2>
-          <dl className="dose-problem-values">
-            <div><dt>{text.fictionalWeight}</dt><dd dir="ltr">{formatValue(exercise.weightKg, lang)} kg</dd></div>
-            <div><dt>{text.suppliedOrder}</dt><dd dir="ltr">{formatValue(exercise.orderedMgPerKg, lang)} mg/kg/dose</dd></div>
-            <div><dt>{text.fictionalLabel}</dt><dd dir="ltr">{formatValue(exercise.stockStrengthMg, lang)} mg / {formatValue(exercise.stockVolumeMl, lang)} mL</dd></div>
-          </dl>
-          <p className="dose-unit-warning"><ShieldWarning size={17} weight="fill" aria-hidden="true" /> {text.doseUnitWarning}</p>
-        </fieldset>
-
-        <fieldset className="dose-answer-fields">
-          <legend>{text.answerTitle}</legend>
-          <div className="dose-field-grid">
-            <AnswerField name="requiredDoseMg" value={answers.requiredDoseMg} label={text.requiredDoseMg} hint={text.answerHint} error={fieldError("requiredDoseMg")} onChange={handleInput} lang={lang} />
-            <AnswerField name="calculatedVolumeMl" value={answers.calculatedVolumeMl} label={text.calculatedVolumeMl} hint={text.answerHint} error={fieldError("calculatedVolumeMl")} onChange={handleInput} lang={lang} />
-          </div>
-        </fieldset>
-
-        <label className={`dose-acknowledgement ${errors.acknowledgement ? "has-error" : ""}`}>
-          <input type="checkbox" checked={acknowledged} onChange={(event) => { setAcknowledged(event.target.checked); setErrors((current) => ({ ...current, acknowledgement: undefined })); }} />
-          <span>{text.acknowledge}</span>
-        </label>
-
-        <div className="dose-form-actions">
-          <button type="submit" className="button button-primary"><Calculator size={19} aria-hidden="true" /> {text.check}</button>
-          <button type="button" className="button button-secondary" onClick={nextProblem}>{text.next} <ArrowRight className="directional-icon" size={18} aria-hidden="true" /></button>
-          <button type="button" className="dose-reset-button" onClick={clearAnswer}><ArrowCounterClockwise size={18} aria-hidden="true" /> {text.reset}</button>
-        </div>
-      </form>
-
-      <aside className="dose-safety-card">
-        <Info size={28} weight="fill" aria-hidden="true" />
-        <div><h2>{text.checklistTitle}</h2><p>{text.checklistBody}</p></div>
-      </aside>
+    <div className="dose-mode-tabs" role="tablist" aria-label={text.title}>
+      <button id="dose-calculator-tab" type="button" role="tab" aria-selected={activeMode === "calculator"} aria-controls="dose-calculator-panel" tabIndex={activeMode === "calculator" ? 0 : -1} onClick={() => setActiveMode("calculator")} onKeyDown={handleModeKeyDown}><Pill size={19} aria-hidden="true" /> {text.calculatorTab}</button>
+      <button id="dose-practice-tab" type="button" role="tab" aria-selected={activeMode === "practice"} aria-controls="dose-practice-panel" tabIndex={activeMode === "practice" ? 0 : -1} onClick={() => setActiveMode("practice")} onKeyDown={handleModeKeyDown}><Flask size={19} aria-hidden="true" /> {text.practiceTab}</button>
     </div>
 
-    {result ? <section ref={resultRef} className={`dose-result-card ${result.isFullyCorrect ? "is-correct" : "needs-review"}`} tabIndex="-1" aria-live="polite">
-      <div className="dose-result-heading">{result.isFullyCorrect ? <CheckCircle size={32} weight="fill" aria-hidden="true" /> : <XCircle size={32} weight="fill" aria-hidden="true" />}<h2>{result.isFullyCorrect ? text.resultCorrect : text.resultReview}</h2></div>
-      <div className="dose-answer-review-grid">
-        <AnswerReview label={text.requiredDoseMg} submitted={result.submitted.requiredDoseMg} expected={result.expected.requiredDoseMg} isCorrect={result.correct.requiredDoseMg} text={text} lang={lang} unit="mg/dose" />
-        <AnswerReview label={text.calculatedVolumeMl} submitted={result.submitted.calculatedVolumeMl} expected={result.expected.calculatedVolumeMl} isCorrect={result.correct.calculatedVolumeMl} text={text} lang={lang} unit="mL/dose" />
+    {activeMode === "calculator" ? <section id="dose-calculator-panel" role="tabpanel" aria-labelledby="dose-calculator-tab">
+      <div className="dose-practice-layout">
+        <NamedMedicationCalculator lang={lang} text={text} />
+        <DoseSafetyAside text={text} />
       </div>
-      <ol className="dose-working">
-        <li><strong>{text.firstStep}</strong><code dir="ltr">{formatValue(values.weightKg, lang)} kg × {formatValue(values.orderedMgPerKg, lang)} mg/kg/dose = {formatValue(calculation.requiredDoseMg, lang)} mg/dose</code></li>
-        <li><strong>{text.secondStep}</strong><code dir="ltr">{formatValue(calculation.requiredDoseMg, lang)} mg/dose × {formatValue(values.stockVolumeMl, lang)} mL ÷ {formatValue(values.stockStrengthMg, lang)} mg = {formatValue(calculation.calculatedVolumeMl, lang)} mL/dose</code></li>
-      </ol>
-      <p className="dose-display-rounding">{text.displayRounding}</p>
-      <p className="dose-result-warning"><ShieldWarning size={20} weight="fill" aria-hidden="true" /> {text.resultBoundary}</p>
-    </section> : null}
+    </section> : <section id="dose-practice-panel" role="tabpanel" aria-labelledby="dose-practice-tab">
+      <div className="dose-practice-layout">
+        <div className="dose-tools-stack">
+          <form ref={formRef} className="dose-calculator-card" onSubmit={submit} noValidate>
+            <div className="dose-card-heading">
+              <span className="dose-card-icon" aria-hidden="true"><Flask size={25} weight="duotone" /></span>
+              <p>{text.privacyNote}</p>
+            </div>
+
+            {hasErrors ? <div className="dose-error-summary" role="alert">
+              <ShieldWarning size={21} weight="fill" aria-hidden="true" />
+              <p>{errors.acknowledgement ? text.acknowledgeError : text.errorTitle}</p>
+            </div> : null}
+
+            <fieldset className="dose-problem-card">
+              <legend>{text.problemTitle}</legend>
+              <h2>{localize(exercise.label, lang)}</h2>
+              <dl className="dose-problem-values">
+                <div><dt>{text.fictionalWeight}</dt><dd dir="ltr">{formatValue(exercise.weightKg, lang)} kg</dd></div>
+                <div><dt>{text.suppliedOrder}</dt><dd dir="ltr">{formatValue(exercise.orderedMgPerKg, lang)} mg/kg/dose</dd></div>
+                <div><dt>{text.fictionalLabel}</dt><dd dir="ltr">{formatValue(exercise.stockStrengthMg, lang)} mg / {formatValue(exercise.stockVolumeMl, lang)} mL</dd></div>
+              </dl>
+              <p className="dose-unit-warning"><ShieldWarning size={17} weight="fill" aria-hidden="true" /> {text.doseUnitWarning}</p>
+            </fieldset>
+
+            <fieldset className="dose-answer-fields">
+              <legend>{text.answerTitle}</legend>
+              <div className="dose-field-grid">
+                <DecimalField name="requiredDoseMg" value={answers.requiredDoseMg} label={text.requiredDoseMg} hint={text.answerHint} error={fieldError("requiredDoseMg")} onChange={handleInput} lang={lang} />
+                <DecimalField name="calculatedVolumeMl" value={answers.calculatedVolumeMl} label={text.calculatedVolumeMl} hint={text.answerHint} error={fieldError("calculatedVolumeMl")} onChange={handleInput} lang={lang} />
+              </div>
+            </fieldset>
+
+            <label className={`dose-acknowledgement ${errors.acknowledgement ? "has-error" : ""}`}>
+              <input type="checkbox" checked={acknowledged} onChange={(event) => { setAcknowledged(event.target.checked); setErrors((current) => ({ ...current, acknowledgement: undefined })); }} />
+              <span>{text.acknowledge}</span>
+            </label>
+
+            <div className="dose-form-actions">
+              <button type="submit" className="button button-primary"><Calculator size={19} aria-hidden="true" /> {text.check}</button>
+              <button type="button" className="button button-secondary" onClick={nextProblem}>{text.next} <ArrowRight className="directional-icon" size={18} aria-hidden="true" /></button>
+              <button type="button" className="dose-reset-button" onClick={clearAnswer}><ArrowCounterClockwise size={18} aria-hidden="true" /> {text.reset}</button>
+            </div>
+          </form>
+
+          {result ? <section ref={resultRef} className={`dose-result-card ${result.isFullyCorrect ? "is-correct" : "needs-review"}`} tabIndex="-1" aria-live="polite">
+            <div className="dose-result-heading">{result.isFullyCorrect ? <CheckCircle size={32} weight="fill" aria-hidden="true" /> : <XCircle size={32} weight="fill" aria-hidden="true" />}<h2>{result.isFullyCorrect ? text.resultCorrect : text.resultReview}</h2></div>
+            <div className="dose-answer-review-grid">
+              <AnswerReview label={text.requiredDoseMg} submitted={result.submitted.requiredDoseMg} expected={result.expected.requiredDoseMg} isCorrect={result.correct.requiredDoseMg} text={text} lang={lang} unit="mg/dose" />
+              <AnswerReview label={text.calculatedVolumeMl} submitted={result.submitted.calculatedVolumeMl} expected={result.expected.calculatedVolumeMl} isCorrect={result.correct.calculatedVolumeMl} text={text} lang={lang} unit="mL/dose" />
+            </div>
+            <ol className="dose-working">
+              <li><strong>{text.firstStep}</strong><code dir="ltr">{formatValue(values.weightKg, lang)} kg × {formatValue(values.orderedMgPerKg, lang)} mg/kg/dose = {formatValue(calculation.requiredDoseMg, lang)} mg/dose</code></li>
+              <li><strong>{text.secondStep}</strong><code dir="ltr">{formatValue(calculation.requiredDoseMg, lang)} mg/dose × {formatValue(values.stockVolumeMl, lang)} mL ÷ {formatValue(values.stockStrengthMg, lang)} mg = {formatValue(calculation.calculatedVolumeMl, lang)} mL/dose</code></li>
+            </ol>
+            <p className="dose-display-rounding">{text.displayRounding}</p>
+            <p className="dose-result-warning"><ShieldWarning size={20} weight="fill" aria-hidden="true" /> {text.resultBoundary}</p>
+          </section> : null}
+        </div>
+        <DoseSafetyAside text={text} />
+      </div>
+    </section>}
 
     <section className="dose-sources" aria-labelledby="dose-sources-title">
       <h2 id="dose-sources-title">{text.sourceTitle}</h2>

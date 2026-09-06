@@ -16,9 +16,11 @@ import imageio_ffmpeg  # noqa: E402
 def main() -> None:
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     raw_video = OUTPUT / "motion-raw.webm"
-    narration = OUTPUT / "narration-ar.wav"
+    natural_narration = OUTPUT / "narration-ar-natural.wav"
+    narration = natural_narration if natural_narration.is_file() else OUTPUT / "narration-ar.wav"
     soundbed = OUTPUT / "soundbed-original.wav"
     final_video = OUTPUT / "nursing-hypotheses-motion-ar-vertical.mp4"
+    narration_delay = "" if narration == natural_narration else "adelay=350|350,"
 
     for source in (raw_video, narration, soundbed):
         if not source.is_file():
@@ -27,11 +29,13 @@ def main() -> None:
     filter_graph = (
         "[0:v]fps=30,scale=1080:1920:force_original_aspect_ratio=decrease,"
         "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=#041c37,format=yuv420p[v];"
-        "[1:a]aresample=48000,aformat=channel_layouts=stereo,adelay=350|350,"
-        "highpass=f=65,lowpass=f=10000,volume=1.25,apad=pad_dur=50[voice];"
-        "[2:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.34[bed];"
-        "[voice][bed]amix=inputs=2:duration=longest:dropout_transition=2,"
-        "loudnorm=I=-16:TP=-1.5:LRA=9,aresample=48000,"
+        f"[1:a]aresample=48000,aformat=channel_layouts=stereo,{narration_delay}"
+        "highpass=f=65,lowpass=f=10000,volume=1.0,apad=pad_dur=50[voice_raw];"
+        "[voice_raw]asplit=2[voice_mix][voice_sidechain];"
+        "[2:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.32[bed];"
+        "[bed][voice_sidechain]sidechaincompress=threshold=0.018:ratio=8:attack=25:release=350[ducked];"
+        "[voice_mix][ducked]amix=inputs=2:duration=longest:dropout_transition=2,"
+        "loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000,"
         "aformat=sample_rates=48000:channel_layouts=stereo[a]"
     )
     command = [

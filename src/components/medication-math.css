@@ -6,6 +6,46 @@
   max-width: 800px;
 }
 
+.dose-mode-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 5px;
+  margin-block: 0 24px;
+  padding: 5px;
+  background: #eaf2f4;
+  border: 1px solid #c8d9df;
+  border-radius: 9px;
+}
+
+.dose-mode-tabs button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 16px;
+  color: #36566a;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dose-mode-tabs button[aria-selected="true"] {
+  color: #fff;
+  background: var(--teal-700);
+  border-color: var(--teal-700);
+  box-shadow: 0 5px 14px rgba(0, 108, 115, 0.2);
+}
+
+.dose-mode-tabs button:focus-visible {
+  outline: 3px solid rgba(7, 148, 154, 0.25);
+  outline-offset: 2px;
+}
+
 .dose-practice-intro .eyebrow,
 .dose-result-heading .eyebrow {
   display: flex;
@@ -53,6 +93,12 @@
   gap: 24px;
 }
 
+.dose-tools-stack {
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+}
+
 .dose-calculator-card,
 .dose-safety-card,
 .dose-result-card {
@@ -81,6 +127,23 @@
   color: var(--muted);
   font-size: 12px;
   line-height: 1.7;
+}
+
+.dose-card-heading h2 {
+  margin: 0 0 5px;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.dose-page-memory-note {
+  margin: -5px 0 22px;
+  padding: 12px 14px;
+  color: #476274;
+  background: #f6f9fa;
+  border-inline-start: 3px solid #8fb7bb;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.65;
 }
 
 .dose-card-icon {
@@ -205,11 +268,40 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   text-align: start;
 }
 
-.dose-field input:focus {
+.dose-field select {
+  width: 100%;
+  min-height: 48px;
+  padding-block: 10px;
+  padding-inline: 13px 38px;
+  color: var(--ink);
+  background: #f8fbfc;
+  border: 1px solid #b8c9d2;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.dose-field input:focus,
+.dose-field select:focus {
   outline: 3px solid rgba(7, 148, 154, 0.18);
   outline-offset: 1px;
   border-color: var(--teal-700);
   background: #fff;
+}
+
+.dose-field input[readonly] {
+  color: #36566a;
+  background: #edf3f5;
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.dose-medicine-field {
+  margin-block-end: 22px;
+}
+
+.named-dose-grid {
+  margin-block-end: 4px;
 }
 
 .dose-field small {
@@ -356,6 +448,40 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   align-items: center;
   gap: 12px;
   color: var(--teal-700);
+}
+
+.dose-result-medicine {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dose-calculated-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0 0;
+}
+
+.dose-calculated-values div {
+  padding: 17px;
+  background: #eff9f8;
+  border: 1px solid #b9dcda;
+  border-radius: 7px;
+}
+
+.dose-calculated-values dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.dose-calculated-values dd {
+  margin: 6px 0 0;
+  color: var(--teal-700);
+  font: 800 clamp(18px, 3vw, 25px)/1.3 "Inter", sans-serif;
+  text-align: start;
 }
 
 .dose-result-card.needs-review .dose-result-heading {
@@ -553,6 +679,11 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
 }
 
 @media (max-width: 600px) {
+  .dose-mode-tabs {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
   .dose-boundary,
   .dose-calculator-card,
   .dose-safety-card,
@@ -561,6 +692,10 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   }
 
   .dose-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dose-calculated-values {
     grid-template-columns: 1fr;
   }
 

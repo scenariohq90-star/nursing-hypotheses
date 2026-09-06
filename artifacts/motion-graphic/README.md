@@ -14,10 +14,14 @@ The video presents the public educational website, branching fictional scenarios
 
 - `motion.html`: responsive animated composition and scene timing
 - `capture-motion.cjs`: browser capture script
-- `narration-ar.txt`: approved Arabic narration
+- `narration-ar-natural.txt`: scene-timed Arabic narration with pronunciation marks
+- `compose-natural-narration.py`: aligns eight natural-voice clips to their scenes
+- `narration-ar.txt`: legacy single-track narration retained for comparison
 - `generate-soundbed.py`: original soundbed generator
 - `render-motion.py`: final H.264/AAC render pipeline
 
 Transient recordings, audio intermediates, preview frames, and local browser profiles are intentionally ignored by Git.
 
 The capture script loads a project-installed `playwright` package by default. In a bundled runtime, set `MOTION_PLAYWRIGHT_MODULE` to the Playwright module directory. Set `CHROME_PATH` only when Chrome is not installed in a standard Windows location.
+
+The final version uses a service-provided public Arabic neural voice generated as eight independent clips. Source audio clips and intermediate WAV files are excluded from Git; `compose-natural-narration.py` places them at the approved scene timestamps, and `render-motion.py` ducks the original soundbed while narration is present.
