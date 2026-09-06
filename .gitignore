@@ -6,3 +6,5 @@ node_modules/
 .env.local
 .env.*.local
 /tmp/
+/artifacts/motion-graphic/browser-profile/
+/artifacts/motion-graphic/browser-profile-chrome/

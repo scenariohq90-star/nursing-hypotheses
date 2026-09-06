@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test": "node --test tests/learning-engine.test.mjs tests/scenarios.test.mjs tests/question-bank.test.mjs tests/exam-session.test.mjs tests/progress-repository.test.mjs tests/supabase-security.test.mjs tests/local-learning-cache.test.mjs tests/release-features.test.mjs",
+    "test": "node --test tests/learning-engine.test.mjs tests/scenarios.test.mjs tests/question-bank.test.mjs tests/exam-session.test.mjs tests/progress-repository.test.mjs tests/supabase-security.test.mjs tests/local-learning-cache.test.mjs tests/release-features.test.mjs tests/dose-calculator.test.mjs",
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "check": "pnpm test && pnpm build && pnpm test:sites"
   },
