@@ -8,3 +8,5 @@ node_modules/
 /tmp/
 /artifacts/motion-graphic/browser-profile/
 /artifacts/motion-graphic/browser-profile-chrome/
+/artifacts/motion-graphic/.vendor/
+/artifacts/motion-graphic/output/
