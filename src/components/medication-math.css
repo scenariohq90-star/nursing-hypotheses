@@ -8,7 +8,7 @@
 
 .dose-mode-tabs {
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, minmax(145px, 1fr));
   gap: 5px;
   margin-block: 0 24px;
   padding: 5px;
@@ -316,6 +316,11 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   background: #fff8f7;
 }
 
+.dose-field.has-error select {
+  border-color: #a43b32;
+  background: #fff8f7;
+}
+
 .dose-field-error {
   color: #8d2f28;
   font-size: 11px;
@@ -339,6 +344,11 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   margin: 0;
   font-size: 12px;
   font-weight: 750;
+}
+
+.dose-error-summary:focus {
+  outline: 3px solid rgba(164, 59, 50, 0.2);
+  outline-offset: 2px;
 }
 
 .dose-acknowledgement {
@@ -432,6 +442,7 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   margin-block-start: 24px;
   padding: 26px;
   border-block-start: 5px solid var(--teal-700);
+  scroll-margin-block-start: 112px;
 }
 
 .dose-result-card.needs-review {
@@ -481,7 +492,23 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   margin: 6px 0 0;
   color: var(--teal-700);
   font: 800 clamp(18px, 3vw, 25px)/1.3 "Inter", sans-serif;
+  overflow-wrap: anywhere;
   text-align: start;
+}
+
+.infusion-calculated-values {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.infusion-calculated-values .infusion-primary-result {
+  color: #fff;
+  background: linear-gradient(135deg, #006c73, #07949a);
+  border-color: #006c73;
+}
+
+.infusion-calculated-values .infusion-primary-result dt,
+.infusion-calculated-values .infusion-primary-result dd {
+  color: #fff;
 }
 
 .dose-result-card.needs-review .dose-result-heading {
@@ -555,6 +582,7 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
 }
 
 .dose-working li {
+  min-width: 0;
   display: grid;
   gap: 8px;
   padding: 16px;
@@ -568,6 +596,7 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
 }
 
 .dose-working code {
+  max-width: 100%;
   overflow-x: auto;
   padding-block-end: 3px;
   color: #24465e;
@@ -674,6 +703,10 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
   }
 
   .dose-problem-values {
+    grid-template-columns: 1fr;
+  }
+
+  .infusion-calculated-values {
     grid-template-columns: 1fr;
   }
 }
