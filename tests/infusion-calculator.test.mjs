@@ -211,8 +211,18 @@ test("the bilingual UI keeps infusion units explicit and does not persist calcul
   assert.match(source, /maximumSignificantDigits: 8/);
   assert.match(source, /event\.key === "ArrowDown"/);
   assert.match(source, /hidden=\{activeMode !== "infusion"\}/);
+  assert.match(source, /initialMode = "infusion"/);
+  assert.match(source, /Single liquid dose \(mg\/kg\/dose\)/);
+  assert.match(source, /جرعة سائلة مفردة \(mg\/kg\/dose\)/);
+  assert.match(source, /IV infusion \(mcg\/min, mcg\/kg\/min, or mg\/hr\)/);
+  assert.match(source, /openInfusionCalculator/);
+  assert.match(source, /namedCalculatorErrorSummary/);
+  assert.match(source, /infusionCalculatorErrorSummary/);
+  assert.match(source, /#\/dose-practice\/\$\{nextMode\}/);
   assert.doesNotMatch(source, /preventScroll/);
   assert.doesNotMatch(source, /Nitro drip|µg|localStorage|sessionStorage/);
   assert.match(appSource, /either a single dose or an IV infusion/i);
   assert.match(appSource, /لجرعة مفردة أو تسريب وريدي/);
+  assert.match(appSource, /const doseMode = route\.id \|\| "infusion"/);
+  assert.match(appSource, /initialMode=\{doseMode\}/);
 });

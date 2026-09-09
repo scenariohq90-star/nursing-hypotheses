@@ -34,6 +34,20 @@ const EMPTY_INFUSION = Object.freeze({
   finalVolumeMl: "",
 });
 const DOSE_MODES = Object.freeze(["calculator", "infusion", "practice"]);
+const NAMED_CALCULATOR_FIELD_KEYS = Object.freeze([
+  "weightKg",
+  "orderedMgPerKg",
+  "stockStrengthMg",
+  "stockVolumeMl",
+]);
+const INFUSION_FIELD_LABEL_KEYS = Object.freeze({
+  rateValue: "prescribedRate",
+  rateUnit: "rateUnit",
+  weightKg: "infusionWeight",
+  drugAmount: "drugAmount",
+  drugAmountUnit: "amountUnit",
+  finalVolumeMl: "finalVolume",
+});
 
 const SOURCE_LINKS = Object.freeze([
   Object.freeze({
@@ -70,12 +84,15 @@ const pageCopy = {
     lead: "Calculate a liquid dose or an IV infusion rate from values you enter, and keep practising with authored fictional exercises.",
     boundaryTitle: "Calculation only — not a dose recommendation",
     boundaryBody: "The tools perform arithmetic only from values and units you enter. Named options never choose a dose or confirm a prepared concentration. The tools do not validate an order, indication, age limits, allergies, contraindications, maximum dose, interval, route, organ function, interactions, device, tubing or local policy. Do not rely on this website during patient care or an emergency.",
-    calculatorTab: "My calculator",
-    infusionTab: "IV infusion",
+    calculatorTab: "Single liquid dose (mg/kg/dose)",
+    infusionTab: "IV infusion (mcg/min, mcg/kg/min, or mg/hr)",
     practiceTab: "Fictional exercises",
-    calculatorTitle: "Named-medicine liquid calculator",
+    calculatorTitle: "Single-dose liquid calculator",
     calculatorLead: "Select a listed medicine or enter another one. Presets populate the label concentration only; they never choose the prescribed amount.",
     calculatorPrivacy: "The values stay in this page until reset or navigation and are not saved to learning history. Do not enter names, record numbers or clinical notes.",
+    singleDoseOnlyTitle: "This calculator accepts mg/kg/dose only",
+    singleDoseOnlyBody: "If the source order is written as mcg/min, mcg/kg/min or mg/hr—including a nitroglycerin infusion—use the separate IV infusion calculator.",
+    openInfusionCalculator: "Open IV infusion calculator",
     medicineLabel: "Medicine and label preset",
     medicineHint: "Concentrations vary by product and country. The medicine name alone never confirms the concentration.",
     weightKg: "Weight (kg)",
@@ -89,6 +106,8 @@ const pageCopy = {
     calculate: "Calculate arithmetic result",
     calculatorReset: "Reset calculator",
     calculatorError: "Review the highlighted calculator values.",
+    calculatorMissingFields: "Complete these required fields:",
+    calculatorInvalidFields: "Correct these fields:",
     calculatorCalculationOutside: "The calculated result exceeds this single-dose calculator's technical limit of 1,000 mL/dose. Check every value and unit. For a timed order such as mcg/min or mcg/kg/min, use the separate IV infusion tab.",
     outsideLimits: "This value is outside the supported arithmetic range.",
     calculatorAcknowledgeError: "Confirm the order and current product label before calculating.",
@@ -176,12 +195,15 @@ const pageCopy = {
     lead: "احسب جرعة سائلة أو معدل تسريب وريدي من القيم التي تدخلها، واستمر في التدريب على مسائل تعليمية مؤلفة.",
     boundaryTitle: "عملية حسابية فقط — وليست توصية بجرعة",
     boundaryBody: "تنفذ الأدوات عملية حسابية فقط من القيم والوحدات التي تدخلها. لا تختار الخيارات المسماة جرعة ولا تؤكد تركيز التحضير. ولا تعتمد الأدوات الأمر أو الاستطباب أو العمر أو الحساسية أو الموانع أو الحد الأقصى أو الفاصل أو الطريق أو وظائف الأعضاء أو التداخلات أو الجهاز أو الأنابيب أو سياسة المنشأة. لا تعتمد على الموقع أثناء رعاية مريض أو في الطوارئ.",
-    calculatorTab: "حاسبتي",
-    infusionTab: "التسريب الوريدي",
+    calculatorTab: "جرعة سائلة مفردة (mg/kg/dose)",
+    infusionTab: "تسريب وريدي (mcg/min أو mcg/kg/min أو mg/hr)",
     practiceTab: "تمارين خيالية",
-    calculatorTitle: "حاسبة الأدوية السائلة المسماة",
+    calculatorTitle: "حاسبة الجرعة السائلة المفردة",
     calculatorLead: "اختر دواءً مدرجاً أو أدخل دواءً آخر. تعبئ الخيارات تركيز الملصق فقط، ولا تختار أبداً الكمية الموصوفة.",
     calculatorPrivacy: "تبقى القيم داخل هذه الصفحة حتى المسح أو الانتقال ولا تُحفظ في سجل التعلم. لا تدخل أسماء أو أرقام ملفات أو ملاحظات سريرية.",
+    singleDoseOnlyTitle: "هذه الحاسبة تقبل mg/kg/dose فقط",
+    singleDoseOnlyBody: "إذا كان الأمر الأصلي مكتوباً بوحدة mcg/min أو mcg/kg/min أو mg/hr—ومن ذلك تسريب النايتروغليسرين—فاستخدم حاسبة التسريب الوريدي المنفصلة.",
+    openInfusionCalculator: "فتح حاسبة التسريب الوريدي",
     medicineLabel: "الدواء وخيار تركيز الملصق",
     medicineHint: "تختلف التركيزات باختلاف المنتج والدولة؛ اسم الدواء وحده لا يؤكد التركيز.",
     weightKg: "الوزن (kg)",
@@ -195,6 +217,8 @@ const pageCopy = {
     calculate: "احسب الناتج الحسابي",
     calculatorReset: "إعادة ضبط الحاسبة",
     calculatorError: "راجع قيم الحاسبة المحددة.",
+    calculatorMissingFields: "أكمل الحقول المطلوبة التالية:",
+    calculatorInvalidFields: "صحح الحقول التالية:",
     calculatorCalculationOutside: "تجاوز الناتج الحد التقني لهذه الحاسبة المخصصة للجرعة الواحدة، وهو 1000 mL/dose. راجع كل قيمة ووحدة. إذا كان الأمر زمنياً مثل mcg/min أو mcg/kg/min فاستخدم تبويب التسريب الوريدي المنفصل.",
     outsideLimits: "تقع هذه القيمة خارج النطاق الحسابي المدعوم.",
     calculatorAcknowledgeError: "أكد التحقق من الأمر وملصق المنتج الحالي قبل الحساب.",
@@ -282,6 +306,10 @@ function localize(value, lang) {
   return value?.[lang] ?? value?.en ?? value?.ar ?? "";
 }
 
+function normalizeDoseMode(value) {
+  return DOSE_MODES.includes(value) ? value : "infusion";
+}
+
 function formatValue(value, lang, maximumFractionDigits = 4) {
   return new Intl.NumberFormat(lang === "ar" ? "ar-SA" : "en-US", {
     maximumFractionDigits,
@@ -294,6 +322,24 @@ function formatCalculatedValue(value, lang) {
     maximumSignificantDigits: 8,
     useGrouping: false,
   }).format(value);
+}
+
+function namedCalculatorErrorSummary(errors, text, lang) {
+  const affectedFields = NAMED_CALCULATOR_FIELD_KEYS.filter((key) => errors[key]);
+  if (!affectedFields.length) return text.calculatorError;
+  const onlyMissing = affectedFields.every((key) => errors[key] === "required");
+  const prefix = onlyMissing ? text.calculatorMissingFields : text.calculatorInvalidFields;
+  const labels = affectedFields.map((key) => text[key]).join(lang === "ar" ? "، " : ", ");
+  return `${prefix} ${labels}`;
+}
+
+function infusionCalculatorErrorSummary(errors, text, lang) {
+  const affectedFields = Object.entries(INFUSION_FIELD_LABEL_KEYS).filter(([key]) => errors[key]);
+  if (!affectedFields.length) return text.infusionError;
+  const onlyMissing = affectedFields.every(([key]) => errors[key] === "required");
+  const prefix = onlyMissing ? text.calculatorMissingFields : text.calculatorInvalidFields;
+  const labels = affectedFields.map(([, labelKey]) => text[labelKey]).join(lang === "ar" ? "، " : ", ");
+  return `${prefix} ${labels}`;
 }
 
 function DecimalField({ idPrefix = "dose-practice", name, value, label, hint, error, onChange, lang, readOnly = false }) {
@@ -329,7 +375,7 @@ function DoseSafetyAside({ text }) {
   </aside>;
 }
 
-function NamedMedicationCalculator({ lang, text }) {
+function NamedMedicationCalculator({ lang, text, onOpenInfusion }) {
   const [fields, setFields] = useState(EMPTY_CALCULATOR);
   const [acknowledged, setAcknowledged] = useState(false);
   const [errors, setErrors] = useState({});
@@ -420,13 +466,22 @@ function NamedMedicationCalculator({ lang, text }) {
 
       <p className="dose-page-memory-note">{text.calculatorPrivacy}</p>
 
+      <div className="dose-mode-guidance" role="note">
+        <ShieldWarning size={21} weight="fill" aria-hidden="true" />
+        <div>
+          <strong>{text.singleDoseOnlyTitle}</strong>
+          <p>{text.singleDoseOnlyBody}</p>
+          <button type="button" onClick={onOpenInfusion}><Calculator size={17} aria-hidden="true" /> {text.openInfusionCalculator}</button>
+        </div>
+      </div>
+
       {hasErrors ? <div ref={errorSummaryRef} className="dose-error-summary" role="alert" tabIndex="-1">
         <ShieldWarning size={21} weight="fill" aria-hidden="true" />
         <p>{errors.acknowledgement
           ? text.calculatorAcknowledgeError
           : errors.calculation
             ? text.calculatorCalculationOutside
-            : text.calculatorError}</p>
+            : namedCalculatorErrorSummary(errors, text, lang)}</p>
       </div> : null}
 
       <div className="dose-field dose-medicine-field">
@@ -558,7 +613,7 @@ function InfusionRateCalculator({ lang, text }) {
           ? text.infusionAcknowledgeError
           : errors.calculation
             ? text.infusionCalculationOutside
-            : text.infusionError}</p>
+            : infusionCalculatorErrorSummary(errors, text, lang)}</p>
       </div> : null}
 
       <div className="dose-field dose-medicine-field">
@@ -653,9 +708,9 @@ function AnswerReview({ label, submitted, expected, isCorrect, text, lang, unit 
   </div>;
 }
 
-export function MedicationMathPage({ lang }) {
+export function MedicationMathPage({ lang, initialMode = "infusion" }) {
   const text = pageCopy[lang] ?? pageCopy.en;
-  const [activeMode, setActiveMode] = useState("calculator");
+  const [activeMode, setActiveMode] = useState(() => normalizeDoseMode(initialMode));
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -708,6 +763,15 @@ export function MedicationMathPage({ lang }) {
     clearAnswer();
   }
 
+  function selectDoseMode(mode, moveFocus = false) {
+    const nextMode = normalizeDoseMode(mode);
+    setActiveMode(nextMode);
+    window.history.replaceState(null, "", `#/dose-practice/${nextMode}`);
+    if (moveFocus) {
+      window.requestAnimationFrame(() => document.getElementById(`dose-${nextMode}-tab`)?.focus());
+    }
+  }
+
   function handleModeKeyDown(event) {
     const forwardKey = lang === "ar" ? "ArrowLeft" : "ArrowRight";
     const backwardKey = lang === "ar" ? "ArrowRight" : "ArrowLeft";
@@ -720,8 +784,7 @@ export function MedicationMathPage({ lang }) {
     if (nextIndex === null) return;
     event.preventDefault();
     const nextMode = DOSE_MODES[nextIndex];
-    setActiveMode(nextMode);
-    window.requestAnimationFrame(() => document.getElementById(`dose-${nextMode}-tab`)?.focus());
+    selectDoseMode(nextMode, true);
   }
 
   const hasErrors = Object.keys(errors).some((key) => errors[key]);
@@ -741,14 +804,14 @@ export function MedicationMathPage({ lang }) {
     </section>
 
     <div className="dose-mode-tabs" role="tablist" aria-label={text.title}>
-      <button id="dose-calculator-tab" type="button" role="tab" aria-selected={activeMode === "calculator"} aria-controls="dose-calculator-panel" tabIndex={activeMode === "calculator" ? 0 : -1} onClick={() => setActiveMode("calculator")} onKeyDown={handleModeKeyDown}><Pill size={19} aria-hidden="true" /> {text.calculatorTab}</button>
-      <button id="dose-infusion-tab" type="button" role="tab" aria-selected={activeMode === "infusion"} aria-controls="dose-infusion-panel" tabIndex={activeMode === "infusion" ? 0 : -1} onClick={() => setActiveMode("infusion")} onKeyDown={handleModeKeyDown}><Calculator size={19} aria-hidden="true" /> {text.infusionTab}</button>
-      <button id="dose-practice-tab" type="button" role="tab" aria-selected={activeMode === "practice"} aria-controls="dose-practice-panel" tabIndex={activeMode === "practice" ? 0 : -1} onClick={() => setActiveMode("practice")} onKeyDown={handleModeKeyDown}><Flask size={19} aria-hidden="true" /> {text.practiceTab}</button>
+      <button id="dose-calculator-tab" type="button" role="tab" aria-selected={activeMode === "calculator"} aria-controls="dose-calculator-panel" tabIndex={activeMode === "calculator" ? 0 : -1} onClick={() => selectDoseMode("calculator")} onKeyDown={handleModeKeyDown}><Pill size={19} aria-hidden="true" /> {text.calculatorTab}</button>
+      <button id="dose-infusion-tab" type="button" role="tab" aria-selected={activeMode === "infusion"} aria-controls="dose-infusion-panel" tabIndex={activeMode === "infusion" ? 0 : -1} onClick={() => selectDoseMode("infusion")} onKeyDown={handleModeKeyDown}><Calculator size={19} aria-hidden="true" /> {text.infusionTab}</button>
+      <button id="dose-practice-tab" type="button" role="tab" aria-selected={activeMode === "practice"} aria-controls="dose-practice-panel" tabIndex={activeMode === "practice" ? 0 : -1} onClick={() => selectDoseMode("practice")} onKeyDown={handleModeKeyDown}><Flask size={19} aria-hidden="true" /> {text.practiceTab}</button>
     </div>
 
     <section id="dose-calculator-panel" role="tabpanel" aria-labelledby="dose-calculator-tab" hidden={activeMode !== "calculator"}>
       <div className="dose-practice-layout">
-        <NamedMedicationCalculator lang={lang} text={text} />
+        <NamedMedicationCalculator lang={lang} text={text} onOpenInfusion={() => selectDoseMode("infusion", true)} />
         <DoseSafetyAside text={text} />
       </div>
     </section>

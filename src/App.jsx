@@ -1481,7 +1481,10 @@ export function App() {
     const storageKey = examSessionStorageKey(auth.user?.id);
     page = <QuestionBankPage key={storageKey} lang={lang} t={t} examProfile={visibleExamProfile} onComplete={completeQuestionSet} storageKey={storageKey} historyClearPending={historyClearPending} />;
   }
-  else if (route.page === "dose-practice") page = <Suspense fallback={<div className="page-container">{lang === "ar" ? "جارٍ تحميل أداة التدريب…" : "Loading the practice tool…"}</div>}><MedicationMathPage lang={lang} /></Suspense>;
+  else if (route.page === "dose-practice") {
+    const doseMode = route.id || "infusion";
+    page = <Suspense fallback={<div className="page-container">{lang === "ar" ? "جارٍ تحميل أداة التدريب…" : "Loading the practice tool…"}</div>}><MedicationMathPage key={doseMode} lang={lang} initialMode={doseMode} /></Suspense>;
+  }
   else if (route.page === "learning") page = <LearningPage lang={lang} t={t} profile={visibleProfile} examProfile={visibleExamProfile} onClearHistory={clearLearningHistory} onStart={startScenario} auth={auth} syncStatus={syncStatus} onSignOut={signOutCurrentDevice} onExportLearningData={exportLearningData} accountsEnabled={releaseFeatures.learningAccounts} />;
   else if (route.page === "resources") page = <ReferencesPage lang={lang} t={t} />;
   else if (route.page === "about") page = <AboutPage t={t} />;
