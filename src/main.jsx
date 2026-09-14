@@ -10,6 +10,7 @@ import "@fontsource/ibm-plex-sans-arabic/arabic-600.css";
 import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
 import { App } from "./App.jsx";
 import "./styles.css";
+import "./site-shell-v2.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

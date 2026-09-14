@@ -1,8 +1,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowSquareOut,
-  BookOpen,
   Check,
   CheckCircle,
   ShieldWarning,
@@ -29,7 +27,6 @@ export function ExamQuestion({
   selectedOptionId,
   locked,
   notice,
-  sources = [],
   isLastQuestion,
   onSelect,
   onPrimaryAction,
@@ -93,15 +90,6 @@ export function ExamQuestion({
           {!isCorrect && correctOption ? (
             <p className="correct-answer-line"><strong>{translate("correctAnswer")}:</strong> {localize(correctOption.text, language)}</p>
           ) : null}
-          <div className="question-source-list">
-            <strong><BookOpen size={18} weight="duotone" />{translate("questionSources")}</strong>
-            {sources.map((reference) => (
-              <a key={reference.id} href={reference.url} target="_blank" rel="noopener noreferrer nofollow">
-                {localize(reference.title, language)}<ArrowSquareOut size={15} />
-                <span className="sr-only">{translate("opensNewTab")}</span>
-              </a>
-            ))}
-          </div>
         </section>
       ) : null}
 

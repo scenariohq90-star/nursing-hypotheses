@@ -115,33 +115,33 @@ export const questionIntakePolicy = Object.freeze({
 export const examTracks = [
   {
     id: "saudi-nursing",
-    label: bi("Saudi nursing study path — independent", "مسار دراسة التمريض السعودي — مستقل"),
+    label: bi("Saudi nursing study path", "مسار دراسة التمريض السعودي"),
     shortLabel: bi("Saudi nursing practice", "تدريب التمريض السعودي"),
     description: bi(
-      "Independently authored four-option practice organised around broad nursing-learning domains; not official or predictive.",
-      "تدريب مستقل مؤلف من أربعة خيارات ومنظم حول مجالات تعلم تمريضية عامة؛ غير رسمي ولا يتنبأ بنتيجة.",
+      "Four-option practice across fundamentals, adult care, maternal-child health and nursing leadership.",
+      "تدريب من أربعة خيارات يغطي الأساسيات ورعاية البالغين وصحة الأم والطفل والقيادة التمريضية.",
     ),
     categoryIds: examCategories.filter((category) => category.examId === "saudi-nursing").map((category) => category.id),
     officialSourceIds: [],
   },
   {
     id: "international-rn",
-    label: bi("International RN study path — independent", "مسار دراسة الممرض المسجل الدولي — مستقل"),
+    label: bi("International RN study path", "مسار دراسة الممرض المسجل الدولي"),
     shortLabel: bi("International RN practice", "تدريب الممرض المسجل الدولي"),
     description: bi(
-      "Independently authored single-best-answer practice organised around broad nursing-learning domains; not an official or adaptive exam.",
-      "تدريب مستقل مؤلف على أفضل إجابة واحدة ومنظم حول مجالات تعلم تمريضية عامة؛ ليس اختباراً رسمياً أو تكيفياً.",
+      "Single-best-answer practice organised around broad nursing-learning domains.",
+      "تدريب على أفضل إجابة واحدة منظّم حول مجالات تعلم تمريضية عامة.",
     ),
     categoryIds: examCategories.filter((category) => category.examId === "international-rn").map((category) => category.id),
     officialSourceIds: [],
   },
   {
     id: "computerized-practice",
-    label: bi("Independent computer-based nursing practice", "تدريب تمريضي مستقل للاختبارات المحوسبة"),
-    shortLabel: bi("Computer-based practice", "تدريب محوسب مستقل"),
+    label: bi("Computer-based nursing practice", "تدريب تمريضي للاختبارات المحوسبة"),
+    shortLabel: bi("Computer-based practice", "تدريب محوسب"),
     description: bi(
-      "Original four-option items delivered in timed fixed sets, with sources and guided follow-up; not official provider content or a readiness prediction.",
-      "أسئلة أصلية من أربعة خيارات ضمن مجموعات ثابتة ومؤقتة، مع المصادر والمتابعة الموجّهة؛ ليست محتوى رسمياً لمزود اختبار ولا تتنبأ بالجاهزية.",
+      "Original four-option items delivered in timed fixed sets with guided follow-up.",
+      "أسئلة أصلية من أربعة خيارات ضمن مجموعات ثابتة ومؤقتة مع متابعة موجّهة.",
     ),
     categoryIds: examCategories.filter((category) => category.examId === "computerized-practice").map((category) => category.id),
     officialSourceIds: [],

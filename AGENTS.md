@@ -7,11 +7,14 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 ## Product direction selected by the user
 
 - The product is a responsive website, not a native mobile application.
-- The selected source of visual truth is the first generated concept: a navy and teal clinical decision workspace with a slim website header, patient-status rail, central branching scenario, and learning-progress/evidence rail.
+- The selected source of visual truth is the second generated concept: a simplified navy-and-teal website with a compact header, an immersive featured-scenario hero, two vital-sign cards, a six-point decision path, one dominant start action, two supporting learning links, and a three-item mobile bottom navigation.
+- The selected visual reference is stored at `artifacts/qa/reference-selected-v2.png`.
 - The website is bilingual Arabic/English with complete RTL/LTR parity and a 390px mobile layout.
 - The product is an educational simulation and exam-practice website only. It must never present itself as a clinical decision-support tool or a substitute for local policy, professional judgement, or supervised training.
 - Scores are learning feedback only, never a professional competency, credential, licensure-readiness prediction, or clinical-decision claim.
-- Every clinical case is fictional, must prohibit real patient data, and must link explanations to versioned authoritative references.
+- Every clinical case is fictional, must prohibit real patient data, and must retain internal mappings to versioned authoritative references.
+- Keep source titles and external links in the central References page. Scenario and question interfaces show rationales without inline source lists so the learning flow stays focused.
+- Do not repeat large educational-disclaimer banners throughout normal learning flows. Keep the product boundary and real-patient-data rules in About, Terms, Privacy, and calculator-specific safety controls, and never use copy that implies bedside decision support.
 - The website includes original bilingual practice banks for SNLE and NCLEX-RN; never reproduce secure or official exam items, predict licensure readiness, or imply endorsement by SCFHS or NCSBN.
 - Scenario presentations should offer safe contextual variation while preserving the clinically reviewed best action, rationale, score, and source set.
 - Subscriptions, pricing, checkout, institutional plans, and paid-content entitlements are out of the current product scope. Do not surface membership sales or subscription calls to action unless the user explicitly starts a future billing phase.
