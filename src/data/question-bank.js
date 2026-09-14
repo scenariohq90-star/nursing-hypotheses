@@ -6,10 +6,16 @@ import {
   questionBankExpansionBDrafts,
   questionBankExpansionBSources,
 } from "./question-bank-expansion-b.js";
+import { harderDistractorDataB } from "./question-bank-hardening-b.js";
+import { harderDistractorDataC } from "./question-bank-hardening-c.js";
+import { harderDistractorDataD } from "./question-bank-hardening-d.js";
+import { harderDistractorDataE } from "./question-bank-hardening-e.js";
+import { harderDistractorDataF } from "./question-bank-hardening-f.js";
+import { harderDistractorDataG } from "./question-bank-hardening-g.js";
 
 const bi = (en, ar) => ({ en, ar });
 
-export const QUESTION_BANK_VERSION = "2026-09-05.4";
+export const QUESTION_BANK_VERSION = "2026-09-14.2";
 
 export const examDifficulties = [
   { id: "foundation", label: bi("Foundation", "تأسيسي") },
@@ -326,7 +332,7 @@ const authoredQuestions = [
       option("a", "Ask the client to promise not to act and end the interview.", "اطلب من المريض أن يعد بعدم التنفيذ وأنهِ المقابلة."),
       option("b", "Leave briefly to find printed education materials.", "غادر لفترة قصيرة للبحث عن مواد تثقيفية مطبوعة."),
       option("c", "Delay documentation until the client appears distressed.", "أجّل التوثيق حتى يبدو المريض منزعجاً."),
-      option("d", "Remain with the client, maintain the observation level required by policy, summon trained help, reduce access to hazards when safe, and activate the urgent suicide-risk pathway.", "ابقَ مع المريض، وحافظ على مستوى المراقبة الذي تحدده السياسة، واطلب مساعدة الفريق المدرّب، وقلّل الوصول إلى وسائل الأذى عندما يكون ذلك آمناً، وفعّل مسار خطر الانتحار العاجل."),
+      option("d", "Stay with the client, maintain observation, summon help, reduce accessible hazards, and activate the urgent suicide-risk pathway.", "ابقَ مع المريض، وحافظ على المراقبة، واطلب المساعدة، وقلّل وسائل الأذى المتاحة، وفعّل مسار خطر الانتحار العاجل."),
     ],
     correctOptionId: "d",
     rationale: bi(
@@ -578,7 +584,7 @@ const authoredQuestions = [
     options: [
       option("a", "Share equipment between rooms without cleaning it.", "شارك المعدات بين الغرف دون تنظيفها."),
       option("b", "Wait for laboratory confirmation before using any precautions.", "انتظر التأكيد المخبري قبل تطبيق أي احتياطات."),
-      option("c", "Initiate the facility's C. difficile contact/enteric precautions, use dedicated equipment, and perform hand hygiene and environmental cleaning as specified by current local policy.", "ابدأ احتياطات التلامس/العدوى المعوية الخاصة بالمطثية العسيرة في المنشأة، واستخدم معدات مخصصة، وطبّق نظافة اليدين والتنظيف البيئي وفق السياسة المحلية الحالية."),
+      option("c", "Start C. difficile enteric precautions, dedicate equipment, and follow local hand-hygiene and environmental-cleaning measures.", "ابدأ احتياطات العدوى المعوية للمطثية العسيرة، وخصص المعدات، واتبع تدابير نظافة اليدين والتنظيف البيئي المحلية."),
       option("d", "Move the client through common areas for routine social activity.", "انقل المريض عبر المناطق المشتركة لنشاط اجتماعي روتيني."),
     ],
     correctOptionId: "c",
@@ -717,7 +723,7 @@ const authoredQuestions = [
       option("a", "Increase the flow to clear the line.", "زد التدفق لتنظيف الخط."),
       option("b", "Cover the site and reassess at the end of the infusion.", "غطِّ الموضع وأعد تقييمه بعد انتهاء التسريب."),
       option("c", "Flush the line forcefully before checking policy.", "اغسل الخط بقوة قبل مراجعة السياسة."),
-      option("d", "Stop the infusion immediately. Do not flush; leave the vascular access device in place initially for aspiration and agent-specific management, summon help, and activate the extravasation protocol.", "أوقف التسريب فوراً. لا تغسل الخط؛ واترك جهاز الوصول الوريدي في مكانه مبدئياً للشفط والتدبير الخاص بالمادة، واطلب المساعدة وفعّل بروتوكول التسرب خارج الوعاء."),
+      option("d", "Stop the infusion; do not flush or remove the access initially. Summon help and follow the agent-specific extravasation protocol.", "أوقف التسريب؛ ولا تغسل المنفذ أو تزله مبدئياً. اطلب المساعدة واتبع بروتوكول التسرب الخاص بالمادة."),
     ],
     correctOptionId: "d",
     rationale: bi(
@@ -738,7 +744,7 @@ const authoredQuestions = [
     ),
     options: [
       option("a", "Slow the transfusion and observe for another hour.", "أبطئ نقل الدم وراقب لمدة ساعة أخرى."),
-      option("b", "Stop the transfusion immediately, assess airway, breathing, circulation and vital signs, and summon urgent help. Maintain IV access without flushing the existing line, and notify the responsible clinician and transfusion service per protocol.", "أوقف نقل الدم فوراً، وقيّم مجرى الهواء والتنفس والدورة الدموية والعلامات الحيوية، واطلب المساعدة العاجلة. حافظ على منفذ وريدي دون غسل الخط القائم، وأبلغ الممارس المسؤول وخدمة نقل الدم وفق البروتوكول."),
+      option("b", "Stop the transfusion; assess ABC and vital signs, summon help, maintain IV access, and notify clinical and transfusion teams per protocol.", "أوقف نقل الدم؛ وقيّم ABC والعلامات الحيوية، واطلب المساعدة، وحافظ على المنفذ الوريدي، وأبلغ الفريق السريري وخدمة نقل الدم."),
       option("c", "Discard all tubing before anyone can inspect it.", "تخلص من جميع الأنابيب قبل أن يفحصها أحد."),
       option("d", "Ask the client to walk to reduce back discomfort.", "اطلب من المريض المشي لتخفيف انزعاج الظهر."),
     ],
@@ -1051,7 +1057,7 @@ const authoredQuestions = [
     ),
     options: [
       option("a", "Flush the device with saline before identifying the agent.", "اغسل الجهاز بالمحلول الملحي قبل تحديد المادة."),
-      option("b", "Attempt aspiration without flushing, then manage the vascular device according to its type and the authorised protocol; assess and mark the site and begin agent-specific antidote and thermal management.", "حاول الشفط دون غسل، ثم تعامل مع جهاز الوصول الوعائي وفق نوعه والبروتوكول المعتمد؛ وقيّم الموضع وحدده وابدأ الترياق والتدبير الحراري الخاصين بالمادة."),
+      option("b", "Attempt aspiration without flushing, follow the device- and agent-specific protocol, assess and mark the site, then apply authorised antidote and thermal management.", "حاول الشفط دون غسل، واتبع البروتوكول الخاص بالجهاز والمادة، وقيّم الموضع وحدده، ثم طبّق الترياق والتدبير الحراري المعتمدين."),
       option("c", "Remove and discard the device immediately before checking the drug-specific pathway.", "أزل الجهاز وتخلص منه فوراً قبل مراجعة المسار الخاص بالدواء."),
       option("d", "Restart the same medicine at another site before assessing the injury.", "أعد بدء الدواء نفسه في موضع آخر قبل تقييم الإصابة."),
     ],
@@ -1226,7 +1232,7 @@ const authoredQuestions = [
       "أثناء تثقيف الخروج، يذكر السجل أن المريض خضع لاستئصال الكلية (nephrectomy). أي شرح بلغة مبسطة هو الصحيح؟",
     ),
     options: [
-      option("a", "A kidney was surgically removed.", "أُزيلت كلية جراحياً."),
+      option("a", "One of the kidneys was removed during an operation.", "أُزيلت إحدى الكليتين جراحياً خلال العملية."),
       option("b", "A kidney was examined with a camera.", "فُحصت كلية بواسطة منظار."),
       option("c", "A kidney became inflamed.", "أصيبت كلية بالالتهاب."),
       option("d", "An opening was created into a kidney.", "أُنشئت فتحة إلى داخل كلية."),
@@ -1557,7 +1563,7 @@ const authoredQuestions = [
     ),
     options: [
       option("a", "Inject air and listen over the stomach for a whoosh.", "احقن الهواء واستمع فوق المعدة لصوت اندفاع."),
-      option("b", "Test gastric aspirate pH through the approved pathway; if aspirate is unavailable or outside the safe range, obtain an X-ray interpreted by a qualified clinician. Document confirmation before use.", "افحص الرقم الهيدروجيني لرشاحة المعدة وفق المسار المعتمد؛ وإذا تعذر الحصول على الرشاحة أو كانت النتيجة خارج النطاق الآمن، فاطلب أشعة سينية يفسرها مختص مؤهل. وثّق التحقق قبل الاستخدام."),
+      option("b", "Test aspirate pH through the approved pathway; if unavailable or outside the safe range, obtain a clinician-interpreted X-ray. Document placement before use.", "افحص الرقم الهيدروجيني للرُشاحة وفق المسار المعتمد؛ وإن تعذرت أو خرجت عن النطاق الآمن، فاطلب أشعة يفسرها مختص. وثّق الموضع قبل الاستخدام."),
       option("c", "Begin the feed slowly because a small amount cannot cause harm.", "ابدأ التغذية ببطء لأن الكمية الصغيرة لا يمكن أن تسبب ضرراً."),
       option("d", "Ask the client whether the tube feels as if it is in the stomach.", "اسأل المريض هل يشعر أن الأنبوب موجود في المعدة."),
     ],
@@ -1602,7 +1608,7 @@ const authoredQuestions = [
     options: [
       option("a", "Continue routine observations because newborn temperatures often vary.", "استمر في المراقبة الروتينية لأن حرارة المواليد كثيراً ما تتغير."),
       option("b", "Give a large feed before reassessing breathing.", "قدّم رضعة كبيرة قبل إعادة تقييم التنفس."),
-      option("c", "Begin immediate assessment and support, summon neonatal help, obtain ordered cultures if this does not delay care, and start prescribed empiric antibiotics through the local early-onset infection pathway without waiting for results.", "ابدأ التقييم والدعم فوراً، واطلب مساعدة حديثي الولادة، واسحب المزارع المطلوبة إن لم يؤخر ذلك الرعاية، وابدأ المضادات التجريبية الموصوفة عبر مسار العدوى المبكرة المحلي دون انتظار النتائج."),
+      option("c", "Assess and support immediately, summon neonatal help, obtain ordered cultures without delaying care, and start prescribed empiric antibiotics through the local infection pathway.", "ابدأ التقييم والدعم فوراً، واطلب مساعدة حديثي الولادة، واسحب المزارع المطلوبة دون تأخير الرعاية، وابدأ المضادات التجريبية الموصوفة عبر مسار العدوى المحلي."),
       option("d", "Warm the newborn and discharge if the colour improves briefly.", "دفئ المولود واخرجه إذا تحسن اللون لفترة وجيزة."),
     ],
     correctOptionId: "c",
@@ -1744,6 +1750,453 @@ const authoredQuestions = [
     ),
   },
 ];
+
+// These overrides keep the keyed answer and evidence mapping unchanged while
+// replacing cue-heavy distractors with actions that are clinically adjacent,
+// but incomplete, delayed, or out of sequence. The rationale travels with the
+// revised option so learner feedback remains accurate in both languages.
+const harderDistractorDataA = {
+  "saudi-nursing-fundamentals-identity-001": {
+    a: [
+      "Compare the label with the electronic order and ask a colleague to countersign if the other details match.",
+      "قارن الملصق بالأمر الإلكتروني واطلب من زميل التوقيع بالمشاركة إذا تطابقت بقية التفاصيل.",
+      "A second signature does not reconcile a conflicting identifier through the approved bedside identification process.",
+      "لا يحل التوقيع الثاني تعارض أحد المعرّفات عبر آلية التحقق المعتمدة عند سرير المريض.",
+    ],
+    c: [
+      "Set the specimen aside, print a new label from the open chart, and attach it without repeating bedside identification.",
+      "ضع العينة جانباً واطبع ملصقاً جديداً من السجل المفتوح وثبّته دون إعادة التحقق عند السرير.",
+      "Printing from an open chart can reproduce the same selection error unless identity is re-established at the bedside.",
+      "قد تكرر الطباعة من سجل مفتوح خطأ اختيار المريض نفسه ما لم تُثبت الهوية مجدداً عند السرير.",
+    ],
+    d: [
+      "Transfer the specimen with a discrepancy note for the receiving shift to reconcile the two records.",
+      "انقل العينة مع ملاحظة عن اختلاف الهوية لتتولى المناوبة المستلمة مطابقة السجلين.",
+      "Moving and delaying a specimen with unresolved identity weakens traceability instead of resolving the discrepancy before it leaves the bedside.",
+      "نقل العينة وتأخيرها مع بقاء تعارض الهوية يضعف التتبع بدلاً من حل الاختلاف قبل مغادرة السرير.",
+    ],
+  },
+  "saudi-nursing-fundamentals-assessment-002": {
+    a: [
+      "Complete a focused orientation screen and call the family to establish baseline before checking physiological status.",
+      "أكمل فحصاً مركزاً للتوجه واتصل بالأسرة لتحديد خط الأساس قبل التحقق من الحالة الفسيولوجية.",
+      "Baseline history is useful, but it must not precede immediate assessment for a reversible physiological threat.",
+      "يفيد تحديد خط الأساس، لكنه لا يسبق التقييم الفوري لاحتمال وجود تهديد فسيولوجي قابل للعلاج.",
+    ],
+    b: [
+      "Repeat the handover with the sending unit and document the discrepancy before reassessing the client at the bedside.",
+      "كرر التسليم مع الوحدة المرسلة ووثّق الاختلاف قبل إعادة تقييم المريض عند السرير.",
+      "Clarifying handover can follow, but the newly confused client requires bedside physiological assessment first.",
+      "يمكن استيضاح التسليم لاحقاً، لكن المريض الذي ظهر لديه تشوش جديد يحتاج أولاً إلى تقييم فسيولوجي عند السرير.",
+    ],
+    d: [
+      "Reduce environmental stimuli, institute fall precautions, and reassess after the client has settled into the room.",
+      "قلل المثيرات البيئية وطبّق احتياطات السقوط وأعد التقييم بعد استقرار المريض في الغرفة.",
+      "Environmental and fall precautions may reduce harm, but they do not evaluate or escalate the cause of an acute mental-status change.",
+      "قد تقلل احتياطات البيئة والسقوط الضرر، لكنها لا تقيّم سبب تغير الوعي الحاد ولا تصعّده.",
+    ],
+  },
+  "saudi-nursing-fundamentals-medication-003": {
+    b: [
+      "Ask the client to describe the previous reaction and administer the medicine if the symptoms did not involve breathing.",
+      "اطلب من المريض وصف التفاعل السابق وأعطِ الدواء إذا لم تشمل الأعراض التنفس.",
+      "A partial history does not authorise exposure when an active allergy alert and the order remain unresolved.",
+      "لا يجيز التاريخ الجزئي إعطاء الدواء ما دام تنبيه الحساسية نشطاً والأمر غير محسوم.",
+    ],
+    c: [
+      "Ask pharmacy to complete the reaction field while continuing to prepare the medication pending a reply.",
+      "اطلب من الصيدلية استكمال خانة التفاعل مع مواصلة تحضير الدواء بانتظار الرد.",
+      "Updating the record is useful, but preparation should remain paused until the allergy history and order are clarified.",
+      "تحديث السجل مفيد، لكن ينبغي أن يبقى التحضير متوقفاً حتى استيضاح تاريخ الحساسية والأمر الدوائي.",
+    ],
+    d: [
+      "Omit this dose and send a routine clarification message for the prescriber's next review round.",
+      "تجاوز هذه الجرعة وأرسل رسالة استيضاح روتينية لمراجعة الواصف التالية.",
+      "Withholding exposure is safer than administration, but passive delay omits timely assessment and authorised clarification.",
+      "منع التعرض أكثر أماناً من الإعطاء، لكن التأخير السلبي يغفل التقييم والاستيضاح المعتمد في الوقت المناسب.",
+    ],
+  },
+  "saudi-nursing-adult-dyspnea-004": {
+    a: [
+      "Seat the client upright, obtain pulse oximetry, and finish the current documentation before escalating if saturation remains low.",
+      "أجلس المريض بوضع قائم وقِس تشبع الأكسجين وأكمل التوثيق الحالي قبل التصعيد إذا بقي التشبع منخفضاً.",
+      "Positioning and oximetry are relevant, but escalation cannot wait for documentation when speech is already limited by breathlessness.",
+      "تفيد الوضعية وقياس التشبع، لكن لا يمكن تأخير التصعيد لاستكمال التوثيق مع محدودية الكلام بسبب ضيق التنفس.",
+    ],
+    b: [
+      "Return the client to bed, begin a focused respiratory assessment, and wait for the scheduled review unless vital signs worsen.",
+      "أعد المريض إلى السرير وابدأ تقييماً تنفسياً مركزاً وانتظر المراجعة المجدولة ما لم تسوء العلامات الحيوية.",
+      "The current inability to speak normally is already a high-acuity cue requiring immediate support and escalation.",
+      "عدم القدرة الحالية على الكلام بصورة طبيعية قرينة عالية الحدة تستلزم دعماً وتصعيداً فوريين.",
+    ],
+    c: [
+      "Ask a second nurse to obtain an ECG while assisting the client to finish walking back to bed.",
+      "اطلب من ممرض ثانٍ إجراء تخطيط قلب أثناء مساعدة المريض على إكمال المشي إلى السرير.",
+      "An ECG may later inform assessment, but activity should stop and airway, breathing and circulation require immediate attention.",
+      "قد يفيد تخطيط القلب لاحقاً، لكن يجب إيقاف النشاط وتوجيه الانتباه فوراً إلى مجرى الهواء والتنفس والدورة الدموية.",
+    ],
+  },
+  "saudi-nursing-adult-postoperative-005": {
+    a: [
+      "Reinforce the dressing, position the client supine, and repeat vital signs in 15 minutes before notifying the surgical team.",
+      "عزز الضماد وضع المريض مستلقياً وأعد العلامات الحيوية بعد 15 دقيقة قبل إبلاغ الفريق الجراحي.",
+      "Supportive measures may be appropriate, but rapid saturation with dizziness warrants concurrent circulation assessment and urgent review rather than a timed delay.",
+      "قد تكون التدابير الداعمة مناسبة، لكن التشبع السريع مع الدوخة يستلزم تقييماً متزامناً للدورة الدموية ومراجعة عاجلة بدلاً من التأخير المحدد بالوقت.",
+    ],
+    c: [
+      "Outline the drainage, review the operative note, and contact the team after confirming the trend at the next vital-sign check.",
+      "حدد حواف البلل وراجع ملاحظة العملية واتصل بالفريق بعد تأكيد الاتجاه في قياس العلامات الحيوية التالي.",
+      "Marking drainage supports trending, but it must not postpone assessment and escalation when active blood loss is suspected.",
+      "يساعد تحديد حواف البلل في متابعة الاتجاه، لكنه لا يؤخر التقييم والتصعيد عند الاشتباه بفقد دم نشط.",
+    ],
+    d: [
+      "Remove the outer dressing to locate the bleeding source while an assistant obtains routine observations.",
+      "أزل الطبقة الخارجية من الضماد لتحديد مصدر النزف بينما يقيس المساعد العلامات الروتينية.",
+      "Opening the dressing before activating the bleeding pathway can disrupt the wound plan and delays the nurse's circulation assessment.",
+      "قد يؤدي فتح الضماد قبل تفعيل مسار النزف إلى الإخلال بخطة الجرح وتأخير تقييم الممرض للدورة الدموية.",
+    ],
+  },
+  "saudi-nursing-adult-perfusion-006": {
+    a: [
+      "Treat each finding separately and repeat all observations in 30 minutes to confirm that they share one cause.",
+      "تعامل مع كل نتيجة منفردة وأعد جميع الملاحظات بعد 30 دقيقة للتأكد من أن لها سبباً واحداً.",
+      "Waiting for a single confirmed cause underuses a converging trend that already suggests worsening perfusion.",
+      "انتظار تأكيد سبب واحد يهدر قيمة اتجاه متقارب يشير بالفعل إلى تدهور الإرواء.",
+    ],
+    b: [
+      "Attribute the cool extremities to room temperature while reviewing oral intake and fluid balance later in the shift.",
+      "انسب برودة الأطراف إلى حرارة الغرفة مع مراجعة المدخول الفموي وتوازن السوائل لاحقاً خلال المناوبة.",
+      "A benign explanation for one sign does not account for simultaneous hypotension and falling urine output.",
+      "لا يفسر سبب حميد لإحدى العلامات انخفاض الضغط ونقص إخراج البول المتزامنين.",
+    ],
+    d: [
+      "Document possible dehydration and request a routine review after the next measured urine output.",
+      "وثّق احتمال الجفاف واطلب مراجعة روتينية بعد قياس إخراج البول التالي.",
+      "Assigning one diagnosis and waiting for another data point delays reassessment of a current multisystem perfusion trend.",
+      "افتراض تشخيص واحد وانتظار نقطة بيانات أخرى يؤخر إعادة تقييم اتجاه الإرواء الحالي متعدد الأجهزة.",
+    ],
+  },
+  "saudi-nursing-adult-community-007": {
+    b: [
+      "Arrange a transport voucher for the same clinic time without discussing whether that appointment still meets the client's needs.",
+      "رتب قسيمة نقل للموعد نفسه دون مناقشة ما إذا كان الموعد ما يزال يلبي احتياجات المريض.",
+      "Transport support may help, but choosing a solution before exploring the client's priorities is not shared planning.",
+      "قد يساعد دعم النقل، لكن اختيار الحل قبل استكشاف أولويات المريض لا يمثل تخطيطاً مشتركاً.",
+    ],
+    c: [
+      "Convert every follow-up to telephone appointments based on the documented transport problem.",
+      "حوّل جميع مواعيد المتابعة إلى اتصالات هاتفية بناءً على مشكلة النقل الموثقة.",
+      "Remote follow-up may be feasible for some needs, but imposing it without assessing preferences or clinical requirements is incomplete.",
+      "قد تناسب المتابعة عن بُعد بعض الاحتياجات، لكن فرضها دون تقييم التفضيلات أو المتطلبات السريرية غير مكتمل.",
+    ],
+    d: [
+      "Ask the family to choose a transport plan and inform the client once arrangements are complete.",
+      "اطلب من الأسرة اختيار خطة النقل وأبلغ المريض بعد اكتمال الترتيبات.",
+      "Family involvement can support access, but excluding the client from decisions is not person-centred.",
+      "قد يدعم إشراك الأسرة الوصول إلى الرعاية، لكن استبعاد المريض من القرار لا يتمحور حول الشخص.",
+    ],
+  },
+  "saudi-nursing-adult-mental-health-008": {
+    a: [
+      "Complete a written safety plan and arrange routine review because the client remains calm and cooperative.",
+      "أكمل خطة سلامة مكتوبة ورتب مراجعة روتينية لأن المريض ما يزال هادئاً ومتعاوناً.",
+      "A safety plan supports longer-term care but does not replace immediate observation and urgent response to a current plan with means.",
+      "تدعم خطة السلامة الرعاية الأطول مدى، لكنها لا تستبدل المراقبة الفورية والاستجابة العاجلة لخطة حالية مع توفر الوسيلة.",
+    ],
+    b: [
+      "Remove visible hazards, then step out briefly to notify the mental-health team in person.",
+      "أزل وسائل الأذى الظاهرة ثم اخرج لفترة قصيرة لإبلاغ فريق الصحة النفسية شخصياً.",
+      "Hazard reduction is useful, but a client at acute risk should not be left without the required observation while help is obtained.",
+      "يفيد تقليل وسائل الأذى، لكن لا ينبغي ترك مريض معرض لخطر حاد دون مستوى المراقبة المطلوب أثناء طلب المساعدة.",
+    ],
+    c: [
+      "Call the family to arrange supervision before activating the facility's urgent suicide-risk pathway.",
+      "اتصل بالأسرة لترتيب المراقبة قبل تفعيل مسار خطر الانتحار العاجل في المنشأة.",
+      "Family support may later contribute, but it cannot delay the facility response or substitute for trained observation.",
+      "قد يسهم دعم الأسرة لاحقاً، لكنه لا يؤخر استجابة المنشأة ولا يستبدل المراقبة المهنية.",
+    ],
+  },
+  "international-management-priority-016": {
+    a: [
+      "A client with new dizziness and blood pressure below the documented baseline after a scheduled medication.",
+      "مريض لديه دوخة جديدة وضغط أقل من خط الأساس الموثق بعد دواء مجدول.",
+      "This client needs prompt assessment, but a threatened airway with increasing effort takes precedence.",
+      "يحتاج هذا المريض إلى تقييم سريع، لكن تهديد مجرى الهواء مع ازدياد الجهد يسبقه في الأولوية.",
+    ],
+    b: [
+      "A postoperative client reporting pain that increased from mild to severe despite the prescribed intervention.",
+      "مريض بعد الجراحة ارتفع ألمه من خفيف إلى شديد رغم التدخل الموصوف.",
+      "Unexpected severe pain warrants timely assessment, but it follows the client with signs of airway obstruction.",
+      "يستلزم الألم الشديد غير المتوقع تقييماً سريعاً، لكنه يأتي بعد المريض الذي تظهر عليه علامات انسداد مجرى الهواء.",
+    ],
+    c: [
+      "An older client newly disoriented to place but awake, breathing quietly and following commands.",
+      "مريض كبير في السن أصبح غير مدرك للمكان حديثاً لكنه يقظ ويتنفس بهدوء ويتبع التعليمات.",
+      "New confusion is concerning, yet the described airway change represents the more immediate life threat.",
+      "التشوش الجديد مقلق، لكن تغير مجرى الهواء الموصوف يمثل تهديداً حياتياً أكثر إلحاحاً.",
+    ],
+  },
+  "international-safety-enteric-019": {
+    a: [
+      "Move the client to a private room and defer enteric precautions until the stool specimen has been collected.",
+      "انقل المريض إلى غرفة خاصة وأجّل الاحتياطات المعوية حتى جمع عينة البراز.",
+      "Separation helps, but precautions should begin on suspicion rather than wait for specimen collection.",
+      "يساعد الفصل، لكن تبدأ الاحتياطات عند الاشتباه ولا تنتظر جمع العينة.",
+    ],
+    b: [
+      "Begin standard contact precautions and clean shared equipment at the end of the shift.",
+      "ابدأ احتياطات التلامس القياسية ونظّف المعدات المشتركة في نهاية المناوبة.",
+      "Delayed cleaning and shared equipment do not provide the dedicated enteric-control measures required by the suspected syndrome.",
+      "لا يوفر التنظيف المتأخر واستخدام المعدات المشتركة تدابير المكافحة المعوية المخصصة التي تستلزمها المتلازمة المشتبه بها.",
+    ],
+    d: [
+      "Apply enteric precautions but follow the routine hand-hygiene and environmental-cleaning workflow without checking the enteric policy.",
+      "طبّق الاحتياطات المعوية لكن اتبع آلية نظافة اليدين والتنظيف البيئي الروتينية دون مراجعة سياسة العدوى المعوية.",
+      "Correct isolation signage alone is incomplete when organism-specific hand hygiene and cleaning requirements have not been applied.",
+      "لا تكفي لافتة العزل الصحيحة وحدها عندما لا تُطبق متطلبات نظافة اليدين والتنظيف الخاصة بالعامل الممرض.",
+    ],
+  },
+  "international-psychosocial-panic-022": {
+    a: [
+      "Guide paced breathing from the doorway while continuing a detailed history of triggers and previous episodes.",
+      "وجّه التنفس المنتظم من عند الباب مع مواصلة أخذ تاريخ مفصل للمحفزات والنوبات السابقة.",
+      "Breathing guidance may help, but distance and detailed questioning add cognitive demand during acute panic.",
+      "قد يفيد توجيه التنفس، لكن البعد والأسئلة المفصلة يزيدان العبء المعرفي أثناء الهلع الحاد.",
+    ],
+    c: [
+      "Reassure the client that the symptoms are common and ask them to identify the trigger immediately.",
+      "طمئن المريض بأن الأعراض شائعة واطلب منه تحديد المحفز فوراً.",
+      "Reassurance without calm presence can feel dismissive, and identifying triggers is not the first task when thinking is impaired.",
+      "قد يبدو التطمين دون حضور هادئ تقليلاً من المشاعر، كما أن تحديد المحفز ليس المهمة الأولى عندما يكون التفكير متأثراً.",
+    ],
+    d: [
+      "Reduce noise and return after several minutes once the client has regained control independently.",
+      "قلل الضوضاء وعد بعد عدة دقائق عندما يستعيد المريض السيطرة بصورة مستقلة.",
+      "Reducing stimuli is reasonable, but withdrawing support misses the therapeutic value of calm presence and stepwise guidance.",
+      "تقليل المثيرات مناسب، لكن الانسحاب يفوّت قيمة الحضور الهادئ والتوجيه المتدرج.",
+    ],
+  },
+  "international-basic-care-pressure-023": {
+    a: [
+      "Use a pressure-redistributing surface and turn on a fixed schedule without inspecting skin or adjusting to tolerance.",
+      "استخدم سطحاً معيداً لتوزيع الضغط وغيّر الوضعية بجدول ثابت دون فحص الجلد أو التعديل حسب التحمل.",
+      "A support surface and schedule are useful components, but prevention must be individualised and linked to ongoing skin assessment.",
+      "يمثل السطح الداعم والجدول عناصر مفيدة، لكن الوقاية يجب أن تكون فردية ومرتبطة بتقييم الجلد المستمر.",
+    ],
+    b: [
+      "Apply protective dressings to bony prominences and maintain the preferred position unless discomfort occurs.",
+      "ضع ضمادات واقية على البروزات العظمية وحافظ على الوضعية المفضلة ما لم يظهر انزعاج.",
+      "Dressings do not replace pressure off-loading and repositioning for a client who cannot move independently.",
+      "لا تستبدل الضمادات تخفيف الضغط وتغيير الوضعية لمريض لا يستطيع الحركة بصورة مستقلة.",
+    ],
+    d: [
+      "Increase linen padding, manage moisture, and document any redness at the end of the shift.",
+      "زد التبطين بالشراشف وعالج الرطوبة ووثّق أي احمرار في نهاية المناوبة.",
+      "Extra linen can add folds and pressure, and delayed skin review omits timely off-loading of an affected area.",
+      "قد تضيف الشراشف الزائدة طيات وضغطاً، كما أن تأخير مراجعة الجلد يغفل تخفيف الضغط عن المنطقة المتأثرة في الوقت المناسب.",
+    ],
+  },
+  "international-pharmacology-verification-024": {
+    b: [
+      "Use the facility's default rate for this medication and obtain the required independent check before starting.",
+      "استخدم المعدل الافتراضي للدواء في المنشأة واحصل على التحقق المستقل المطلوب قبل البدء.",
+      "An independent check cannot make an incomplete patient-specific order valid or supply the missing rate.",
+      "لا يجعل التحقق المستقل الأمر غير المكتمل صالحاً للمريض ولا يزوّد المعدل المفقود.",
+    ],
+    c: [
+      "Calculate the likely rate from the prescribed dose and concentration, then ask a second nurse to validate it.",
+      "احسب المعدل المرجح من الجرعة والتركيز الموصوفين ثم اطلب من ممرض ثانٍ التحقق منه.",
+      "A calculation can verify a complete order, but nurses should not infer a missing administration instruction.",
+      "يمكن للحساب التحقق من أمر مكتمل، لكن لا ينبغي للممرض استنتاج تعليمات إعطاء مفقودة.",
+    ],
+    d: [
+      "Prepare and label the medication, then pause at the bedside while the prescriber clarifies the rate.",
+      "حضّر الدواء وضع ملصقه ثم توقف عند السرير حتى يستوضح الواصف معدل الإعطاء.",
+      "Clarification is necessary, but continuing preparation creates avoidable risk before the order is complete.",
+      "الاستيضاح ضروري، لكن مواصلة التحضير تنشئ خطراً يمكن تجنبه قبل اكتمال الأمر.",
+    ],
+  },
+  "international-pharmacology-infiltration-025": {
+    a: [
+      "Pause the pump, disconnect the tubing, and flush the access slowly to check patency before escalating.",
+      "أوقف المضخة وافصل الأنبوب واغسل المنفذ ببطء للتحقق من سالكيته قبل التصعيد.",
+      "Flushing a suspected vesicant extravasation may spread the agent into tissue and should not precede the specific protocol.",
+      "قد يؤدي غسل المنفذ عند الاشتباه بتسرب دواء مؤذٍ للأنسجة إلى نشر المادة في الأنسجة، ولا يسبق البروتوكول الخاص.",
+    ],
+    b: [
+      "Stop the infusion, remove the cannula, then call the team after photographing and measuring the site.",
+      "أوقف التسريب وأزل القنية ثم اتصل بالفريق بعد تصوير الموضع وقياسه.",
+      "Stopping exposure is correct, but immediate device removal may prevent aspiration or agent-specific management through the existing access.",
+      "إيقاف التعرض صحيح، لكن الإزالة الفورية للجهاز قد تمنع الشفط أو التدبير الخاص بالمادة عبر المنفذ القائم.",
+    ],
+    c: [
+      "Clamp the tubing and apply a warm compress while identifying the medicine and checking the protocol.",
+      "أغلق الأنبوب وضع كمادة دافئة أثناء تحديد الدواء ومراجعة البروتوكول.",
+      "Thermal management is agent-specific; it should not be selected before the medicine and authorised pathway are confirmed.",
+      "يعتمد التدبير الحراري على المادة؛ فلا يُختار قبل تأكيد الدواء والمسار المعتمد.",
+    ],
+  },
+  "international-risk-transfusion-026": {
+    a: [
+      "Pause the transfusion, obtain a focused assessment, and restart at a reduced rate if the symptoms settle.",
+      "أوقف نقل الدم مؤقتاً وأجرِ تقييماً مركزاً ثم أعده بمعدل أقل إذا هدأت الأعراض.",
+      "A suspected acute reaction requires the transfusion to remain stopped while the reaction pathway is activated; symptom improvement does not authorise a restart.",
+      "يتطلب الاشتباه بتفاعل حاد بقاء نقل الدم متوقفاً أثناء تفعيل مسار التفاعل؛ ولا يجيز تحسن الأعراض إعادة البدء.",
+    ],
+    c: [
+      "Stop the transfusion, remove the intravenous cannula, and send the tubing for review before notifying the transfusion service.",
+      "أوقف نقل الدم وأزل القنية الوريدية وأرسل الأنبوب للمراجعة قبل إبلاغ خدمة نقل الدم.",
+      "Stopping is appropriate, but removing access and delaying notification can obstruct urgent support and protocol-directed investigation.",
+      "إيقاف النقل مناسب، لكن إزالة المنفذ وتأخير الإبلاغ قد يعرقلان الدعم العاجل والاستقصاء الموجه بالبروتوكول.",
+    ],
+    d: [
+      "Stop the transfusion, give the prescribed symptomatic treatment, and continue monitoring before alerting the response team.",
+      "أوقف نقل الدم وأعطِ العلاج العرضي الموصوف وواصل المراقبة قبل تنبيه فريق الاستجابة.",
+      "Treatment and monitoring may follow, but airway, breathing, circulation assessment and urgent notification cannot be deferred.",
+      "قد يتبع العلاج والمراقبة، لكن لا يمكن تأجيل تقييم مجرى الهواء والتنفس والدورة الدموية والإبلاغ العاجل.",
+    ],
+  },
+  "international-risk-neurological-027": {
+    a: [
+      "Perform the focused neurological assessment first, then wait for the clinician's response before checking airway and breathing.",
+      "أجرِ التقييم العصبي المركز أولاً ثم انتظر استجابة الممارس قبل التحقق من مجرى الهواء والتنفس.",
+      "A neurological examination is important, but immediate ABCDE stabilisation precedes the focused assessment.",
+      "التقييم العصبي مهم، لكن تثبيت ABCDE الفوري يسبق التقييم المركز.",
+    ],
+    b: [
+      "Repeat vital signs and compare the anaesthetic record before calling the urgent response team.",
+      "أعد قياس العلامات الحيوية وقارن سجل التخدير قبل الاتصال بفريق الاستجابة العاجلة.",
+      "Additional data may support handover, but focal weakness and increasing drowsiness already justify concurrent urgent escalation.",
+      "قد تدعم البيانات الإضافية التسليم، لكن الضعف البؤري وازدياد النعاس يبرران بالفعل التصعيد العاجل المتزامن.",
+    ],
+    d: [
+      "Keep the client fasting, position safely, and request routine medical review for possible postoperative sedation.",
+      "أبقِ المريض صائماً وضعه بأمان واطلب مراجعة طبية روتينية لاحتمال تأثير التهدئة بعد الإجراء.",
+      "Fasting and safe positioning do not address a possible acute neurological complication or the need for urgent ABCDE assessment.",
+      "لا يعالج الصيام والوضع الآمن احتمال وجود مضاعفة عصبية حادة أو الحاجة إلى تقييم ABCDE عاجل.",
+    ],
+  },
+  "international-physiological-asthma-028": {
+    b: [
+      "Interpret the quieter chest as partial bronchodilator response and repeat the respiratory assessment after a short recovery period.",
+      "فسّر هدوء الصدر بأنه استجابة جزئية لموسع القصبات وأعد التقييم التنفسي بعد فترة تعافٍ قصيرة.",
+      "Very little air movement with exhaustion and reduced responsiveness is a deterioration cue, not reassuring treatment response.",
+      "قلة حركة الهواء مع الإنهاك وانخفاض الاستجابة قرينة تدهور وليست استجابة علاجية مطمئنة.",
+    ],
+    c: [
+      "Conserve the client's energy, continue current oxygen support, and call for review after obtaining a complete peak-flow history.",
+      "حافظ على طاقة المريض وواصل دعم الأكسجين الحالي واطلب المراجعة بعد أخذ تاريخ كامل لذروة الجريان.",
+      "History and energy conservation must not delay emergency airway and breathing support when respiratory failure is impending.",
+      "لا ينبغي للتاريخ أو الحفاظ على الطاقة تأخير الدعم الطارئ لمجرى الهواء والتنفس عند اقتراب الفشل التنفسي.",
+    ],
+    d: [
+      "Position upright, coach slow breathing, and reassess response before activating emergency airway support.",
+      "ضع المريض في وضع قائم ووجّه التنفس البطيء وأعد تقييم الاستجابة قبل تفعيل الدعم الطارئ لمجرى الهواء.",
+      "Positioning may help, but coaching and reassessment alone are insufficient for reduced consciousness and minimal air movement.",
+      "قد تساعد الوضعية، لكن التوجيه وإعادة التقييم وحدهما غير كافيين مع انخفاض الوعي وقلة حركة الهواء.",
+    ],
+  },
+  "international-physiological-hypoglycemia-030": {
+    a: [
+      "Provide a carbohydrate-containing snack and recheck at the next scheduled glucose-monitoring time.",
+      "قدّم وجبة خفيفة تحتوي على كربوهيدرات وأعد الفحص في موعد مراقبة السكر المجدول التالي.",
+      "A snack may contribute after initial treatment, but symptomatic hypoglycaemia requires rapid-acting glucose and a prompt recheck.",
+      "قد تسهم الوجبة الخفيفة بعد العلاج الأولي، لكن انخفاض السكر المصحوب بأعراض يحتاج غلوكوز سريع المفعول وإعادة فحص سريعة.",
+    ],
+    c: [
+      "Give the usual meal tray, remain nearby, and reassess symptoms before repeating the glucose measurement.",
+      "قدّم وجبة المريض المعتادة وابقَ قريباً وأعد تقييم الأعراض قبل تكرار قياس السكر.",
+      "A routine meal has a less predictable response than protocol-specified fast-acting glucose and does not replace the timed recheck.",
+      "استجابة الوجبة الروتينية أقل قابلية للتوقع من الغلوكوز سريع المفعول المحدد بالبروتوكول، ولا تستبدل إعادة الفحص المحددة زمنياً.",
+    ],
+    d: [
+      "Notify the clinician and wait for a new treatment order while monitoring the conscious client closely.",
+      "أبلغ الممارس وانتظر أمراً علاجياً جديداً مع مراقبة المريض الواعي عن قرب.",
+      "Notification does not replace immediate protocol treatment for confirmed symptomatic hypoglycaemia when swallowing is safe.",
+      "لا يستبدل الإبلاغ العلاج الفوري وفق البروتوكول لانخفاض السكر المؤكد المصحوب بأعراض عندما يكون البلع آمناً.",
+    ],
+  },
+  "computerized-acute-airway-031": {
+    a: [
+      "Apply oxygen and obtain a complete set of vital signs before alerting the surgical response team.",
+      "أعطِ الأكسجين واحصل على مجموعة كاملة من العلامات الحيوية قبل تنبيه فريق الاستجابة الجراحية.",
+      "Oxygen and vital signs are relevant, but the signs of obstruction require simultaneous airway support and urgent help.",
+      "يفيد الأكسجين والعلامات الحيوية، لكن علامات الانسداد تتطلب دعماً متزامناً لمجرى الهواء ومساعدة عاجلة.",
+    ],
+    c: [
+      "Position the client upright, inspect the incision, and call the surgeon after completing a focused neck assessment.",
+      "ضع المريض في وضع قائم وافحص الجرح واتصل بالجراح بعد إكمال تقييم مركز للرقبة.",
+      "Positioning and inspection can occur, but a complete local assessment must not delay emergency airway support and team activation.",
+      "يمكن إجراء الوضعية والفحص، لكن التقييم الموضعي الكامل لا يؤخر الدعم الطارئ لمجرى الهواء وتفعيل الفريق.",
+    ],
+    d: [
+      "Request a respiratory-therapy review while continuing scheduled observations and preparing airway equipment nearby.",
+      "اطلب مراجعة العلاج التنفسي مع مواصلة الملاحظات المجدولة وتجهيز معدات مجرى الهواء بالقرب من المريض.",
+      "Preparing equipment is useful, but routine review and observation underestimate a rapidly evolving postoperative airway emergency.",
+      "تجهيز المعدات مفيد، لكن المراجعة الروتينية والمراقبة تقللان من تقدير طارئ مجرى هوائي يتطور سريعاً بعد الجراحة.",
+    ],
+  },
+  "computerized-acute-anaphylaxis-034": {
+    a: [
+      "Stop the antibiotic, apply oxygen, and wait for blood pressure to be repeated before activating the emergency response.",
+      "أوقف المضاد الحيوي وأعطِ الأكسجين وانتظر إعادة قياس الضغط قبل تفعيل الاستجابة الطارئة.",
+      "Stopping exposure and oxygen are relevant, but the combined airway, skin and circulatory signs require immediate emergency activation and first-line treatment.",
+      "إيقاف التعرض والأكسجين مهمان، لكن اجتماع علامات التنفس والجلد والدورة الدموية يتطلب تفعيل الطوارئ والعلاج الأول فوراً.",
+    ],
+    b: [
+      "Stop the infusion and administer the prescribed antihistamine before deciding whether emergency adrenaline is needed.",
+      "أوقف التسريب وأعطِ مضاد الهيستامين الموصوف قبل تحديد الحاجة إلى الأدرينالين الإسعافي.",
+      "Antihistamine does not take priority over prompt intramuscular adrenaline for anaphylaxis with hypotension and wheeze.",
+      "لا يسبق مضاد الهيستامين الإعطاء السريع للأدرينالين العضلي في التأق المصحوب بانخفاض الضغط والصفير.",
+    ],
+    c: [
+      "Call the prescriber for an urgent review while keeping the antibiotic line connected but clamped.",
+      "اتصل بالواصف لمراجعة عاجلة مع إبقاء خط المضاد الحيوي متصلاً لكنه مغلق.",
+      "An individual prescriber review is insufficient for circulatory and respiratory compromise, and the suspected trigger should be disconnected under the emergency pathway.",
+      "لا تكفي مراجعة الواصف منفرداً عند اضطراب التنفس والدورة الدموية، وينبغي فصل المسبب المشتبه ضمن مسار الطوارئ.",
+    ],
+  },
+  "computerized-medication-potassium-039": {
+    a: [
+      "Pause the order and ask pharmacy whether a slower direct intravenous administration would be acceptable.",
+      "أوقف الأمر مؤقتاً واسأل الصيدلية عما إذا كان الإعطاء الوريدي المباشر الأبطأ مقبولاً.",
+      "Changing push speed does not make direct intravenous administration of concentrated potassium safe or authorised.",
+      "لا يجعل تغيير سرعة الدفع الإعطاء الوريدي المباشر للبوتاسيوم المركز آمناً أو معتمداً.",
+    ],
+    b: [
+      "Prepare a diluted syringe but withhold it until a second nurse independently checks the calculation.",
+      "حضّر محقنة مخففة لكن لا تعطها حتى يتحقق ممرض ثانٍ من الحساب بصورة مستقلة.",
+      "Dilution and an independent check do not convert an unsafe direct-push order into an authorised controlled infusion.",
+      "لا يحول التخفيف والتحقق المستقل أمر الدفع المباشر غير الآمن إلى تسريب مضبوط معتمد.",
+    ],
+    d: [
+      "Hold the medication and ask the client whether the same route was used during a previous admission before clarifying the order.",
+      "أوقف الدواء واسأل المريض عما إذا استُخدم الطريق نفسه في تنويم سابق قبل استيضاح الأمر.",
+      "Withholding is appropriate, but previous experience cannot validate the route and should not delay urgent authorised clarification.",
+      "إيقاف الدواء مناسب، لكن الخبرة السابقة لا تثبت صحة الطريق ولا ينبغي أن تؤخر الاستيضاح المعتمد العاجل.",
+    ],
+  },
+  "computerized-medication-hypoglycemia-042": {
+    a: [
+      "Place oral glucose gel inside the cheek while positioning the drowsy client laterally and monitoring swallowing.",
+      "ضع جل الغلوكوز الفموي داخل الخد مع وضع المريض النعسان على جانبه ومراقبة البلع.",
+      "A client who cannot swallow safely should not receive oral treatment because positioning does not remove aspiration risk.",
+      "لا ينبغي إعطاء علاج فموي لمن لا يستطيع البلع بأمان لأن الوضعية لا تزيل خطر الاستنشاق.",
+    ],
+    b: [
+      "Call the clinician for an urgent order and continue airway observation without using the existing hypoglycaemia protocol.",
+      "اتصل بالممارس لأمر عاجل وواصل مراقبة مجرى الهواء دون استخدام بروتوكول انخفاض السكر القائم.",
+      "Notification may be needed, but waiting for a new order delays the authorised non-oral pathway for confirmed hypoglycaemia.",
+      "قد يلزم الإبلاغ، لكن انتظار أمر جديد يؤخر المسار غير الفموي المعتمد لانخفاض السكر المؤكد.",
+    ],
+    d: [
+      "Repeat the bedside glucose to exclude device error before calling for help or protecting the airway.",
+      "أعد قياس السكر بجانب السرير لاستبعاد خطأ الجهاز قبل طلب المساعدة أو حماية مجرى الهواء.",
+      "Confirmation can occur promptly, but it must not precede airway protection and help when severe symptoms and an unsafe swallow are present.",
+      "يمكن التأكيد سريعاً، لكنه لا يسبق حماية مجرى الهواء وطلب المساعدة مع وجود أعراض شديدة وبلع غير آمن.",
+    ],
+  },
+};
 
 const distractorRationalesByQuestionId = {
   "saudi-nursing-fundamentals-identity-001": {
@@ -2305,8 +2758,56 @@ const legacyQuestionBank = authoredQuestions.map((question) => {
   };
 });
 
+const harderDistractorData = {
+  ...harderDistractorDataA,
+  ...harderDistractorDataB,
+  ...harderDistractorDataC,
+  ...harderDistractorDataD,
+  ...harderDistractorDataE,
+  ...harderDistractorDataF,
+  ...harderDistractorDataG,
+};
+
+export const hardenedQuestionIds = Object.freeze(Object.keys(harderDistractorData));
+
+const hardenedContentVersions = {
+  "1.4.0": "1.4.1",
+  "1.5.0-expansion-draft": "1.5.1-expansion-draft",
+  "1.6.0-expansion-b-draft": "1.6.1-expansion-b-draft",
+};
+
+function applyHarderDistractors(question) {
+  const revisions = harderDistractorData[question.id];
+  if (!revisions) return question;
+
+  const optionIds = new Set(question.options.map((answer) => answer.id));
+  const optionRationales = { ...question.optionRationales };
+  const revisionEntries = Object.entries(revisions);
+  if (revisionEntries.length !== question.options.length - 1) {
+    throw new Error(`Hardened question must revise every distractor: ${question.id}`);
+  }
+  for (const [answerId, revision] of revisionEntries) {
+    if (!optionIds.has(answerId)) throw new Error(`Unknown hardened option: ${question.id}.${answerId}`);
+    if (answerId === question.correctOptionId) throw new Error(`Hardened data cannot change the keyed answer: ${question.id}.${answerId}`);
+    if (!Array.isArray(revision) || revision.length !== 4 || revision.some((value) => !String(value).trim())) {
+      throw new Error(`Invalid bilingual hardened option: ${question.id}.${answerId}`);
+    }
+    optionRationales[answerId] = bi(revision[2], revision[3]);
+  }
+
+  return {
+    ...question,
+    options: question.options.map((answer) => {
+      const revision = revisions[answer.id];
+      return revision ? { ...answer, text: bi(revision[0], revision[1]) } : answer;
+    }),
+    optionRationales,
+    contentVersion: hardenedContentVersions[question.contentVersion] ?? question.contentVersion,
+  };
+}
+
 export const questionBank = [
   ...legacyQuestionBank,
   ...questionBankExpansionDrafts,
   ...questionBankExpansionBDrafts,
-];
+].map(applyHarderDistractors);

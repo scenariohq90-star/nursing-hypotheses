@@ -7,6 +7,7 @@ import {
   examDomains,
   examReferences,
   examTracks,
+  hardenedQuestionIds,
   questionBank,
   questionIntakePolicy,
 } from "../src/data/question-bank.js";
@@ -55,7 +56,14 @@ test("question bank contains 101 original bilingual questions across three indep
     assert.equal(question.fictional, true);
     assert.equal(question.official, false);
     assert.equal(question.accessTier, "free");
-    assert.ok(["1.4.0", "1.5.0-expansion-draft", "1.6.0-expansion-b-draft"].includes(question.contentVersion));
+    assert.ok([
+      "1.4.0",
+      "1.4.1",
+      "1.5.0-expansion-draft",
+      "1.5.1-expansion-draft",
+      "1.6.0-expansion-b-draft",
+      "1.6.1-expansion-b-draft",
+    ].includes(question.contentVersion));
     assert.ok([
       "Independent nursing learning domains v1.4",
       "Independent nursing learning domains v1.5",
@@ -188,6 +196,70 @@ test("every distractor has a specific bilingual rationale", () => {
       assertBilingual(rationale, `${question.id}.${answer.id} distractor rationale`);
       assert.notDeepEqual(rationale, question.rationale);
       assert.doesNotMatch(rationale.en, /does not address the safest immediate nursing priority/i);
+    }
+  }
+});
+
+test("the hardened question bank avoids obvious wording and length cues", () => {
+  const expectedAnswers = {
+    "saudi-nursing-fundamentals-identity-001": "b",
+    "saudi-nursing-fundamentals-assessment-002": "c",
+    "saudi-nursing-fundamentals-medication-003": "a",
+    "saudi-nursing-adult-dyspnea-004": "d",
+    "saudi-nursing-adult-postoperative-005": "b",
+    "saudi-nursing-adult-perfusion-006": "c",
+    "saudi-nursing-adult-community-007": "a",
+    "saudi-nursing-adult-mental-health-008": "d",
+    "international-management-priority-016": "d",
+    "international-safety-enteric-019": "c",
+    "international-psychosocial-panic-022": "b",
+    "international-basic-care-pressure-023": "c",
+    "international-pharmacology-verification-024": "a",
+    "international-pharmacology-infiltration-025": "d",
+    "international-risk-transfusion-026": "b",
+    "international-risk-neurological-027": "c",
+    "international-physiological-asthma-028": "a",
+    "international-physiological-hypoglycemia-030": "b",
+    "computerized-acute-airway-031": "b",
+    "computerized-acute-anaphylaxis-034": "d",
+    "computerized-medication-potassium-039": "c",
+    "computerized-medication-hypoglycemia-042": "c",
+  };
+  const obviousCue = /\b(always|never|alone|tomorrow|at discharge|until the next shift|do nothing|ignore|guess|silently|leftover)\b/i;
+
+  assert.equal(Object.keys(expectedAnswers).length, 22);
+  assert.equal(hardenedQuestionIds.length, questionBank.length);
+  for (const [questionId, correctOptionId] of Object.entries(expectedAnswers)) {
+    const question = questionBank.find((item) => item.id === questionId);
+    assert.ok(question, `${questionId} must remain in the bank`);
+    assert.equal(question.correctOptionId, correctOptionId, `${questionId} keyed answer changed`);
+  }
+
+  for (const questionId of hardenedQuestionIds) {
+    const question = questionBank.find((item) => item.id === questionId);
+    assert.ok(question, `${questionId} must remain in the bank`);
+    const correctOptionId = question.correctOptionId;
+
+    for (const [language, maxSpread, maxCorrectRatio] of [["en", 1.8, 1.4], ["ar", 1.9, 1.5]]) {
+      const lengths = question.options.map((answer) => answer.text[language].trim().split(/\s+/).length);
+      const correctIndex = question.options.findIndex((answer) => answer.id === correctOptionId);
+      const distractorAverage = lengths
+        .filter((_, index) => index !== correctIndex)
+        .reduce((total, length) => total + length, 0) / 3;
+      assert.ok(
+        Math.max(...lengths) / Math.min(...lengths) <= maxSpread,
+        `${questionId} has a conspicuous ${language} option-length spread`,
+      );
+      assert.ok(
+        lengths[correctIndex] / distractorAverage <= maxCorrectRatio,
+        `${questionId} makes the keyed ${language} answer conspicuously longer`,
+      );
+    }
+
+    for (const answer of question.options.filter((item) => item.id !== correctOptionId)) {
+      assert.ok(answer.text.en.trim().split(/\s+/).length >= 9, `${questionId}.${answer.id} English distractor is too terse`);
+      assert.ok(answer.text.ar.trim().split(/\s+/).length >= 7, `${questionId}.${answer.id} Arabic distractor is too terse`);
+      assert.doesNotMatch(answer.text.en, obviousCue, `${questionId}.${answer.id} contains an obvious cue`);
     }
   }
 });

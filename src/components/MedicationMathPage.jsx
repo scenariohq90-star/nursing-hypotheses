@@ -12,8 +12,19 @@ import {
 } from "@phosphor-icons/react";
 import { dosePracticeExercises } from "../data/dose-practice.js";
 import { getNamedDosePreset, namedDosePresets } from "../data/dose-presets.js";
+import {
+  getInfusionConcentrationPreset,
+  INFUSION_CONCENTRATION_PRESETS,
+  INFUSION_PRESET_SOURCE,
+} from "../data/infusion-presets.js";
 import { calculateDosePractice, gradeDosePracticeAnswer } from "../lib/dose-calculator.js";
-import { calculateInfusionRate } from "../lib/infusion-calculator.js";
+import { calculatePresetInfusionRate } from "../lib/infusion-preset-calculator.js";
+import {
+  calculateInfusionRate,
+  INFUSION_RATE_UNITS,
+  infusionRateUnitDimension,
+  isWeightBasedInfusionRateUnit,
+} from "../lib/infusion-calculator.js";
 import "./medication-math.css";
 
 const EMPTY_ANSWERS = Object.freeze({ requiredDoseMg: "", calculatedVolumeMl: "" });
@@ -25,7 +36,7 @@ const EMPTY_CALCULATOR = Object.freeze({
   stockVolumeMl: "",
 });
 const EMPTY_INFUSION = Object.freeze({
-  medicineId: "nitroglycerin",
+  medicineId: "custom",
   rateValue: "",
   rateUnit: "",
   weightKg: "",
@@ -48,6 +59,33 @@ const INFUSION_FIELD_LABEL_KEYS = Object.freeze({
   drugAmountUnit: "amountUnit",
   finalVolumeMl: "finalVolume",
 });
+
+const INFUSION_RATE_UNIT_LABELS = Object.freeze({
+  "mcg/min": Object.freeze({ en: "mcg/min — micrograms/minute", ar: "mcg/min — ميكروغرام/دقيقة" }),
+  "mcg/kg/min": Object.freeze({ en: "mcg/kg/min — micrograms/kg/minute", ar: "mcg/kg/min — ميكروغرام/كجم/دقيقة" }),
+  "mcg/hr": Object.freeze({ en: "mcg/hr — micrograms/hour", ar: "mcg/hr — ميكروغرام/ساعة" }),
+  "mcg/kg/hr": Object.freeze({ en: "mcg/kg/hr — micrograms/kg/hour", ar: "mcg/kg/hr — ميكروغرام/كجم/ساعة" }),
+  "mg/min": Object.freeze({ en: "mg/min — milligrams/minute", ar: "mg/min — ملغ/دقيقة" }),
+  "mg/kg/min": Object.freeze({ en: "mg/kg/min — milligrams/kg/minute", ar: "mg/kg/min — ملغ/كجم/دقيقة" }),
+  "mg/hr": Object.freeze({ en: "mg/hr — milligrams/hour", ar: "mg/hr — ملغ/ساعة" }),
+  "mg/kg/hr": Object.freeze({ en: "mg/kg/hr — milligrams/kg/hour", ar: "mg/kg/hr — ملغ/كجم/ساعة" }),
+  "unit/min": Object.freeze({ en: "units/min — units/minute", ar: "units/min — وحدة/دقيقة" }),
+  "unit/kg/min": Object.freeze({ en: "units/kg/min — units/kg/minute", ar: "units/kg/min — وحدة/كجم/دقيقة" }),
+  "unit/hr": Object.freeze({ en: "units/hr — units/hour", ar: "units/hr — وحدة/ساعة" }),
+  "unit/kg/hr": Object.freeze({ en: "units/kg/hr — units/kg/hour", ar: "units/kg/hr — وحدة/كجم/ساعة" }),
+});
+
+const INFUSION_PRESET_GROUPS = Object.freeze(
+  INFUSION_CONCENTRATION_PRESETS.reduce((groups, preset) => {
+    const existingGroup = groups.find((group) => group.category.en === preset.category.en);
+    if (existingGroup) existingGroup.presets.push(preset);
+    else groups.push({ category: preset.category, presets: [preset] });
+    return groups;
+  }, []).map((group) => Object.freeze({
+    category: group.category,
+    presets: Object.freeze(group.presets),
+  })),
+);
 
 const SOURCE_LINKS = Object.freeze([
   Object.freeze({
@@ -85,7 +123,7 @@ const pageCopy = {
     boundaryTitle: "Calculation only — not a dose recommendation",
     boundaryBody: "The tools perform arithmetic only from values and units you enter. Named options never choose a dose or confirm a prepared concentration. The tools do not validate an order, indication, age limits, allergies, contraindications, maximum dose, interval, route, organ function, interactions, device, tubing or local policy. Do not rely on this website during patient care or an emergency.",
     calculatorTab: "Single liquid dose (mg/kg/dose)",
-    infusionTab: "IV infusion (mcg/min, mcg/kg/min, or mg/hr)",
+    infusionTab: "IV infusion rate",
     practiceTab: "Fictional exercises",
     calculatorTitle: "Single-dose liquid calculator",
     calculatorLead: "Select a listed medicine or enter another one. Presets populate the label concentration only; they never choose the prescribed amount.",
@@ -117,31 +155,47 @@ const pageCopy = {
     calculatorSecondStep: "Step 2 · Convert the current product label to mL/dose",
     calculatorResultBoundary: "This result confirms arithmetic only. Recheck it against the original order, the current product label, an approved drug reference and local policy before use.",
     infusionTitle: "IV infusion-rate calculator",
-    infusionLead: "Convert a rate already written in the source order into mL/hr. This includes arithmetic for Nitroglycerin (Glyceryl trinitrate) and other IV infusions; it never selects the prescribed rate.",
+    infusionLead: "Choose one of 23 concentration shortcuts or enter the prepared solution manually, then convert a rate already written in the source order into mL/hr. A shortcut never selects the prescribed rate.",
     infusionPrivacy: "These numeric values remain only in page memory until reset or navigation and are not added to learning history. Do not enter patient identifiers or clinical notes.",
-    infusionMedicineLabel: "Infusion context",
-    nitroglycerinOption: "Nitroglycerin (Glyceryl trinitrate) — enter the actual prepared solution",
-    otherInfusionOption: "Other IV infusion — enter the actual prepared solution",
-    infusionMedicineHint: "The selection supplies context only. It does not fill a dose, amount or concentration.",
+    infusionMedicineLabel: "Medication concentration shortcut",
+    otherInfusionOption: "Other IV infusion — enter the prepared solution manually",
+    infusionMedicineHint: "A named shortcut fills only its reference concentration. The ordered rate, rate unit and weight always remain for you to enter.",
+    selectedConcentration: "Selected concentration",
+    reviewedConcentration: "Reference value under review",
+    shortcutReady: "Concentration shortcut",
+    shortcutLocked: "Requires review",
+    shortcutLockedTitle: "This shortcut is listed but not enabled",
+    shortcutLockedBody: "The current source does not confirm this value as an explicit final prepared concentration. Choose the manual option and enter the actual verified preparation instead.",
+    useManualPreparation: "Use manual preparation entry",
+    lasaBadge: "LASA name",
+    independentCheckBadge: "Independent check",
+    shortcutSource: "Concentration source",
+    shortcutPage: "p.",
+    infusionPresetConcentrationHint: "Only the concentration is supplied by this shortcut. It does not supply a dose, target, titration or pump setting.",
+    infusionValuesCleared: "Previous order values were cleared because the concentration shortcut changed.",
+    manualPreparationReady: "Manual preparation entry is ready. Focus moved to the total drug amount.",
+    sourceOrderLegend: "Source order",
     prescribedRate: "Rate written in the source order",
     rateUnit: "Order rate unit",
     selectRateUnit: "Select the exact order unit",
     rateUnitRequired: "Select the unit exactly as written in the source order.",
-    rateUnitHint: "Choose the unit exactly as written. Do not convert /dose to /min.",
+    rateUnitHint: "Choose the unit exactly as written. Available units are filtered to match the selected concentration dimension.",
     infusionWeight: "Weight used by the source order (kg)",
-    weightRequiredHint: "Required only because mcg/kg/min is weight based.",
+    weightRequiredHint: "Required only when the source order is weight based (/kg/).",
     drugAmount: "Total drug amount in the prepared solution",
     amountUnit: "Drug amount unit",
     selectAmountUnit: "Select the exact amount unit",
     amountUnitRequired: "Select the unit shown for the total prepared drug amount.",
-    amountUnitHint: "Choose mg or mcg exactly as shown on the preparation label.",
+    amountUnitHint: "Choose mg, mcg or units exactly as shown on the preparation label.",
     preparedSolutionLegend: "Prepared solution",
     finalVolume: "Final total prepared solution volume (mL)",
     finalVolumeHint: "Enter the final total volume, not the volume of diluent added.",
     infusionAcknowledge: "I independently verified the source-order rate and unit, total drug amount, and final prepared volume. I understand this tool only converts those values.",
+    infusionPresetAcknowledge: "I independently verified the source-order rate and unit and confirmed that the current prepared solution exactly matches the selected concentration. I understand this tool only converts those values.",
     infusionAcknowledgeError: "Confirm the independently checked order unit and prepared-solution values before calculating.",
     infusionError: "Review the highlighted infusion values.",
-    infusionCalculationOutside: "The calculated infusion rate is outside this tool's technical display range. Recheck the units, drug amount and final volume.",
+    infusionCalculationOutside: "The calculated infusion rate is outside this tool's technical display range. Recheck the units and concentration values.",
+    infusionIncompatibleUnits: "The ordered-rate unit does not match the selected concentration dimension. Use mass units with mg/mL or mcg/mL, and activity units with unit/mL.",
     infusionCalculate: "Calculate mL/hr",
     infusionReset: "Reset infusion calculator",
     infusionResultTitle: "Calculated infusion rate",
@@ -149,10 +203,11 @@ const pageCopy = {
     normalizedDoseResult: "Rate after unit conversion",
     pumpRateResult: "Calculated pump rate",
     weightBasedOrderResult: "Entered weight-based rate",
-    amountConversionStep: "Step 1 · Convert the total drug amount to mcg",
+    amountConversionStep: "Step 1 · Normalize the total drug amount",
     concentrationStep: "Step 2 · Calculate the prepared concentration",
-    doseNormalizationStep: "Step 3 · Convert the order to mcg/min",
-    pumpRateStep: "Step 4 · Convert mcg/min to mL/hr",
+    presetConcentrationStep: "Step 1 · Use the selected concentration shortcut",
+    doseNormalizationStep: "Normalize the source-order rate to an hourly amount",
+    pumpRateStep: "Final step · Convert the hourly amount to mL/hr",
     infusionDisplayRounding: "Calculated values are displayed with up to eight significant digits. No intermediate value is rounded.",
     infusionResultBoundary: "Arithmetic only. This result does not validate the order, medicine, concentration, container, tubing or safe administration. Independently check the original order, actual preparation, infusion-pump library, current product information and local policy.",
     nitroglycerinDeviceNote: "For Nitroglycerin (Glyceryl trinitrate), the product information warns that the container and administration set can affect delivered drug. Follow the current product label and local policy.",
@@ -196,7 +251,7 @@ const pageCopy = {
     boundaryTitle: "عملية حسابية فقط — وليست توصية بجرعة",
     boundaryBody: "تنفذ الأدوات عملية حسابية فقط من القيم والوحدات التي تدخلها. لا تختار الخيارات المسماة جرعة ولا تؤكد تركيز التحضير. ولا تعتمد الأدوات الأمر أو الاستطباب أو العمر أو الحساسية أو الموانع أو الحد الأقصى أو الفاصل أو الطريق أو وظائف الأعضاء أو التداخلات أو الجهاز أو الأنابيب أو سياسة المنشأة. لا تعتمد على الموقع أثناء رعاية مريض أو في الطوارئ.",
     calculatorTab: "جرعة سائلة مفردة (mg/kg/dose)",
-    infusionTab: "تسريب وريدي (mcg/min أو mcg/kg/min أو mg/hr)",
+    infusionTab: "معدل التسريب الوريدي",
     practiceTab: "تمارين خيالية",
     calculatorTitle: "حاسبة الجرعة السائلة المفردة",
     calculatorLead: "اختر دواءً مدرجاً أو أدخل دواءً آخر. تعبئ الخيارات تركيز الملصق فقط، ولا تختار أبداً الكمية الموصوفة.",
@@ -228,31 +283,47 @@ const pageCopy = {
     calculatorSecondStep: "الخطوة 2 · التحويل من ملصق المنتج الحالي إلى mL/dose",
     calculatorResultBoundary: "يؤكد هذا الناتج العملية الحسابية فقط. أعد مطابقته مع الأمر الأصلي وملصق المنتج الحالي ومرجع دوائي معتمد وسياسة المنشأة قبل الاستخدام.",
     infusionTitle: "حاسبة معدل التسريب الوريدي",
-    infusionLead: "حوّل معدلاً مكتوباً مسبقاً في الأمر الأصلي إلى mL/hr. وتشمل الأداة حسابات Nitroglycerin (Glyceryl trinitrate) والتسريبات الوريدية الأخرى، لكنها لا تختار أبداً المعدل الموصوف.",
+    infusionLead: "اختر واحداً من 23 اختصار تركيز أو أدخل المحلول المحضّر يدوياً، ثم حوّل المعدل المكتوب في الأمر الأصلي إلى mL/hr. لا يختار الاختصار معدل الأمر أبداً.",
     infusionPrivacy: "تبقى هذه القيم الرقمية في ذاكرة الصفحة فقط حتى المسح أو الانتقال، ولا تضاف إلى سجل التعلم. لا تدخل معرّفات مريض أو ملاحظات سريرية.",
-    infusionMedicineLabel: "سياق التسريب",
-    nitroglycerinOption: "نايتروغليسرين (Nitroglycerin / Glyceryl trinitrate) — أدخل بيانات المحلول المحضّر فعلياً",
-    otherInfusionOption: "تسريب وريدي آخر — أدخل بيانات المحلول المحضّر فعلياً",
-    infusionMedicineHint: "يحدد الخيار السياق فقط، ولا يعبئ جرعة أو كمية أو تركيزاً.",
+    infusionMedicineLabel: "اختصار تركيز الدواء",
+    otherInfusionOption: "تسريب وريدي آخر — أدخل المحلول المحضّر يدوياً",
+    infusionMedicineHint: "يعبئ الاختصار المسمى تركيزه المرجعي فقط، بينما يبقى معدل الأمر ووحدته والوزن لإدخالها يدوياً.",
+    selectedConcentration: "التركيز المحدد",
+    reviewedConcentration: "قيمة مرجعية قيد المراجعة",
+    shortcutReady: "اختصار تركيز",
+    shortcutLocked: "يحتاج مراجعة",
+    shortcutLockedTitle: "الاختصار موجود لكنه غير مفعّل",
+    shortcutLockedBody: "لا يثبت المصدر الحالي هذه القيمة كتركيز نهائي محضّر ومذكور صراحة. اختر الإدخال اليدوي وأدخل بيانات التحضير الفعلي المتحقق منه.",
+    useManualPreparation: "استخدام إدخال التحضير اليدوي",
+    lasaBadge: "اسم LASA متشابه",
+    independentCheckBadge: "تحقق مستقل",
+    shortcutSource: "مصدر التركيز",
+    shortcutPage: "ص.",
+    infusionPresetConcentrationHint: "يوفر الاختصار التركيز فقط، ولا يوفر جرعة أو هدفاً أو معايرة أو إعداد مضخة.",
+    infusionValuesCleared: "مُسحت قيم الأمر السابقة لأن اختصار التركيز تغيّر.",
+    manualPreparationReady: "أصبح الإدخال اليدوي جاهزاً، وانتقل التركيز إلى حقل إجمالي كمية الدواء.",
+    sourceOrderLegend: "الأمر الأصلي",
     prescribedRate: "المعدل المكتوب في الأمر الأصلي",
     rateUnit: "وحدة معدل الأمر",
     selectRateUnit: "اختر وحدة الأمر الدقيقة",
     rateUnitRequired: "اختر الوحدة كما كُتبت تماماً في الأمر الأصلي.",
-    rateUnitHint: "اختر الوحدة كما كُتبت تماماً. لا تحوّل /dose إلى /min.",
+    rateUnitHint: "اختر الوحدة كما كُتبت تماماً؛ تُرشح الوحدات لتطابق بُعد التركيز المحدد.",
     infusionWeight: "الوزن المستخدم في الأمر الأصلي (kg)",
-    weightRequiredHint: "مطلوب فقط لأن mcg/kg/min وحدة معتمدة على الوزن.",
+    weightRequiredHint: "مطلوب فقط عندما يكون معدل الأمر معتمداً على الوزن (/kg/).",
     drugAmount: "إجمالي كمية الدواء في المحلول المحضّر",
     amountUnit: "وحدة كمية الدواء",
     selectAmountUnit: "اختر وحدة الكمية الدقيقة",
     amountUnitRequired: "اختر الوحدة المكتوبة لإجمالي كمية الدواء المحضّر.",
-    amountUnitHint: "اختر mg أو mcg تماماً كما تظهر على ملصق التحضير.",
+    amountUnitHint: "اختر mg أو mcg أو units تماماً كما تظهر على ملصق التحضير.",
     preparedSolutionLegend: "المحلول المحضّر",
     finalVolume: "الحجم النهائي الكلي للمحلول المحضّر (mL)",
     finalVolumeHint: "أدخل الحجم النهائي الكلي، وليس حجم المذيب المضاف.",
     infusionAcknowledge: "تحققت بصورة مستقلة من معدل الأمر الأصلي ووحدته، وإجمالي كمية الدواء، والحجم النهائي المحضّر. وأفهم أن الأداة تحوّل هذه القيم فقط.",
+    infusionPresetAcknowledge: "تحققت بصورة مستقلة من معدل الأمر الأصلي ووحدته، وتأكدت أن المحلول المحضّر الحالي يطابق تماماً التركيز المحدد، وأفهم أن الأداة تحوّل هذه القيم حسابياً فقط.",
     infusionAcknowledgeError: "أكد التحقق المستقل من وحدة الأمر وقيم المحلول المحضّر قبل الحساب.",
     infusionError: "راجع قيم التسريب المحددة.",
-    infusionCalculationOutside: "يقع معدل التسريب المحسوب خارج نطاق العرض التقني للأداة. راجع الوحدات وكمية الدواء والحجم النهائي.",
+    infusionCalculationOutside: "يقع معدل التسريب المحسوب خارج نطاق العرض التقني للأداة. راجع الوحدات وقيم التركيز.",
+    infusionIncompatibleUnits: "لا تتطابق وحدة معدل الأمر مع بُعد التركيز المحدد. استخدم وحدات الكتلة مع mg/mL أو mcg/mL، ووحدات النشاط مع unit/mL.",
     infusionCalculate: "احسب mL/hr",
     infusionReset: "إعادة ضبط حاسبة التسريب",
     infusionResultTitle: "معدل التسريب المحسوب",
@@ -260,10 +331,11 @@ const pageCopy = {
     normalizedDoseResult: "المعدل بعد تحويل الوحدة",
     pumpRateResult: "معدل المضخة المحسوب",
     weightBasedOrderResult: "المعدل الوزني المدخل",
-    amountConversionStep: "الخطوة 1 · تحويل إجمالي كمية الدواء إلى mcg",
+    amountConversionStep: "الخطوة 1 · توحيد إجمالي كمية الدواء",
     concentrationStep: "الخطوة 2 · حساب تركيز المحلول المحضّر",
-    doseNormalizationStep: "الخطوة 3 · تحويل الأمر إلى mcg/min",
-    pumpRateStep: "الخطوة 4 · التحويل من mcg/min إلى mL/hr",
+    presetConcentrationStep: "الخطوة 1 · استخدام اختصار التركيز المحدد",
+    doseNormalizationStep: "توحيد معدل الأمر الأصلي إلى كمية في الساعة",
+    pumpRateStep: "الخطوة النهائية · تحويل الكمية في الساعة إلى mL/hr",
     infusionDisplayRounding: "تعرض القيم المحسوبة حتى ثمانية أرقام معنوية، ولا تُقرّب أي قيمة وسيطة.",
     infusionResultBoundary: "عملية حسابية فقط. لا يعتمد الناتج الأمر أو الدواء أو التركيز أو العبوة أو الأنابيب أو سلامة الإعطاء. طابق بصورة مستقلة الأمر الأصلي والتحضير الفعلي ومكتبة مضخة التسريب ومعلومات المنتج الحالية وسياسة المنشأة.",
     nitroglycerinDeviceNote: "بالنسبة إلى نايتروغليسرين (Nitroglycerin / Glyceryl trinitrate)، تحذّر معلومات المنتج من أن العبوة ومجموعة الإعطاء قد تؤثران في الكمية الواصلة. اتبع ملصق المنتج الحالي وسياسة المنشأة.",
@@ -324,6 +396,38 @@ function formatCalculatedValue(value, lang) {
   }).format(value);
 }
 
+function displayInfusionAmountUnit(unit) {
+  return unit === "unit" ? "units" : unit;
+}
+
+function displayInfusionConcentrationUnit(unit) {
+  return unit === "unit/mL" ? "units/mL" : unit;
+}
+
+function displayInfusionRateUnit(unit) {
+  return unit?.startsWith("unit/") ? `units/${unit.slice(5)}` : unit;
+}
+
+function infusionPresetOptionLabel(preset, lang) {
+  return `${localize(preset.name, lang)} — ${formatCalculatedValue(preset.concentrationValue, lang)} ${displayInfusionConcentrationUnit(preset.concentrationUnit)}`;
+}
+
+function buildPresetConcentrationEquation(preset, result, lang) {
+  const selected = `${formatCalculatedValue(preset.concentrationValue, lang)} ${displayInfusionConcentrationUnit(preset.concentrationUnit)}`;
+  if (preset.concentrationAmountUnit !== "mg") return `${selected} = ${formatCalculatedValue(result.concentrationPerMl, lang)} ${displayInfusionAmountUnit(result.normalizedUnit)}/mL`;
+  return `${selected} × 1,000 mcg/mg = ${formatCalculatedValue(result.concentrationPerMl, lang)} mcg/mL`;
+}
+
+function buildRateNormalizationEquation(result, lang) {
+  const { rateUnit, rateValue, weightKg } = result.values;
+  const parts = [`${formatCalculatedValue(rateValue, lang)} ${displayInfusionRateUnit(rateUnit)}`];
+  if (rateUnit.includes("/kg/")) parts.push(`× ${formatCalculatedValue(weightKg, lang)} kg`);
+  if (rateUnit.startsWith("mg/")) parts.push("× 1,000 mcg/mg");
+  if (rateUnit.endsWith("/min")) parts.push("× 60 min/hr");
+  parts.push(`= ${formatCalculatedValue(result.ratePerHour, lang)} ${displayInfusionAmountUnit(result.normalizedUnit)}/hr`);
+  return parts.join(" ");
+}
+
 function namedCalculatorErrorSummary(errors, text, lang) {
   const affectedFields = NAMED_CALCULATOR_FIELD_KEYS.filter((key) => errors[key]);
   if (!affectedFields.length) return text.calculatorError;
@@ -358,6 +462,8 @@ function DecimalField({ idPrefix = "dose-practice", name, value, label, hint, er
       value={value}
       onChange={onChange}
       readOnly={readOnly}
+      required
+      aria-required="true"
       aria-invalid={Boolean(error)}
       aria-describedby={`${hintId}${error ? ` ${errorId}` : ""}`}
       dir="ltr"
@@ -527,14 +633,53 @@ function NamedMedicationCalculator({ lang, text, onOpenInfusion }) {
   </div>;
 }
 
+function InfusionPresetSummary({ lang, preset, text, onUseManual }) {
+  const isLocked = !preset.calculatorEnabled;
+  return <section className={`infusion-preset-summary ${isLocked ? "is-locked" : ""}`} aria-live="polite">
+    <div className="infusion-preset-summary-main">
+      <div>
+        <span className="infusion-preset-kicker">{isLocked ? text.shortcutLocked : text.shortcutReady}</span>
+        <strong>{localize(preset.name, lang)}</strong>
+        <span>{localize(preset.category, lang)}</span>
+      </div>
+      <div className="infusion-preset-concentration">
+        <span>{isLocked ? text.reviewedConcentration : text.selectedConcentration}</span>
+        <strong dir="ltr">{formatCalculatedValue(preset.concentrationValue, lang)} {displayInfusionConcentrationUnit(preset.concentrationUnit)}</strong>
+      </div>
+    </div>
+    {preset.flags.length ? <div className="infusion-preset-badges" aria-label={lang === "ar" ? "تنبيهات الاختصار" : "Shortcut notices"}>
+      {preset.flags.includes("lasa") ? <span className="infusion-preset-badge is-lasa">{text.lasaBadge}</span> : null}
+      {preset.flags.includes("independent_check") ? <span className="infusion-preset-badge">{text.independentCheckBadge}</span> : null}
+    </div> : null}
+    <p className="infusion-preset-source">
+      <span>{text.shortcutSource}</span>
+      <strong>{localize(INFUSION_PRESET_SOURCE.name, lang)} · {text.shortcutPage} {preset.sourcePage}</strong>
+    </p>
+    <p>{isLocked ? text.shortcutLockedBody : text.infusionPresetConcentrationHint}</p>
+    {isLocked ? <button type="button" className="infusion-use-manual" onClick={onUseManual}>{text.useManualPreparation}</button> : null}
+  </section>;
+}
+
 function InfusionRateCalculator({ lang, text }) {
   const [fields, setFields] = useState(EMPTY_INFUSION);
   const [acknowledged, setAcknowledged] = useState(false);
   const [errors, setErrors] = useState({});
   const [result, setResult] = useState(null);
+  const [statusKey, setStatusKey] = useState("");
   const formRef = useRef(null);
   const errorSummaryRef = useRef(null);
   const resultRef = useRef(null);
+  const selectedPreset = getInfusionConcentrationPreset(fields.medicineId);
+  const isCustomPreparation = selectedPreset === null;
+  const isLockedPreset = Boolean(selectedPreset && !selectedPreset.calculatorEnabled);
+  const selectedDimension = selectedPreset
+    ? (selectedPreset.concentrationAmountUnit === "unit" ? "activity" : "mass")
+    : fields.drugAmountUnit
+      ? (fields.drugAmountUnit === "unit" ? "activity" : "mass")
+      : null;
+  const availableRateUnits = selectedDimension
+    ? INFUSION_RATE_UNITS.filter((unit) => infusionRateUnitDimension(unit) === selectedDimension)
+    : INFUSION_RATE_UNITS;
 
   function clearResult() {
     setAcknowledged(false);
@@ -542,9 +687,31 @@ function InfusionRateCalculator({ lang, text }) {
     setResult(null);
   }
 
+  function selectMedicine(medicineId, moveFocusToManual = false) {
+    setFields({ ...EMPTY_INFUSION, medicineId });
+    clearResult();
+    setStatusKey(medicineId === "custom" ? "manualPreparationReady" : "infusionValuesCleared");
+    if (moveFocusToManual) {
+      window.requestAnimationFrame(() => formRef.current?.querySelector("#infusion-drugAmount")?.focus());
+    }
+  }
+
+  function handleMedicineChange(event) {
+    selectMedicine(event.target.value);
+  }
+
   function handleFieldChange(event) {
     const { name, value } = event.target;
-    setFields((current) => ({ ...current, [name]: value }));
+    setFields((current) => {
+      if (name !== "drugAmountUnit") return { ...current, [name]: value };
+      const nextDimension = value === "unit" ? "activity" : "mass";
+      const currentRateDimension = infusionRateUnitDimension(current.rateUnit);
+      return {
+        ...current,
+        [name]: value,
+        rateUnit: currentRateDimension && currentRateDimension !== nextDimension ? "" : current.rateUnit,
+      };
+    });
     clearResult();
   }
 
@@ -570,6 +737,7 @@ function InfusionRateCalculator({ lang, text }) {
 
   function submit(event) {
     event.preventDefault();
+    if (isLockedPreset) return;
     if (!acknowledged) {
       setErrors({ acknowledgement: "required" });
       setResult(null);
@@ -577,7 +745,13 @@ function InfusionRateCalculator({ lang, text }) {
       return;
     }
 
-    const calculation = calculateInfusionRate(fields);
+    const calculation = selectedPreset
+      ? calculatePresetInfusionRate(selectedPreset.id, {
+          rateValue: fields.rateValue,
+          rateUnit: fields.rateUnit,
+          weightKg: fields.weightKg,
+        })
+      : calculateInfusionRate(fields);
     if (!calculation.ok) {
       setErrors(calculation.errors);
       setResult(null);
@@ -594,9 +768,10 @@ function InfusionRateCalculator({ lang, text }) {
   }
 
   const hasErrors = Object.keys(errors).some((key) => errors[key]);
-  const isWeightBased = fields.rateUnit === "mcg/kg/min";
-  const isNitroglycerin = fields.medicineId === "nitroglycerin";
-  const medicineLabel = isNitroglycerin ? text.nitroglycerinOption : text.otherInfusionOption;
+  const isWeightBased = isWeightBasedInfusionRateUnit(fields.rateUnit);
+  const isNitroglycerin = fields.medicineId === "nitroglycerin-400-mcg-ml";
+  const medicineLabel = selectedPreset ? infusionPresetOptionLabel(selectedPreset, lang) : text.otherInfusionOption;
+  const normalizedUnit = result ? displayInfusionAmountUnit(result.normalizedUnit) : "";
 
   return <div className="dose-tools-stack">
     <form ref={formRef} className="dose-calculator-card infusion-calculator" onSubmit={submit} noValidate>
@@ -606,91 +781,101 @@ function InfusionRateCalculator({ lang, text }) {
       </div>
 
       <p className="dose-page-memory-note">{text.infusionPrivacy}</p>
+      <p className="sr-only" role="status" aria-live="polite">{statusKey ? text[statusKey] : ""}</p>
 
       {hasErrors ? <div ref={errorSummaryRef} className="dose-error-summary" role="alert" tabIndex="-1">
         <ShieldWarning size={21} weight="fill" aria-hidden="true" />
         <p>{errors.acknowledgement
           ? text.infusionAcknowledgeError
-          : errors.calculation
-            ? text.infusionCalculationOutside
-            : infusionCalculatorErrorSummary(errors, text, lang)}</p>
+          : errors.calculation === "incompatibleUnits"
+            ? text.infusionIncompatibleUnits
+            : errors.calculation
+              ? text.infusionCalculationOutside
+              : infusionCalculatorErrorSummary(errors, text, lang)}</p>
       </div> : null}
 
       <div className="dose-field dose-medicine-field">
         <label htmlFor="infusion-medicine">{text.infusionMedicineLabel}</label>
-        <select id="infusion-medicine" name="medicineId" value={fields.medicineId} onChange={handleFieldChange}>
-          <option value="nitroglycerin">{text.nitroglycerinOption}</option>
-          <option value="other">{text.otherInfusionOption}</option>
+        <select id="infusion-medicine" name="medicineId" value={fields.medicineId} onChange={handleMedicineChange} aria-describedby="infusion-medicine-hint">
+          <option value="custom">{text.otherInfusionOption}</option>
+          {INFUSION_PRESET_GROUPS.map((group) => <optgroup key={group.category.en} label={localize(group.category, lang)}>
+            {group.presets.map((preset) => <option key={preset.id} value={preset.id}>
+              {infusionPresetOptionLabel(preset, lang)}{preset.calculatorEnabled ? "" : ` — ${text.shortcutLocked}`}
+            </option>)}
+          </optgroup>)}
         </select>
-        <small>{text.infusionMedicineHint}</small>
+        <small id="infusion-medicine-hint">{text.infusionMedicineHint}</small>
       </div>
 
-      <fieldset>
-        <legend>{text.prescribedRate}</legend>
-        <div className="dose-field-grid infusion-order-grid">
-          <DecimalField idPrefix="infusion" name="rateValue" value={fields.rateValue} label={text.prescribedRate} hint={text.calculatorFieldHint} error={fieldError("rateValue")} onChange={handleFieldChange} lang={lang} />
-          <div className={`dose-field ${errors.rateUnit ? "has-error" : ""}`}>
-            <label htmlFor="infusion-rate-unit">{text.rateUnit}</label>
-            <select id="infusion-rate-unit" name="rateUnit" value={fields.rateUnit} onChange={handleFieldChange} aria-invalid={Boolean(errors.rateUnit)} aria-describedby={`infusion-rate-unit-hint${errors.rateUnit ? " infusion-rate-unit-error" : ""}`} required dir="ltr">
-              <option value="" disabled>{text.selectRateUnit}</option>
-              <option value="mcg/min">{lang === "ar" ? "mcg/min — ميكروغرام/دقيقة" : "mcg/min — micrograms/minute"}</option>
-              <option value="mcg/kg/min">{lang === "ar" ? "mcg/kg/min — ميكروغرام/كجم/دقيقة" : "mcg/kg/min — micrograms/kg/minute"}</option>
-              <option value="mg/hr">{lang === "ar" ? "mg/hr — ملغ/ساعة" : "mg/hr — milligrams/hour"}</option>
-            </select>
-            <small id="infusion-rate-unit-hint">{text.rateUnitHint}</small>
-            {errors.rateUnit ? <span id="infusion-rate-unit-error" className="dose-field-error">{errors.rateUnit === "required" ? text.rateUnitRequired : fieldError("rateUnit")}</span> : null}
+      {selectedPreset ? <InfusionPresetSummary lang={lang} preset={selectedPreset} text={text} onUseManual={() => selectMedicine("custom", true)} /> : null}
+
+      {!isLockedPreset ? <>
+        <fieldset>
+          <legend>{text.sourceOrderLegend}</legend>
+          <div className="dose-field-grid infusion-order-grid">
+            <DecimalField idPrefix="infusion" name="rateValue" value={fields.rateValue} label={text.prescribedRate} hint={text.calculatorFieldHint} error={fieldError("rateValue")} onChange={handleFieldChange} lang={lang} />
+            <div className={`dose-field ${errors.rateUnit ? "has-error" : ""}`}>
+              <label htmlFor="infusion-rate-unit">{text.rateUnit}</label>
+              <select id="infusion-rate-unit" name="rateUnit" value={fields.rateUnit} onChange={handleFieldChange} aria-invalid={Boolean(errors.rateUnit)} aria-describedby={`infusion-rate-unit-hint${errors.rateUnit ? " infusion-rate-unit-error" : ""}`} required dir="ltr">
+                <option value="" disabled>{text.selectRateUnit}</option>
+                {availableRateUnits.map((unit) => <option key={unit} value={unit}>{localize(INFUSION_RATE_UNIT_LABELS[unit], lang)}</option>)}
+              </select>
+              <small id="infusion-rate-unit-hint">{text.rateUnitHint}</small>
+              {errors.rateUnit ? <span id="infusion-rate-unit-error" className="dose-field-error">{errors.rateUnit === "required" ? text.rateUnitRequired : fieldError("rateUnit")}</span> : null}
+            </div>
+            {isWeightBased ? <DecimalField idPrefix="infusion" name="weightKg" value={fields.weightKg} label={text.infusionWeight} hint={text.weightRequiredHint} error={fieldError("weightKg")} onChange={handleFieldChange} lang={lang} /> : null}
           </div>
-          {isWeightBased ? <DecimalField idPrefix="infusion" name="weightKg" value={fields.weightKg} label={text.infusionWeight} hint={text.weightRequiredHint} error={fieldError("weightKg")} onChange={handleFieldChange} lang={lang} /> : null}
-        </div>
-      </fieldset>
+        </fieldset>
 
-      <fieldset>
-        <legend>{text.preparedSolutionLegend}</legend>
-        <div className="dose-field-grid infusion-preparation-grid">
-          <DecimalField idPrefix="infusion" name="drugAmount" value={fields.drugAmount} label={text.drugAmount} hint={text.calculatorFieldHint} error={fieldError("drugAmount")} onChange={handleFieldChange} lang={lang} />
-          <div className={`dose-field ${errors.drugAmountUnit ? "has-error" : ""}`}>
-            <label htmlFor="infusion-amount-unit">{text.amountUnit}</label>
-            <select id="infusion-amount-unit" name="drugAmountUnit" value={fields.drugAmountUnit} onChange={handleFieldChange} aria-invalid={Boolean(errors.drugAmountUnit)} aria-describedby={`infusion-amount-unit-hint${errors.drugAmountUnit ? " infusion-amount-unit-error" : ""}`} required dir="ltr">
-              <option value="" disabled>{text.selectAmountUnit}</option>
-              <option value="mg">{lang === "ar" ? "mg — ملغ" : "mg — milligrams"}</option>
-              <option value="mcg">{lang === "ar" ? "mcg — ميكروغرام" : "mcg — micrograms"}</option>
-            </select>
-            <small id="infusion-amount-unit-hint">{text.amountUnitHint}</small>
-            {errors.drugAmountUnit ? <span id="infusion-amount-unit-error" className="dose-field-error">{errors.drugAmountUnit === "required" ? text.amountUnitRequired : fieldError("drugAmountUnit")}</span> : null}
+        {isCustomPreparation ? <fieldset>
+          <legend>{text.preparedSolutionLegend}</legend>
+          <div className="dose-field-grid infusion-preparation-grid">
+            <DecimalField idPrefix="infusion" name="drugAmount" value={fields.drugAmount} label={text.drugAmount} hint={text.calculatorFieldHint} error={fieldError("drugAmount")} onChange={handleFieldChange} lang={lang} />
+            <div className={`dose-field ${errors.drugAmountUnit ? "has-error" : ""}`}>
+              <label htmlFor="infusion-amount-unit">{text.amountUnit}</label>
+              <select id="infusion-amount-unit" name="drugAmountUnit" value={fields.drugAmountUnit} onChange={handleFieldChange} aria-invalid={Boolean(errors.drugAmountUnit)} aria-describedby={`infusion-amount-unit-hint${errors.drugAmountUnit ? " infusion-amount-unit-error" : ""}`} required dir="ltr">
+                <option value="" disabled>{text.selectAmountUnit}</option>
+                <option value="mg">{lang === "ar" ? "mg — ملغ" : "mg — milligrams"}</option>
+                <option value="mcg">{lang === "ar" ? "mcg — ميكروغرام" : "mcg — micrograms"}</option>
+                <option value="unit">{lang === "ar" ? "units — وحدة" : "units — activity units"}</option>
+              </select>
+              <small id="infusion-amount-unit-hint">{text.amountUnitHint}</small>
+              {errors.drugAmountUnit ? <span id="infusion-amount-unit-error" className="dose-field-error">{errors.drugAmountUnit === "required" ? text.amountUnitRequired : fieldError("drugAmountUnit")}</span> : null}
+            </div>
+            <DecimalField idPrefix="infusion" name="finalVolumeMl" value={fields.finalVolumeMl} label={text.finalVolume} hint={text.finalVolumeHint} error={fieldError("finalVolumeMl")} onChange={handleFieldChange} lang={lang} />
           </div>
-          <DecimalField idPrefix="infusion" name="finalVolumeMl" value={fields.finalVolumeMl} label={text.finalVolume} hint={text.finalVolumeHint} error={fieldError("finalVolumeMl")} onChange={handleFieldChange} lang={lang} />
+        </fieldset> : null}
+
+        {isNitroglycerin ? <p className="dose-unit-warning"><ShieldWarning size={17} weight="fill" aria-hidden="true" /> {text.nitroglycerinDeviceNote}</p> : null}
+
+        <label className={`dose-acknowledgement ${errors.acknowledgement ? "has-error" : ""}`}>
+          <input type="checkbox" checked={acknowledged} onChange={handleAcknowledgementChange} />
+          <span>{selectedPreset ? text.infusionPresetAcknowledge : text.infusionAcknowledge}</span>
+        </label>
+
+        <div className="dose-form-actions">
+          <button type="submit" className="button button-primary"><Calculator size={19} aria-hidden="true" /> {text.infusionCalculate}</button>
+          <button type="button" className="dose-reset-button" onClick={resetCalculator}><ArrowCounterClockwise size={18} aria-hidden="true" /> {text.infusionReset}</button>
         </div>
-      </fieldset>
-
-      {isNitroglycerin ? <p className="dose-unit-warning"><ShieldWarning size={17} weight="fill" aria-hidden="true" /> {text.nitroglycerinDeviceNote}</p> : null}
-
-      <label className={`dose-acknowledgement ${errors.acknowledgement ? "has-error" : ""}`}>
-        <input type="checkbox" checked={acknowledged} onChange={handleAcknowledgementChange} />
-        <span>{text.infusionAcknowledge}</span>
-      </label>
-
-      <div className="dose-form-actions">
-        <button type="submit" className="button button-primary"><Calculator size={19} aria-hidden="true" /> {text.infusionCalculate}</button>
-        <button type="button" className="dose-reset-button" onClick={resetCalculator}><ArrowCounterClockwise size={18} aria-hidden="true" /> {text.infusionReset}</button>
-      </div>
+      </> : null}
     </form>
 
     {result ? <section ref={resultRef} className="dose-result-card infusion-result is-correct" tabIndex="-1" aria-live="polite">
       <div className="dose-result-heading"><CheckCircle size={32} weight="fill" aria-hidden="true" /><div><p className="dose-result-medicine">{medicineLabel}</p><h2>{text.infusionResultTitle}</h2></div></div>
       <dl className="dose-calculated-values infusion-calculated-values">
-        <div><dt>{text.concentrationResult}</dt><dd dir="ltr">{formatCalculatedValue(result.concentrationMcgPerMl, lang)} mcg/mL</dd></div>
-        <div><dt>{text.normalizedDoseResult}</dt><dd dir="ltr">{formatCalculatedValue(result.rateMcgPerMin, lang)} mcg/min</dd></div>
+        <div><dt>{text.concentrationResult}</dt><dd dir="ltr">{selectedPreset
+          ? `${formatCalculatedValue(selectedPreset.concentrationValue, lang)} ${displayInfusionConcentrationUnit(selectedPreset.concentrationUnit)}`
+          : `${formatCalculatedValue(result.concentrationPerMl, lang)} ${normalizedUnit}/mL`}</dd></div>
+        <div><dt>{text.normalizedDoseResult}</dt><dd dir="ltr">{formatCalculatedValue(result.ratePerHour, lang)} {normalizedUnit}/hr</dd></div>
         <div className="infusion-primary-result"><dt>{text.pumpRateResult}</dt><dd dir="ltr">{formatCalculatedValue(result.mlPerHour, lang)} mL/hr</dd></div>
       </dl>
       <ol className="dose-working">
-        <li><strong>{text.amountConversionStep}</strong><code dir="ltr">{formatCalculatedValue(result.values.drugAmount, lang)} {result.values.drugAmountUnit} × {result.values.drugAmountUnit === "mg" ? "1,000 mcg/mg" : "1 mcg/mcg"} = {formatCalculatedValue(result.drugAmountMcg, lang)} mcg</code></li>
-        <li><strong>{text.concentrationStep}</strong><code dir="ltr">{formatCalculatedValue(result.drugAmountMcg, lang)} mcg ÷ {formatCalculatedValue(result.values.finalVolumeMl, lang)} mL = {formatCalculatedValue(result.concentrationMcgPerMl, lang)} mcg/mL</code></li>
-        <li><strong>{text.doseNormalizationStep}</strong><code dir="ltr">{result.values.rateUnit === "mcg/kg/min"
-          ? `${formatCalculatedValue(result.values.rateValue, lang)} mcg/kg/min × ${formatCalculatedValue(result.values.weightKg, lang)} kg = ${formatCalculatedValue(result.rateMcgPerMin, lang)} mcg/min`
-          : result.values.rateUnit === "mg/hr"
-            ? `${formatCalculatedValue(result.values.rateValue, lang)} mg/hr × 1,000 mcg/mg ÷ 60 min/hr = ${formatCalculatedValue(result.rateMcgPerMin, lang)} mcg/min`
-            : `${formatCalculatedValue(result.values.rateValue, lang)} mcg/min = ${formatCalculatedValue(result.rateMcgPerMin, lang)} mcg/min`}</code></li>
-        <li><strong>{text.pumpRateStep}</strong><code dir="ltr">{formatCalculatedValue(result.rateMcgPerMin, lang)} mcg/min ÷ {formatCalculatedValue(result.concentrationMcgPerMl, lang)} mcg/mL × 60 min/hr = {formatCalculatedValue(result.mlPerHour, lang)} mL/hr</code></li>
+        {selectedPreset ? <li><strong>{text.presetConcentrationStep}</strong><code dir="ltr">{buildPresetConcentrationEquation(selectedPreset, result, lang)}</code></li> : <>
+          <li><strong>{text.amountConversionStep}</strong><code dir="ltr">{formatCalculatedValue(result.values.drugAmount, lang)} {displayInfusionAmountUnit(result.values.drugAmountUnit)} × {result.values.drugAmountUnit === "mg" ? "1,000 mcg/mg" : `1 ${normalizedUnit}/${normalizedUnit}`} = {formatCalculatedValue(result.drugAmountNormalized, lang)} {normalizedUnit}</code></li>
+          <li><strong>{text.concentrationStep}</strong><code dir="ltr">{formatCalculatedValue(result.drugAmountNormalized, lang)} {normalizedUnit} ÷ {formatCalculatedValue(result.values.finalVolumeMl, lang)} mL = {formatCalculatedValue(result.concentrationPerMl, lang)} {normalizedUnit}/mL</code></li>
+        </>}
+        <li><strong>{text.doseNormalizationStep}</strong><code dir="ltr">{buildRateNormalizationEquation(result, lang)}</code></li>
+        <li><strong>{text.pumpRateStep}</strong><code dir="ltr">{formatCalculatedValue(result.ratePerHour, lang)} {normalizedUnit}/hr ÷ {formatCalculatedValue(result.concentrationPerMl, lang)} {normalizedUnit}/mL = {formatCalculatedValue(result.mlPerHour, lang)} mL/hr</code></li>
       </ol>
       <p className="dose-display-rounding">{text.infusionDisplayRounding}</p>
       <p className="dose-result-warning"><ShieldWarning size={20} weight="fill" aria-hidden="true" /> {text.infusionResultBoundary}</p>

@@ -333,8 +333,8 @@ export const questionBankExpansionBDrafts = [
       ),
       choice(
         "b",
-        "Maintain a safe distance, summon trained assistance, protect and separate potential victims, manage the object according to the emergency safety procedure, and initiate an immediate risk assessment.",
-        "حافظ على مسافة آمنة، واطلب مساعدة مدربة، واحمِ وافصل الأشخاص المحتمل تعرضهم للأذى، وتعامل مع الأداة وفق إجراء السلامة الطارئ، وابدأ تقييماً فورياً للخطر.",
+        "Keep a safe distance, summon trained help, separate potential victims, manage the object per emergency procedure, and begin immediate risk assessment.",
+        "حافظ على مسافة آمنة، واطلب مساعدة مدربة، وافصل الأشخاص المعرضين للأذى، وتعامل مع الأداة وفق إجراء الطوارئ، وابدأ تقييم الخطر فوراً.",
         "A stated violent command plus accessible means is an immediate safety threat requiring coordinated protection, removal of opportunity through policy, and urgent clinical assessment.",
         "يمثل الأمر العنيف المعلن مع توفر الوسيلة تهديداً فورياً للسلامة يستلزم حماية منسقة وتقليل فرصة الأذى وفق السياسة وتقييماً سريرياً عاجلاً.",
       ),
@@ -476,8 +476,8 @@ export const questionBankExpansionBDrafts = [
       ),
       choice(
         "b",
-        "Continue protocol-directed observation with repeated airway, breathing, oxygenation, circulation, and mental-status assessment, while remaining ready for ventilatory support and repeat antagonist treatment if authorised and needed.",
-        "واصل المراقبة وفق البروتوكول مع تكرار تقييم مجرى الهواء والتنفس والأكسجة والدورة الدموية والوعي، مع الاستعداد لدعم التهوية وتكرار مضاد الأفيون إذا كان معتمداً ولازماً.",
+        "Continue protocol observation with repeated ABC, oxygenation and mental-status assessment; remain ready for ventilatory support and authorised repeat antagonist treatment if needed.",
+        "واصل المراقبة وفق البروتوكول مع تكرار تقييم ABC والأكسجة والوعي، واستعد لدعم التهوية وتكرار مضاد الأفيون المعتمد عند الحاجة.",
         "Initial improvement does not eliminate recurrence risk. Continued physiological monitoring permits early recognition and treatment of renewed respiratory depression.",
         "لا يلغي التحسن الأولي خطر عودة التثبيط. تسمح المراقبة الفسيولوجية المستمرة بالتعرف المبكر على عودة تثبيط التنفس وعلاجه.",
       ),
@@ -809,8 +809,8 @@ export const questionBankExpansionBDrafts = [
       ),
       choice(
         "b",
-        "Give a direct structured handoff describing the current condition, treatment and response, monitoring needs, pending result, escalation threshold, and named responsibility for follow-up, then confirm understanding with read-back.",
-        "قدّم تسليماً مباشراً ومنظماً يوضح الحالة الحالية والعلاج والاستجابة واحتياجات المراقبة والنتيجة المعلقة وعتبة التصعيد والمسؤول المحدد عن متابعتها، ثم أكد الفهم بإعادة ما تم سماعه.",
+        "Use a structured handoff covering condition, treatment response, monitoring, the pending result, escalation threshold and named follow-up ownership; confirm it by read-back.",
+        "استخدم تسليماً منظماً يشمل الحالة والاستجابة للعلاج والمراقبة والنتيجة المعلقة وعتبة التصعيد والمسؤول المحدد للمتابعة، وأكده بإعادة ما تم سماعه.",
         "Structured transfer with explicit ownership and closed-loop confirmation reduces loss of critical information at the care boundary.",
         "يقلل النقل المنظم مع تحديد المسؤولية والتأكيد بحلقة اتصال مغلقة فقدان المعلومات الحرجة عند انتقال الرعاية.",
       ),

@@ -40,11 +40,13 @@ export function ExamQuestion({
 
   return (
     <article className="exam-question-card" dir={direction}>
-      <div className="exam-question-meta">
-        <span>{localize(question.category, language)}</span>
-        <span>{localize(question.difficulty, language)}</span>
-        <span>{localize(question.topic, language)}</span>
-      </div>
+      {locked ? (
+        <div className="exam-question-meta">
+          <span>{localize(question.category, language)}</span>
+          <span>{localize(question.difficulty, language)}</span>
+          <span>{localize(question.topic, language)}</span>
+        </div>
+      ) : null}
       <div className="question-heading">
         <span className="question-icon"><Target size={28} weight="duotone" /></span>
         <div>

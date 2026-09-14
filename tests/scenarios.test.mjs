@@ -33,7 +33,7 @@ test("the learning library ships twelve bilingual department scenarios", () => {
     assert.equal(scenario.translationReview.status, "pending");
     assert.equal(scenario.evidenceReview.status, "mapped-pending-human-verification");
     assert.equal(scenario.evidenceReview.mappedAt, "2026-09-05");
-    assert.equal(scenario.contentVersion, "1.3.0");
+    assert.equal(scenario.contentVersion, "1.3.1");
     assertBilingual(scenario.title, `${scenario.id} title`);
     assertBilingual(scenario.summary, `${scenario.id} summary`);
     assertBilingual(scenario.department, `${scenario.id} department`);
@@ -91,6 +91,44 @@ test("option wording does not make length a universal answer cue", () => {
 
   assert.ok(safeLongestEnglish / stepCount < 2 / 3);
   assert.ok(safeLongestArabic / stepCount < 2 / 3);
+});
+
+test("scenario decisions use plausible distractors without a longest-answer cue", () => {
+  const giveawayPattern = /\b(?:do nothing|ignore|guess|tomorrow|silently|leftover)\b/i;
+
+  for (const scenario of scenarios) {
+    for (const step of scenario.steps) {
+      const distractors = step.choices.filter((choice) => choice.classification !== "safe");
+      assert.equal(distractors.length, 2, `${step.id} needs two competing distractors`);
+      for (const candidate of distractors) {
+        assert.ok(
+          candidate.text.en.trim().split(/\s+/).length >= 10,
+          `${candidate.id} should read as a complete competing action`,
+        );
+        assert.ok(
+          candidate.text.ar.trim().split(/\s+/).length >= 10,
+          `${candidate.id} should have a complete Arabic competing action`,
+        );
+        assert.doesNotMatch(candidate.text.en, giveawayPattern, `${candidate.id} contains a giveaway phrase`);
+      }
+
+      for (const language of ["en", "ar"]) {
+        const safeLength = step.choices
+          .find((choice) => choice.classification === "safe")
+          .text[language]
+          .trim()
+          .split(/\s+/).length;
+        const distractorAverage = distractors
+          .map((choice) => choice.text[language].trim().split(/\s+/).length)
+          .reduce((total, length) => total + length, 0) / distractors.length;
+        assert.ok(
+          safeLength / distractorAverage <= 1.3,
+          `${step.id} makes the safest ${language} response conspicuously longer`,
+        );
+      }
+    }
+  }
+
 });
 
 test("all decisions are bilingual, gradable, and include original feedback", () => {

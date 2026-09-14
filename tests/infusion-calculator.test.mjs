@@ -5,6 +5,7 @@ import {
   INFUSION_CALCULATOR_LIMITS,
   calculateInfusionRate,
 } from "../src/lib/infusion-calculator.js";
+import { calculatePresetInfusionRate } from "../src/lib/infusion-preset-calculator.js";
 
 test("converts a prescribed mcg/min rate to mL/hr", () => {
   const result = calculateInfusionRate({
@@ -189,6 +190,110 @@ test("does not round concentration or pump rate during calculation", () => {
   assert.equal(result.mlPerHour, 180 / 7);
 });
 
+test("calculates directly from a selected mass concentration without choosing an order rate", () => {
+  const result = calculateInfusionRate({
+    rateValue: "2",
+    rateUnit: "mg/hr",
+    concentrationValue: "1",
+    concentrationAmountUnit: "mg",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.inputMode, "preset");
+  assert.equal(result.values.rateValue, 2);
+  assert.equal(result.values.rateUnit, "mg/hr");
+  assert.equal(result.values.weightKg, null);
+  assert.equal(result.concentrationPerMl, 1_000);
+  assert.equal(result.normalizedUnit, "mcg");
+  assert.equal(result.mlPerHour, 2);
+  assert.equal(result.drugAmountNormalized, null);
+});
+
+test("supports activity-unit concentrations without converting them to mass", () => {
+  const vasopressin = calculateInfusionRate({
+    rateValue: "0.03",
+    rateUnit: "unit/min",
+    concentrationValue: "0.4",
+    concentrationAmountUnit: "unit",
+  });
+  const heparin = calculateInfusionRate({
+    rateValue: "1000",
+    rateUnit: "unit/hr",
+    concentrationValue: "100",
+    concentrationAmountUnit: "unit",
+  });
+
+  assert.equal(vasopressin.ok, true);
+  assert.equal(vasopressin.normalizedUnit, "unit");
+  assert.equal(vasopressin.concentrationPerMl, 0.4);
+  assert.ok(Math.abs(vasopressin.ratePerHour - 1.8) < Number.EPSILON * 2);
+  assert.ok(Math.abs(vasopressin.mlPerHour - 4.5) < 1e-12);
+  assert.equal(vasopressin.concentrationMcgPerMl, null);
+
+  assert.equal(heparin.ok, true);
+  assert.equal(heparin.ratePerHour, 1_000);
+  assert.equal(heparin.mlPerHour, 10);
+});
+
+test("supports weight-based hourly rates for matching mass dimensions", () => {
+  const result = calculateInfusionRate({
+    rateValue: "2",
+    rateUnit: "mg/kg/hr",
+    weightKg: "10",
+    concentrationValue: "10",
+    concentrationAmountUnit: "mg",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.ratePerHour, 20_000);
+  assert.equal(result.mlPerHour, 2);
+});
+
+test("rejects mixing activity-unit rates with mass concentrations and vice versa", () => {
+  const unitRateWithMass = calculateInfusionRate({
+    rateValue: "1",
+    rateUnit: "unit/hr",
+    concentrationValue: "1",
+    concentrationAmountUnit: "mg",
+  });
+  const massRateWithUnits = calculateInfusionRate({
+    rateValue: "1",
+    rateUnit: "mcg/min",
+    concentrationValue: "1",
+    concentrationAmountUnit: "unit",
+  });
+
+  assert.equal(unitRateWithMass.ok, false);
+  assert.equal(unitRateWithMass.errors.calculation, "incompatibleUnits");
+  assert.equal(massRateWithUnits.ok, false);
+  assert.equal(massRateWithUnits.errors.calculation, "incompatibleUnits");
+});
+
+test("the preset calculator rejects locked concentration shortcuts at its boundary", () => {
+  for (const presetId of [
+    "ketamine-syringe-pump-10-mg-ml",
+    "omeprazole-0-4-mg-ml",
+  ]) {
+    const result = calculatePresetInfusionRate(presetId, {
+      rateValue: "1",
+      rateUnit: "mg/hr",
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors.calculation, "presetLocked");
+  }
+});
+
+test("the preset calculator reads enabled concentrations from the authored bank", () => {
+  const result = calculatePresetInfusionRate("vasopressin-0-4-unit-ml", {
+    rateValue: "0.03",
+    rateUnit: "unit/min",
+  });
+
+  assert.equal(result.ok, true);
+  assert.ok(Math.abs(result.mlPerHour - 4.5) < 1e-12);
+});
+
 test("the bilingual UI keeps infusion units explicit and does not persist calculator entries", async () => {
   const [source, appSource] = await Promise.all([
     readFile(new URL("../src/components/MedicationMathPage.jsx", import.meta.url), "utf8"),
@@ -214,7 +319,14 @@ test("the bilingual UI keeps infusion units explicit and does not persist calcul
   assert.match(source, /initialMode = "infusion"/);
   assert.match(source, /Single liquid dose \(mg\/kg\/dose\)/);
   assert.match(source, /جرعة سائلة مفردة \(mg\/kg\/dose\)/);
-  assert.match(source, /IV infusion \(mcg\/min, mcg\/kg\/min, or mg\/hr\)/);
+  assert.match(source, /IV infusion rate/);
+  assert.match(source, /23 concentration shortcuts/);
+  assert.match(source, /23 اختصار تركيز/);
+  assert.match(source, /INFUSION_CONCENTRATION_PRESETS/);
+  assert.match(source, /calculatePresetInfusionRate\(selectedPreset\.id/);
+  assert.match(source, /INFUSION_PRESET_SOURCE/);
+  assert.match(source, /unit\/min/);
+  assert.match(source, /unit\/hr/);
   assert.match(source, /openInfusionCalculator/);
   assert.match(source, /namedCalculatorErrorSummary/);
   assert.match(source, /infusionCalculatorErrorSummary/);

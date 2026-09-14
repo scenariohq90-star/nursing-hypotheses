@@ -1558,8 +1558,8 @@ const authoredScenarios = [
           choice(
             "mental-health-screen-a",
             bi(
-              "Move with the person to a private, clinically observable safe setting, maintain supervision, and begin a direct suicide-risk assessment while arranging trained help under the local pathway.",
-              "انتقل مع الشخص إلى مكان خاص وآمن يتيح المراقبة السريرية، وحافظ على الإشراف، وابدأ تقييماً مباشراً لخطر الانتحار مع ترتيب مساعدة الفريق المدرّب وفق المسار المحلي.",
+              "Move together to a private observable setting, maintain supervision, ask directly about intent, plan and means, and arrange trained help.",
+              "انتقل مع الشخص إلى مكان خاص يتيح المراقبة، وحافظ على الإشراف، واسأل مباشرة عن النية والخطة والوسائل، ورتّب مساعدة الفريق المدرّب.",
             ),
             100,
             "safe",
@@ -1846,8 +1846,8 @@ const authoredScenarios = [
           choice(
             "ipc-respiratory-procedure-a",
             bi(
-              "Do not proceed in this room; coordinate an approved airborne setting and trained team, using a fit-tested respirator and all task-specific PPE under the local AGP protocol.",
-              "لا تنفذ الإجراء في هذه الغرفة؛ نسّق مكاناً معتمداً للعدوى المنقولة بالهواء وفريقاً مدرباً، مع استخدام جهاز تنفس مختبر الملاءمة وجميع معدات الوقاية الخاصة بالمهمة وفق بروتوكول الإجراءات المولدة للرذاذ المحلي.",
+              "Pause and move the procedure to an approved airborne setting with trained staff, fit-tested respirators and task-specific PPE under the local AGP protocol.",
+              "أوقف الإجراء وانقله إلى مكان معتمد للعزل الهوائي مع طاقم مدرّب وأجهزة تنفس مختبرة الملاءمة ومعدات وقاية خاصة بالمهمة وفق البروتوكول المحلي.",
             ),
             100,
             "safe",
@@ -3172,7 +3172,7 @@ const authoredScenarios = [
         ],
         question: bi("What is the priority nursing response?", "ما الاستجابة التمريضية ذات الأولوية؟"),
         choices: [
-          choice("older-adult-recognise-a", bi("Treat the change as acute: begin an immediate ABCDE assessment, check glucose and vital trends, complete a focused neurological and head-injury assessment (including GCS, pupils and focal deficits), and escalate urgently. After immediate threats are addressed, use the locally approved validated delirium tool through a competent assessor.", "تعامل مع التغير كحالة حادة: ابدأ فوراً بتقييم ABCDE، وافحص السكر واتجاه العلامات الحيوية، وأكمل تقييماً عصبياً مركزاً ولإصابة الرأس يشمل مقياس غلاسكو والحدقتين والعجز البؤري، ثم صعّد الحالة عاجلاً. بعد التعامل مع الأخطار الفورية، استخدم أداة الهذيان المعتمدة محلياً بواسطة مقيّم مؤهل."), 100, "safe", bi("Correct: sudden cognitive change after a fall requires physiological and neurological assessment before a delirium label is assigned.", "صحيح: يتطلب التغير الإدراكي المفاجئ بعد السقوط تقييماً فسيولوجياً وعصبياً قبل إسناد وصف الهذيان."), bi("ABCDE and urgent head-injury assessment look for immediate reversible threats. Once stabilised, a competent assessor can use 4AT, or CAM-ICU/ICDSC in critical care, according to the local pathway.", "يبحث تقييم ABCDE والتقييم العاجل لإصابة الرأس عن الأخطار الفورية القابلة للعكس. وبعد الاستقرار يمكن لمقيّم مؤهل استخدام 4AT، أو CAM-ICU/ICDSC في العناية الحرجة، وفق المسار المحلي."), "delirium-recognition"),
+          choice("older-adult-recognise-a", bi("Treat as acute: begin ABCDE, check glucose, assess neurological and head-injury signs, and escalate. After immediate threats, use the delirium tool.", "اعتبره تغيراً حاداً: ابدأ ABCDE، وافحص السكر، وقيّم العلامات العصبية وإصابة الرأس، وصعّد الحالة. استخدم أداة الهذيان بعد معالجة الأخطار الفورية."), 100, "safe", bi("Correct: sudden cognitive change after a fall requires physiological and neurological assessment before a delirium label is assigned.", "صحيح: يتطلب التغير الإدراكي المفاجئ بعد السقوط تقييماً فسيولوجياً وعصبياً قبل إسناد وصف الهذيان."), bi("ABCDE and urgent head-injury assessment look for immediate reversible threats. Once stabilised, a competent assessor can use 4AT, or CAM-ICU/ICDSC in critical care, according to the local pathway.", "يبحث تقييم ABCDE والتقييم العاجل لإصابة الرأس عن الأخطار الفورية القابلة للعكس. وبعد الاستقرار يمكن لمقيّم مؤهل استخدام 4AT، أو CAM-ICU/ICDSC في العناية الحرجة، وفق المسار المحلي."), "delirium-recognition"),
           choice("older-adult-recognise-b", bi("Document dementia as the cause and wait for the next routine round.", "وثّق الخرف بوصفه السبب وانتظر الجولة الروتينية التالية."), 0, "unsafe", bi("Unsafe: an unverified label can delay recognition of acute deterioration.", "غير آمن: قد يؤخر الوصف غير المتحقق منه اكتشاف التدهور الحاد."), bi("New confusion is a change from baseline and requires prompt assessment rather than assumption.", "التشوش الجديد تغير عن خط الأساس ويتطلب تقييماً سريعاً بدلاً من الافتراض."), "delirium-recognition"),
           choice("older-adult-recognise-c", bi("Ask the family to reorient the patient and collect a detailed life history before beginning any physiological observations.", "اطلب من الأسرة إعادة توجيه المريض وجمع تاريخ حياته بالتفصيل قبل أن تبدأ أي قياس للعلامات أو تقييم فسيولوجي للحالة الحالية."), 0, "unsafe", bi("Family support may help, but it must not delay physiological assessment.", "قد يفيد دعم الأسرة، لكنه يجب ألا يؤخر التقييم الفسيولوجي."), bi("Reorientation is supportive care after immediate threats and changes from baseline are assessed.", "إعادة التوجيه رعاية داعمة بعد تقييم الأخطار الفورية والتغيرات عن خط الأساس."), "delirium-recognition"),
         ],
@@ -3423,7 +3423,7 @@ const authoredScenarios = [
         ],
         question: bi("How should the nurse close the visit?", "كيف ينبغي أن ينهي الممرض الزيارة؟"),
         choices: [
-          choice("home-medication-teach-back-a", bi("Review the verified list in plain language, ask the patient to explain the plan back, correct gaps and leave the approved contact and follow-up instructions.", "راجع القائمة المتحققة بلغة واضحة، واطلب من المريض شرح الخطة بأسلوبه، وصحح الفجوات، واترك بيانات التواصل وتعليمات المتابعة المعتمدة."), 100, "safe", bi("Correct: teach-back checks understanding without testing or blaming the patient.", "صحيح: يتحقق الاسترجاع التعليمي من الفهم دون اختبار المريض أو لومه."), bi("A shared, verified plan and clear escalation route reduce discrepancies after the nurse leaves.", "تقلل الخطة المشتركة المتحققة ومسار التصعيد الواضح الاختلافات بعد مغادرة الممرض."), "teach-back"),
+          choice("home-medication-teach-back-a", bi("Review the verified list plainly, use teach-back to confirm the plan, correct gaps, and provide contact and follow-up instructions.", "راجع القائمة المتحققة بوضوح، واستخدم إعادة الشرح لتأكيد الخطة، وصحح الفجوات، وقدّم تعليمات التواصل والمتابعة."), 100, "safe", bi("Correct: teach-back checks understanding without testing or blaming the patient.", "صحيح: يتحقق الاسترجاع التعليمي من الفهم دون اختبار المريض أو لومه."), bi("A shared, verified plan and clear escalation route reduce discrepancies after the nurse leaves.", "تقلل الخطة المشتركة المتحققة ومسار التصعيد الواضح الاختلافات بعد مغادرة الممرض."), "teach-back"),
           choice("home-medication-teach-back-b", bi("Ask only, “Do you understand?” and accept yes as proof.", "اسأل فقط: «هل فهمت؟» واعتبر الإجابة بنعم دليلاً."), 30, "gap", bi("A yes-or-no question does not demonstrate how the plan will be followed.", "لا يوضح سؤال نعم أو لا كيف ستُتبع الخطة."), bi("Teach-back reveals misunderstandings that polite agreement may hide.", "يكشف الاسترجاع التعليمي سوء الفهم الذي قد تخفيه الموافقة المجاملة."), "teach-back"),
           choice("home-medication-teach-back-c", bi("Leave both old and updated lists active so the patient can choose later.", "اترك القائمتين القديمة والمحدثة فعالتين ليختار المريض لاحقاً."), 0, "unsafe", bi("Unsafe: conflicting active instructions recreate the original risk.", "غير آمن: تعيد التعليمات النشطة المتعارضة الخطر الأصلي."), bi("The verified plan must be unambiguous, with safe handling of superseded materials according to local policy.", "يجب أن تكون الخطة المتحققة غير ملتبسة، مع التعامل الآمن مع المواد المستبدلة وفق السياسة المحلية."), "teach-back"),
         ],
@@ -3579,6 +3579,348 @@ const stepReferenceIds = {
   "home-medication-teach-back": ["ahrq-teach-back"],
 };
 
+// These distractors are deliberately reasonable nursing actions, but they are
+// incomplete or sequenced after the time-critical priority in the case. Keeping
+// them close to real practice tests prioritisation instead of spotting a silly
+// answer. Clinical scoring and the safest-choice identifiers remain unchanged.
+const challengeDistractorText = {
+  "ed-dyspnea-arrival-b": bi(
+    "Obtain a 12-lead ECG and reconcile the inhaler history before beginning the full structured assessment.",
+    "أجرِ تخطيط قلب بـ12 اشتقاقاً وطابق تاريخ أدوية الاستنشاق قبل بدء التقييم المنهجي الكامل.",
+  ),
+  "ed-dyspnea-arrival-c": bi(
+    "Seat the patient upright and complete a focused respiratory history before applying continuous monitoring.",
+    "أجلس المريض بوضعية مستقيمة وأكمل تاريخاً تنفسياً مركزاً قبل تطبيق المراقبة المستمرة.",
+  ),
+  "ed-dyspnea-priority-b": bi(
+    "Obtain the ECG and complete a focused chest-pain assessment, then address oxygenation according to the findings.",
+    "أجرِ تخطيط القلب وأكمل تقييماً مركزاً لألم الصدر، ثم عالج الأكسجة وفق النتائج.",
+  ),
+  "ed-dyspnea-priority-c": bi(
+    "Establish vascular access and send urgent blood samples while waiting for the clinician to set the oxygen target.",
+    "أنشئ منفذاً وعائياً وأرسل عينات دم عاجلة أثناء انتظار تحديد الممارس لهدف الأكسجة.",
+  ),
+  "mental-health-screen-b": bi(
+    "Ask the support person for a detailed collateral history before asking the patient directly about intent, plan or access to means.",
+    "اطلب من الشخص الداعم تاريخاً مسانداً مفصلاً قبل سؤال المريض مباشرة عن النية أو الخطة أو إمكانية الوصول إلى الوسائل.",
+  ),
+  "mental-health-screen-c": bi(
+    "Offer a written risk-screening form in a quiet room and return after the patient has completed it independently.",
+    "قدّم نموذجاً مكتوباً لفحص المخاطر في غرفة هادئة، ثم عد بعد أن يكمله المريض بمفرده.",
+  ),
+  "mental-health-deescalate-b": bi(
+    "Position two staff near the doorway and use firm, detailed instructions before exploring what is increasing the distress.",
+    "ضع اثنين من أفراد الطاقم قرب الباب واستخدم تعليمات حازمة ومفصلة قبل استكشاف ما يزيد الضيق.",
+  ),
+  "mental-health-deescalate-c": bi(
+    "Invite the support person and security officer to explain the behavioural expectations together so the message is consistent.",
+    "اطلب من الشخص الداعم ومسؤول الأمن شرح التوقعات السلوكية معاً حتى تكون الرسالة متسقة.",
+  ),
+  "ipc-respiratory-source-control-b": bi(
+    "Apply source control and place the patient in a curtained single bay while awaiting laboratory confirmation before requesting airborne isolation.",
+    "طبّق ضبط المصدر وضع المريض في مساحة مفردة بستارة مع انتظار التأكيد المخبري قبل طلب العزل الهوائي.",
+  ),
+  "ipc-respiratory-source-control-c": bi(
+    "Apply source control and transfer the patient directly to the requested imaging area before notifying the clinical and IPC teams.",
+    "طبّق ضبط المصدر وانقل المريض مباشرة إلى منطقة التصوير المطلوبة قبل إبلاغ الفريق السريري وفريق مكافحة العدوى.",
+  ),
+  "ipc-respiratory-procedure-b": bi(
+    "Proceed in the current single room with a fit-tested respirator and task PPE because the aerosol-generating step will be brief.",
+    "نفّذ الإجراء في الغرفة المفردة الحالية مع جهاز تنفس مختبر الملاءمة ومعدات وقاية المهمة لأن الخطوة المولدة للرذاذ ستكون قصيرة.",
+  ),
+  "ipc-respiratory-procedure-c": bi(
+    "Move to the airborne room and use the available team before confirming that every participant is trained and fit-tested for the task.",
+    "انتقل إلى غرفة العزل الهوائي واستخدم الفريق المتاح قبل التأكد من تدريب جميع المشاركين واختبار ملاءمة أجهزة التنفس للمهمة.",
+  ),
+  "medication-mismatch-stop-b": bi(
+    "Quarantine the prepared infusion and request a replacement matching the active medication record without first verifying the original order and patient identifiers.",
+    "اعزل التسريب المحضّر واطلب بديلاً يطابق سجل الدواء النشط دون التحقق أولاً من الأمر الأصلي ومعرّفات المريض.",
+  ),
+  "medication-mismatch-stop-c": bi(
+    "Ask a second nurse to compare the label with the order, then administer if those two items match despite the unresolved patient record.",
+    "اطلب من ممرض ثانٍ مقارنة الملصق بالأمر، ثم أعطِ الدواء إذا تطابقا رغم بقاء سجل المريض غير محسوم.",
+  ),
+  "medication-allergy-reconcile-b": bi(
+    "Clarify the reported reaction with the patient, then continue because the electronic allergy field is blank and the dose is already due.",
+    "وضّح التفاعل المبلغ عنه مع المريض، ثم تابع لأن حقل الحساسية الإلكتروني فارغ وموعد الجرعة قد حان.",
+  ),
+  "medication-allergy-reconcile-c": bi(
+    "Keep the medicine withheld and document the verbal allergy history, but defer prescriber and pharmacy reconciliation until the end of the round.",
+    "أبقِ الدواء موقوفاً ووثّق تاريخ الحساسية الشفهي، لكن أجّل المطابقة مع الواصف والصيدلية حتى نهاية الجولة.",
+  ),
+  "ward-deterioration-trend-b": bi(
+    "Repeat the observations manually in 30 minutes and review the fluid chart before deciding whether the escalation threshold is met.",
+    "أعد العلامات الحيوية يدوياً بعد 30 دقيقة وراجع سجل السوائل قبل تحديد ما إذا كانت عتبة التصعيد قد تحققت.",
+  ),
+  "ward-deterioration-trend-c": bi(
+    "Give the prescribed analgesia, reposition the patient and reassess the dizziness before reviewing the complete observation trend.",
+    "أعطِ المسكن الموصوف، وعدّل وضعية المريض، وأعد تقييم الدوار قبل مراجعة الاتجاه الكامل للعلامات الحيوية.",
+  ),
+  "ward-deterioration-emergency-b": bi(
+    "Obtain a manual blood pressure and 12-lead ECG before activating the urgent response so the team receives more complete data.",
+    "احصل على ضغط يدوي وتخطيط قلب بـ12 اشتقاقاً قبل تفعيل الاستجابة العاجلة حتى يتلقى الفريق بيانات أكمل.",
+  ),
+  "ward-deterioration-emergency-c": bi(
+    "Call the surgical team directly and maintain close observations while awaiting their response instead of activating the local urgent pathway.",
+    "اتصل بالفريق الجراحي مباشرة واستمر بالمراقبة اللصيقة أثناء انتظار ردهم بدلاً من تفعيل المسار العاجل المحلي.",
+  ),
+  "peds-fever-assess-b": bi(
+    "Move the child to a pediatric assessment bay and obtain a complete blood pressure and history before escalating the concern.",
+    "انقل الطفل إلى منطقة تقييم الأطفال واحصل على ضغط دم وتاريخ كاملين قبل تصعيد المخاوف.",
+  ),
+  "peds-fever-assess-c": bi(
+    "Offer oral fluid and give an already-authorised antipyretic, then repeat the observations before requesting urgent review.",
+    "قدّم سوائل فموية وأعطِ خافض حرارة معتمداً مسبقاً، ثم أعد العلامات الحيوية قبل طلب المراجعة العاجلة.",
+  ),
+  "peds-fever-deteriorate-b": bi(
+    "Confirm the home antipyretic history and repeat the temperature before activating the pediatric response.",
+    "تحقق من تاريخ خافض الحرارة المنزلي وأعد قياس الحرارة قبل تفعيل استجابة الأطفال.",
+  ),
+  "peds-fever-deteriorate-c": bi(
+    "Move the child with the caregiver to a quiet room for repeat observations before calling the pediatric response team.",
+    "انقل الطفل مع المرافق إلى غرفة هادئة لإعادة العلامات الحيوية قبل استدعاء فريق استجابة الأطفال.",
+  ),
+  "maternity-sepsis-recognise-b": bi(
+    "Provide the ordered postnatal comfort measures and repeat the temperature after routine care before escalating.",
+    "قدّم تدابير الراحة الموصوفة بعد الولادة وأعد قياس الحرارة بعد الرعاية الروتينية قبل التصعيد.",
+  ),
+  "maternity-sepsis-recognise-c": bi(
+    "Inspect the wound and lochia and address the pain score before obtaining the complete observations and activating the pathway.",
+    "افحص الجرح والإفرازات وعالج درجة الألم قبل الحصول على العلامات الحيوية الكاملة وتفعيل المسار.",
+  ),
+  "maternity-sepsis-emergency-b": bi(
+    "Repeat and document a complete set of observations before activating the maternal emergency response so the team receives a finished trend.",
+    "أعد مجموعة كاملة من العلامات الحيوية ووثّقها قبل تفعيل استجابة طوارئ الأمومة حتى يتلقى الفريق اتجاهاً مكتملاً.",
+  ),
+  "maternity-sepsis-emergency-c": bi(
+    "Apply cooling and comfort measures, then repeat the temperature in 15 minutes before deciding whether emergency activation is needed.",
+    "طبّق تدابير التبريد والراحة، ثم أعد قياس الحرارة بعد 15 دقيقة قبل تحديد الحاجة إلى تفعيل الطوارئ.",
+  ),
+  "icu-sepsis-recognise-b": bi(
+    "Repeat the observations after prescribed analgesia and review the operative record before escalating possible sepsis.",
+    "أعد العلامات الحيوية بعد إعطاء المسكن الموصوف وراجع سجل العملية قبل تصعيد احتمال الإنتان.",
+  ),
+  "icu-sepsis-recognise-c": bi(
+    "Treat the postoperative pain first and reassess the heart rate and confusion before completing a deterioration assessment.",
+    "عالج ألم ما بعد الجراحة أولاً ثم أعد تقييم معدل القلب والتشوش قبل إكمال تقييم التدهور.",
+  ),
+  "icu-sepsis-coordinate-b": bi(
+    "Collect cultures and wait for the initial lactate result before escalating the blood-pressure trend and starting the pathway.",
+    "اجمع المزارع وانتظر نتيجة اللاكتات الأولية قبل تصعيد اتجاه ضغط الدم وبدء المسار.",
+  ),
+  "icu-sepsis-coordinate-c": bi(
+    "Complete the sepsis checklist and gather routine pathway supplies while waiting for patient-specific orders before continuing ABCDE support.",
+    "أكمل قائمة تحقق الإنتان واجمع مستلزمات المسار المعتادة أثناء انتظار الأوامر الخاصة بالمريض قبل مواصلة دعم ABCDE.",
+  ),
+  "older-adult-recognise-b": bi(
+    "Complete the locally approved delirium screen and obtain collateral baseline history before beginning ABCDE and neurological assessment.",
+    "أكمل فحص الهذيان المعتمد محلياً واحصل على تاريخ خط الأساس المساند قبل بدء تقييم ABCDE والتقييم العصبي.",
+  ),
+  "older-adult-recognise-c": bi(
+    "Ask the family to reorient the patient and clarify the cognitive baseline while routine observations are collected, then decide on escalation.",
+    "اطلب من الأسرة إعادة توجيه المريض وتوضيح خط الأساس الإدراكي أثناء جمع العلامات الروتينية، ثم قرر التصعيد.",
+  ),
+  "older-adult-mobility-b": bi(
+    "Activate the bed alarm and lower the bed, then step away briefly to retrieve a commode before assisting the patient.",
+    "فعّل إنذار السرير واخفضه، ثم ابتعد لفترة قصيرة لإحضار كرسي قضاء الحاجة قبل مساعدة المريض.",
+  ),
+  "older-adult-mobility-c": bi(
+    "Ask the family member to supervise standing while the nurse completes the urgent documentation at the desk.",
+    "اطلب من أحد أفراد الأسرة الإشراف على الوقوف بينما يكمل الممرض التوثيق العاجل عند المكتب.",
+  ),
+  "oncology-recognise-b": bi(
+    "Arrange a next-day oncology clinic review and advise another temperature check in two hours unless new symptoms appear.",
+    "رتّب مراجعة في عيادة الأورام في اليوم التالي وانصح بإعادة قياس الحرارة بعد ساعتين ما لم تظهر أعراض جديدة.",
+  ),
+  "oncology-recognise-c": bi(
+    "Advise the prescribed as-needed antipyretic and oral hydration, then reassess by telephone before activating urgent assessment.",
+    "انصح بخافض الحرارة الموصوف عند الحاجة والترطيب الفموي، ثم أعد التقييم هاتفياً قبل تفعيل التقييم العاجل.",
+  ),
+  "oncology-escalate-b": bi(
+    "Retrieve the current oncology treatment plan and complete registration before beginning the structured deterioration assessment.",
+    "استرجع خطة علاج الأورام الحالية وأكمل التسجيل قبل بدء تقييم التدهور المنهجي.",
+  ),
+  "oncology-escalate-c": bi(
+    "Repeat the full observations and obtain the ordered cultures before activating the emergency deterioration response.",
+    "أعد العلامات الحيوية الكاملة واسحب المزارع المطلوبة قبل تفعيل استجابة التدهور الطارئ.",
+  ),
+  "perioperative-identify-b": bi(
+    "Ask scheduling staff to amend the list to match the consent, then proceed on the patient’s confirmation without reconciling all records through the approved team-verification process.",
+    "اطلب من موظفي الجدولة تعديل القائمة لتطابق الموافقة، ثم تابع بناءً على تأكيد المريض دون مطابقة جميع السجلات عبر آلية تحقق الفريق المعتمدة.",
+  ),
+  "perioperative-identify-c": bi(
+    "Repeat identity and site confirmation with the patient, mark the site, and arrange correction of the conflicting list after the procedure.",
+    "كرر تأكيد الهوية والموضع مع المريض، وحدد الموضع، ورتب تصحيح القائمة المتعارضة بعد الإجراء.",
+  ),
+  "perioperative-speak-up-b": bi(
+    "Document the unresolved concern and allow reversible preparation to continue while waiting for the surgeon to review the records.",
+    "وثّق المخاوف غير المحسومة واسمح باستمرار التحضير القابل للتراجع أثناء انتظار مراجعة الجراح للسجلات.",
+  ),
+  "perioperative-speak-up-c": bi(
+    "Ask the charge nurse to make the final decision while the room team continues setting up for the case.",
+    "اطلب من الممرض المسؤول اتخاذ القرار النهائي بينما يواصل فريق الغرفة تجهيز الحالة.",
+  ),
+  "home-medication-compare-b": bi(
+    "Build an interim list from the most recently dispensed containers and ask the patient to use it until the prescriber responds.",
+    "أنشئ قائمة مؤقتة من العبوات المصروفة حديثاً واطلب من المريض استخدامها حتى يرد الواصف.",
+  ),
+  "home-medication-compare-c": bi(
+    "Document both lists and advise holding the suspected duplicates until verification can be completed at the next planned contact.",
+    "وثّق القائمتين وانصح بإيقاف الأدوية المشتبه بتكرارها حتى يكتمل التحقق في التواصل المخطط التالي.",
+  ),
+  "home-medication-dizziness-b": bi(
+    "Ask the patient to sit at the bedside, then complete a standing assessment to reproduce the dizziness before arranging hands-on support.",
+    "اطلب من المريض الجلوس على حافة السرير، ثم أكمل تقييماً أثناء الوقوف لاستثارة الدوار قبل ترتيب الدعم المباشر.",
+  ),
+  "home-medication-dizziness-c": bi(
+    "Direct the patient to sit while the nurse finishes the verification call, then assess the dizziness immediately afterward.",
+    "وجّه المريض للجلوس بينما ينهي الممرض مكالمة التحقق، ثم قيّم الدوار مباشرة بعدها.",
+  ),
+  "ed-dyspnea-reassess-b": bi(
+    "Continue monitoring and obtain the ECG, but defer repeat ABCDE assessment until the clinician arrives.",
+    "واصل المراقبة وأجرِ تخطيط القلب، لكن أجّل إعادة تقييم ABCDE حتى وصول الممارس.",
+  ),
+  "ed-dyspnea-reassess-c": bi(
+    "Repeat only the focused respiratory examination and document the oxygen response, but defer the complete ABCDE reassessment and team update until the scheduled review.",
+    "أعد الفحص التنفسي المركز فقط ووثّق الاستجابة للأكسجين، لكن أجّل إعادة تقييم ABCDE الكاملة وتحديث الفريق حتى المراجعة المجدولة.",
+  ),
+  "ed-dyspnea-deterioration-b": bi(
+    "Increase oxygen within the current plan and repeat saturation and respiratory effort before activating the emergency response.",
+    "ارفع الأكسجين ضمن الخطة الحالية وأعد قياس التشبع وجهد التنفس قبل تفعيل الاستجابة الطارئة.",
+  ),
+  "ed-dyspnea-deterioration-c": bi(
+    "Ask a second nurse to contact the clinician while completing a focused respiratory assessment instead of activating the emergency pathway.",
+    "اطلب من ممرض ثانٍ الاتصال بالممارس أثناء إكمال تقييم تنفسي مركز بدلاً من تفعيل مسار الطوارئ.",
+  ),
+  "ed-dyspnea-team-response-b": bi(
+    "Adjust the respiratory device within previously used settings, then report the change at the next team update.",
+    "عدّل جهاز الدعم التنفسي ضمن الإعدادات المستخدمة سابقاً، ثم أبلغ بالتغيير في التحديث التالي للفريق.",
+  ),
+  "ed-dyspnea-team-response-c": bi(
+    "Complete assigned tasks and record their times, then summarise the responses after the immediate team activity ends.",
+    "أكمل المهام الموكلة وسجّل أوقاتها، ثم لخّص الاستجابات بعد انتهاء نشاط الفريق الفوري.",
+  ),
+  "ed-dyspnea-handover-b": bi(
+    "Hand over the latest observations and current support, leaving the receiving team to reconstruct the earlier trend from the record.",
+    "سلّم أحدث العلامات والدعم الحالي، واترك للفريق المستلم إعادة بناء الاتجاه السابق من السجل.",
+  ),
+  "ed-dyspnea-handover-c": bi(
+    "Delay the handover until the current ECG is interpreted so the transfer includes one completed diagnostic result.",
+    "أجّل التسليم حتى يُفسر تخطيط القلب الحالي كي يشمل النقل نتيجة تشخيصية مكتملة.",
+  ),
+  "mental-health-handover-b": bi(
+    "Arrange urgent mental-health review and observe from the nearby desk while the receiving team prepares a room.",
+    "رتّب مراجعة عاجلة للصحة النفسية وراقب من المكتب القريب بينما يجهز الفريق المستلم الغرفة.",
+  ),
+  "mental-health-handover-c": bi(
+    "Maintain observation and give a verbal handover, but omit access-to-means details to preserve the person's trust.",
+    "حافظ على المراقبة وقدّم تسليماً شفهياً، لكن أغفل تفاصيل الوصول إلى الوسائل حفاظاً على ثقة الشخص.",
+  ),
+  "ipc-respiratory-exposure-b": bi(
+    "Notify the unit lead and circulate a de-identified summary to staff before contacting IPC for formal exposure assessment.",
+    "أبلغ مسؤول الوحدة وعمّم ملخصاً منزوع الهوية على الطاقم قبل التواصل مع مكافحة العدوى للتقييم الرسمي للتعرض.",
+  ),
+  "ipc-respiratory-exposure-c": bi(
+    "Document the exposed staff list securely and begin the formal pathway only if symptoms or a positive result appears.",
+    "وثّق قائمة الطاقم المتعرض بأمان وابدأ المسار الرسمي فقط عند ظهور أعراض أو نتيجة إيجابية.",
+  ),
+  "medication-near-miss-report-b": bi(
+    "Quarantine the mismatched product and document the medication record, but omit a near-miss report because no dose was given.",
+    "اعزل المنتج غير المطابق ووثّق سجل الدواء، لكن لا تقدم بلاغ حادثة وشيكة لأن الجرعة لم تُعطَ.",
+  ),
+  "medication-near-miss-report-c": bi(
+    "Notify the charge nurse and send a photograph of the shelf and patient label through the unit's informal messaging group.",
+    "أبلغ الممرض المسؤول وأرسل صورة للرف وملصق المريض عبر مجموعة المراسلة غير الرسمية للوحدة.",
+  ),
+  "ward-deterioration-transfer-b": bi(
+    "Keep the patient on the ward until the pending result returns rather than begin the planned monitored transfer.",
+    "أبقِ المريض في الجناح حتى ظهور النتيجة المعلقة بدلاً من بدء النقل المخطط تحت المراقبة.",
+  ),
+  "ward-deterioration-transfer-c": bi(
+    "Use a monitored transfer and mention the pending result in handover without confirming who will review and act on it.",
+    "استخدم نقلاً تحت المراقبة واذكر النتيجة المعلقة في التسليم دون تأكيد من سيراجعها ويتصرف بناءً عليها.",
+  ),
+  "peds-fever-handover-b": bi(
+    "Hand over the current observations and interventions, but leave weight, allergies and response trends for the team to verify.",
+    "سلّم العلامات والتدخلات الحالية، واترك للفريق التحقق من الوزن والحساسيات واتجاه الاستجابة.",
+  ),
+  "peds-fever-handover-c": bi(
+    "Ask the caregiver to repeat the history to the receiving team while the nurse sends only the latest observation set.",
+    "اطلب من المرافق إعادة سرد التاريخ للفريق المستلم بينما يرسل الممرض أحدث مجموعة علامات فقط.",
+  ),
+  "maternity-sepsis-continuity-b": bi(
+    "Explain the urgent transfer after the first treatment steps, then address questions and baby-care arrangements in the receiving area.",
+    "اشرح النقل العاجل بعد خطوات العلاج الأولى، ثم تناول الأسئلة وترتيبات رعاية الطفل في المنطقة المستلمة.",
+  ),
+  "maternity-sepsis-continuity-c": bi(
+    "Ask relatives to organise baby care immediately while the nurse gives the clinical handover outside the patient's hearing.",
+    "اطلب من الأقارب تنظيم رعاية الطفل فوراً بينما يقدم الممرض التسليم السريري بعيداً عن سماع المريضة.",
+  ),
+  "icu-sepsis-reassess-b": bi(
+    "Continue frequent blood-pressure and heart-rate checks, then reassess mentation, breathing and urine output after the next laboratory results.",
+    "واصل قياس الضغط والنبض بشكل متكرر، ثم أعد تقييم الوعي والتنفس وإخراج البول بعد نتائج المختبر التالية.",
+  ),
+  "icu-sepsis-reassess-c": bi(
+    "Trend temperature and the available laboratory marker while asking the next shift to complete the remaining perfusion assessment.",
+    "تابع الحرارة والمؤشر المخبري المتاح واطلب من المناوبة التالية إكمال بقية تقييم الإرواء.",
+  ),
+  "older-adult-handover-b": bi(
+    "Report the acute confusion, current observations and fall precautions, but omit baseline cognition, timing and the completed head assessment.",
+    "أبلغ عن التشوش الحاد والعلامات الحالية واحتياطات السقوط، لكن أغفل خط الإدراك الأساسي والتوقيت وتقييم الرأس المكتمل.",
+  ),
+  "older-adult-handover-c": bi(
+    "Send a written update after every investigation is complete rather than give an active handover of current unresolved risks.",
+    "أرسل تحديثاً مكتوباً بعد اكتمال جميع الفحوص بدلاً من تقديم تسليم نشط للمخاطر الحالية غير المحسومة.",
+  ),
+  "oncology-reassess-b": bi(
+    "Repeat temperature and blood pressure after the first intervention before reassessing the other abnormal domains or updating the team.",
+    "أعد قياس الحرارة والضغط بعد التدخل الأول قبل إعادة تقييم الجوانب الأخرى غير الطبيعية أو تحديث الفريق.",
+  ),
+  "oncology-reassess-c": bi(
+    "Document the initial abnormalities and ask oncology to review the remaining trend when the working diagnosis is confirmed.",
+    "وثّق الشذوذ الأولي واطلب من فريق الأورام مراجعة بقية الاتجاه عند تأكيد التشخيص المبدئي.",
+  ),
+  "perioperative-close-loop-b": bi(
+    "Correct the active schedule and add a note, but overwrite the original entry so the resolved discrepancy is no longer visible.",
+    "صحح الجدول النشط وأضف ملاحظة، لكن استبدل الإدخال الأصلي حتى لا يبقى الاختلاف المحسوم ظاهراً.",
+  ),
+  "perioperative-close-loop-c": bi(
+    "Document the verified resolution in the clinical record but omit the separate near-miss report because the procedure did not begin.",
+    "وثّق الحل المتحقق منه في السجل السريري، لكن لا تقدم بلاغ الحادثة الوشيكة المنفصل لأن الإجراء لم يبدأ.",
+  ),
+  "home-medication-teach-back-b": bi(
+    "Review the verified list and ask whether it is understood, then leave written instructions without asking for teach-back.",
+    "راجع القائمة المتحققة واسأل إن كانت مفهومة، ثم اترك تعليمات مكتوبة دون طلب إعادة شرح الخطة.",
+  ),
+  "home-medication-teach-back-c": bi(
+    "Send the verified list electronically and defer teach-back and correction of misunderstandings to the next planned contact.",
+    "أرسل القائمة المتحققة إلكترونياً وأجّل إعادة الشرح وتصحيح سوء الفهم إلى التواصل المخطط التالي.",
+  ),
+};
+
+function applyChallengeDistractor(candidate) {
+  const text = challengeDistractorText[candidate.id];
+  if (!text) return candidate;
+  const isPartialCredit = candidate.score > 0;
+  return {
+    ...candidate,
+    text,
+    feedback: isPartialCredit
+      ? bi(
+          "This action is relevant, but its timing or sequence misses the immediate priority.",
+          "هذا الإجراء ذو صلة، لكن توقيته أو تسلسله لا يعالج الأولوية الفورية.",
+        )
+      : bi(
+          "This is not the safest choice now because it delays or omits the immediate priority.",
+          "هذا ليس الخيار الأكثر أماناً الآن لأنه يؤخر الأولوية الفورية أو يغفلها.",
+        ),
+    rationale: bi(
+      "Respond to the time-critical cue first; this action may follow only when it does not delay the priority response.",
+      "استجب أولاً للمؤشر الحساس للوقت؛ ويمكن أن يأتي هذا الإجراء لاحقاً فقط إذا لم يؤخر استجابة الأولوية.",
+    ),
+  };
+}
+
 export const scenarios = authoredScenarios.map((scenario) => {
   const scenarioReferenceIds = [...new Set([
     ...scenario.referenceIds,
@@ -3591,6 +3933,7 @@ export const scenarios = authoredScenarios.map((scenario) => {
       const referenceIds = [...new Set(stepReferenceIds[step.id] ?? scenarioReferenceIds)];
       return {
         ...step,
+        choices: step.choices.map(applyChallengeDistractor),
         referenceIds,
         evidenceClaims: [{
           id: `${step.id}-safest-response-rationale`,
@@ -3625,6 +3968,6 @@ export const scenarios = authoredScenarios.map((scenario) => {
       "Draft — source mapping added; qualified clinical, legal and Arabic-language review is still pending.",
       "مسودة — أضيف ربط المصادر، وما زالت المراجعة السريرية والقانونية واللغوية العربية المؤهلة معلقة.",
     ),
-    contentVersion: "1.3.0",
+    contentVersion: "1.3.1",
   };
 });
