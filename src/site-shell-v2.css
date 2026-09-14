@@ -82,6 +82,66 @@
   display: none;
 }
 
+.sepsis-quiz-entry {
+  display: grid;
+  margin-block-end: 22px;
+  padding: 20px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(76, 203, 199, 0.16), transparent 58%),
+    var(--navy-900);
+  border: 1px solid rgba(76, 203, 199, 0.36);
+  border-radius: 15px;
+  box-shadow: 0 14px 34px rgba(4, 28, 55, 0.14);
+}
+
+.sepsis-quiz-entry__icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  color: #71dfd9;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+}
+
+.sepsis-quiz-entry .eyebrow {
+  margin-block-end: 4px;
+  color: #71dfd9;
+}
+
+.sepsis-quiz-entry h2,
+.sepsis-quiz-entry p {
+  margin: 0;
+}
+
+.sepsis-quiz-entry h2 {
+  color: #ffffff;
+  font-size: 1.25rem;
+}
+
+.sepsis-quiz-entry p {
+  margin-block-start: 5px;
+  color: rgba(239, 255, 254, 0.78);
+  line-height: 1.65;
+}
+
+.sepsis-quiz-entry small {
+  display: block;
+  margin-block-start: 7px;
+  color: #a8eeea;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.sepsis-quiz-entry .button-primary {
+  white-space: nowrap;
+}
+
 .reference-toolbar {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
@@ -168,6 +228,21 @@
   background: #ffffff;
   border: 1px dashed var(--line-strong);
   border-radius: 14px;
+  text-align: center;
+}
+
+.reference-source-unavailable {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 13px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -316,7 +391,7 @@
 
   .reference-filters {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .reference-filters button {
@@ -327,6 +402,16 @@
   .nursing-assistant-launcher,
   .nursing-assistant--footer-visible .nursing-assistant-launcher {
     inset-block-end: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .sepsis-quiz-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .sepsis-quiz-entry .button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }
 

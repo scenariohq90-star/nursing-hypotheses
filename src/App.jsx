@@ -17,6 +17,7 @@ import {
   Drop,
   EnvelopeSimple,
   Exam,
+  FirstAidKit,
   Globe,
   GraduationCap,
   Gauge,
@@ -85,6 +86,7 @@ import {
   updateCloudLanguage,
 } from "./lib/progress-repository.js";
 import { signOutAndClearLocalLearningCache } from "./lib/local-learning-cache.js";
+import { SEPSIS_QUIZ_REFERENCES } from "./data/sepsis-quiz-references.js";
 
 const PROFILE_STORAGE_KEY = "nursing-hypotheses.learning-profile.v1";
 const EXAM_STORAGE_KEY = "nursing-hypotheses.exam-profile.v1";
@@ -101,6 +103,7 @@ const NursingAssistant = lazy(() => import("./components/NursingAssistant.jsx")
   .then((module) => ({ default: module.NursingAssistant })));
 const MedicationMathPage = lazy(() => import("./components/MedicationMathPage.jsx")
   .then((module) => ({ default: module.MedicationMathPage })));
+const SepsisQuiz = lazy(() => import("./components/SepsisQuiz.jsx"));
 
 function examSessionStorageKey(userId) {
   return userId ? `${EXAM_SESSION_STORAGE_KEY}.${userId}` : EXAM_SESSION_STORAGE_KEY;
@@ -132,7 +135,7 @@ function examProfileStorageKeyForUser(userId) {
 
 const copy = {
   en: {
-    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", dosePractice: "Medication math", learning: "My learning", resources: "References", about: "About", tools: "Tools",
+    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", sepsisQuiz: "Sepsis Quiz", dosePractice: "Medication math", learning: "My learning", resources: "References", about: "About", tools: "Tools",
     menu: "Open navigation", closeMenu: "Close navigation", openTools: "Open tools", closeTools: "Close tools", language: "Language", learner: "Guest beta", localProfile: "Learning profile", localProfileShort: "This device", guestBetaEyebrow: "Public testing beta", guestBetaTitle: "No account needed", guestBetaBody: "Your progress stays in this browser. Account sync and the AI assistant are temporarily unavailable while their production safeguards are completed.", sendFeedback: "Send feedback",
     privacyStrip: "Public testing beta · guest access only. Progress stays on this device; accounts and AI are temporarily off. Draft education only — never enter patient data or use for patient care.",
     simulation: "Simulation", eyebrow: "Practise clinical judgement", heroTitle: "Learn to notice what matters — before the next decision.", homeDecisionTitle: "Can you spot the warning sign?", homeDecisionBody: "Read the cues, set your priorities, then choose the best nursing response.", practiceCase: "Practice case", decisionPath: "Case pathway", decision: "Decision", startFirstDecision: "Start the first decision", quickLinks: "Quick links", homeQuestionsHint: "Practise with short, varied quizzes", homeLearningHint: "Track progress and focus areas",
@@ -171,8 +174,8 @@ const copy = {
     question: "Question", selectOneAnswer: "Select one answer before locking it.", lockAnswer: "Lock answer", nextQuestion: "Next question", finishQuiz: "Finish and review", correctAnswer: "Correct response", incorrectAnswer: "Review this response", unansweredAtTimeout: "Unanswered when time ended", answerLocked: "Answer locked", answerRationale: "Answer rationale", questionSources: "Sources for this item", timeRemaining: "Time remaining", timeExpired: "Time ended — the set was submitted with unanswered items marked incorrect.", sessionSaved: "Progress and the absolute deadline are saved in this browser, so refreshing does not restart the timer.", focusedPracticeTitle: "10-question focused follow-up", focusedPracticeBody: "This new set starts with the lowest-scoring learning domains from this completed attempt and favours questions you have not just answered.", startFocusedSet: "Start focused set",
     quizProgress: "Question progress", quizScore: "Practice score", correctAnswers: "Correct answers", quizDebriefEyebrow: "Question-bank debrief", quizDebriefTitle: "Review what you understood and what to revisit", quizIncomplete: "Complete the current question set to see its debrief.", localExamProgress: "Question practice history", localExamProgressBody: "Review completed question sets, answered items and performance by learning domain.", setsCompleted: "Completed sets", questionsAnswered: "Questions answered", categoryInsights: "Learning-domain review", morePractice: "Lower accuracy in this sample", developingKnowledge: "Mixed performance in this sample", strongKnowledge: "Higher accuracy in this sample", noExamAttempts: "Your first completed question set will appear here.",
     originalPracticeNotice: "Independent original practice only. No recalled, secure or official examination items are used, and scores do not predict an examination result, licensure or competence.", allDifficultyLevels: "All levels", questionsAvailable: "questions available", practiceSet: "Practice set", newVariation: "New variation", viewQuestionBank: "Open question bank", uniqueItems: "unique questions", completedSetsEvidence: "completed sets", earlyIndicator: "Early learning indicator", categoryEvidenceBody: "A learning-domain signal appears only after at least three unique questions across two completed sets.", contextVariant: "Practice context", contextDetails: "Context details", contextVariantNote: "Context changes presentation only; the clinical cues, scoring and best response stay consistent.", guidedScenarioTitle: "Guided scenario order", guidedScenarioBody: "Completed decisions reorder the library so relevant lower-scoring or safety-flagged learning domains appear more often near the top. New scenarios remain in the mix.", recommendedNext: "Recommended next", recommendationExplore: "Broaden the baseline", recommendationEvidence: "Gather more evidence", recommendationDevelopment: "Practise mixed-performance areas", recommendationReview: "Revisit a lower-accuracy area", recommendationSafety: "Review a safety-critical choice", adaptiveLearningTitle: "Suggested next practice", adaptiveLearningBody: "Suggestions use completed activity on this device to focus the next practice session.", openRecommendedScenario: "Open suggested scenario", startGuidedQuestions: "Start guided questions", examNonAffiliation: "Nursing Hypotheses is an independently developed educational resource. It is not issued, sponsored, endorsed, approved or administered by any nursing regulator, examination owner or test-delivery provider. It contains no recalled or secure examination items. Practice scores describe performance only in this question set and do not predict examination results, licensure or professional competence.",
-    includedAccess: "Included practice",
-    referencesEyebrow: "Reference library", referencesTitle: "All sources, in one place", referencesBody: "Browse the source library used to develop scenarios and original practice questions.", referenceSearchLabel: "Search references", referenceSearchPlaceholder: "Search by title or publisher", referenceFilterAll: "All", referenceFilterScenarios: "Scenarios", referenceFilterQuestions: "Question bank", usedInScenarios: "Scenarios", usedInQuestions: "Question bank", noReferencesFound: "No references match this search.", sourceRecords: "source records",
+    includedAccess: "Included practice", sepsisQuizCardTitle: "Sepsis Quiz", sepsisQuizCardBody: "A separate 10-question knowledge check covering early recognition, qSOFA, Time Zero, and escalation.", openSepsisQuiz: "Open Sepsis Quiz", sepsisQuizQuestions: "10 questions · score out of 10",
+    referencesEyebrow: "Reference library", referencesTitle: "All sources, in one place", referencesBody: "Browse the source library used to develop scenarios and original practice questions.", referenceSearchLabel: "Search references", referenceSearchPlaceholder: "Search by title or publisher", referenceFilterAll: "All", referenceFilterScenarios: "Scenarios", referenceFilterQuestions: "Question bank", referenceFilterSepsis: "Sepsis Quiz", usedInScenarios: "Scenarios", usedInQuestions: "Question bank", usedInSepsisQuiz: "Sepsis Quiz", sourceUnavailable: "No public source link", noReferencesFound: "No references match this search.", sourceRecords: "source records",
     source: "Publisher/source page", accessNote: "Access note", aboutEyebrow: "About the platform", aboutTitle: "A rehearsal space for clinical reasoning",
     aboutLead: "Nursing Hypotheses turns realistic but fictional moments into deliberate practice: notice, prioritise, act, reassess and explain.", purpose: "What it is for",
     purposeBody: "Self-directed nursing education, facilitated debrief and discussion of safe decision sequences across clinical areas.", method: "How it is built", methodBody: "Original branching cases, bilingual explanations, transparent scores and references mapped at scenario level.",
@@ -182,7 +185,7 @@ const copy = {
     footerLine: "Learn. Reason. Care.", privacy: "Privacy", terms: "Terms", contact: "Contact & safety", copyright: "Nursing Hypotheses. Public beta.",
   },
   ar: {
-    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", dosePractice: "حساب الجرعات", learning: "تعلّمي", resources: "المراجع", about: "عن المنصة", tools: "الأدوات",
+    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", sepsisQuiz: "اختبار Sepsis", dosePractice: "حساب الجرعات", learning: "تعلّمي", resources: "المراجع", about: "عن المنصة", tools: "الأدوات",
     menu: "فتح قائمة التنقل", closeMenu: "إغلاق قائمة التنقل", openTools: "فتح الأدوات", closeTools: "إغلاق الأدوات", language: "اللغة", learner: "تجربة الضيف", localProfile: "ملف التعلم", localProfileShort: "هذا الجهاز", guestBetaEyebrow: "نسخة تجريبية عامة", guestBetaTitle: "لا تحتاج إلى حساب", guestBetaBody: "يبقى تقدمك داخل هذا المتصفح. مزامنة الحساب والمساعد الذكي غير متاحين مؤقتاً إلى أن تكتمل ضوابطهما التشغيلية.", sendFeedback: "أرسل ملاحظتك",
     privacyStrip: "نسخة تجريبية عامة · للضيف فقط. يبقى التقدم على هذا الجهاز، وتسجيل الحسابات والذكاء الاصطناعي متوقفان مؤقتاً. تعليم أولي فقط—لا تدخل بيانات مرضى ولا تستخدمه لرعاية مريض.", simulation: "محاكاة", eyebrow: "تدرّب على الحكم السريري", homeDecisionTitle: "هل تلاحظ علامة الخطر؟", homeDecisionBody: "اقرأ المؤشرات، رتّب أولوياتك، ثم اختر الاستجابة التمريضية الأنسب.", practiceCase: "حالة تدريبية", decisionPath: "مسار الحالة", decision: "القرار", startFirstDecision: "ابدأ القرار الأول", quickLinks: "روابط سريعة", homeQuestionsHint: "تدرّب باختبارات قصيرة ومتنوعة", homeLearningHint: "تابع تقدمك وحدد نقاط التحسين",
     heroTitle: "تعلّم كيف تلاحظ المهم — قبل القرار التالي.", heroBody: "سيناريوهات تمريضية متفرعة لقرارات الطوارئ والأجنحة والأطفال والولادة والعناية الحرجة. كل اختيار أولي مشروح بالعربية والإنجليزية ويذكر مجموعة المصادر المستخدمة في تأليفه.",
@@ -217,8 +220,8 @@ const copy = {
     question: "السؤال", selectOneAnswer: "اختر إجابة واحدة قبل تثبيتها.", lockAnswer: "تثبيت الإجابة", nextQuestion: "السؤال التالي", finishQuiz: "إنهاء ومراجعة", correctAnswer: "استجابة صحيحة", incorrectAnswer: "راجع هذه الاستجابة", unansweredAtTimeout: "لم يُجب عنه عند انتهاء الوقت", answerLocked: "تم تثبيت الإجابة", answerRationale: "مبرر الإجابة", questionSources: "مصادر هذا السؤال", timeRemaining: "الوقت المتبقي", timeExpired: "انتهى الوقت — أُرسلت المجموعة واحتُسبت الأسئلة غير المجابة كإجابات غير صحيحة.", sessionSaved: "يُحفظ التقدم والموعد النهائي للعداد في هذا المتصفح، لذلك لا يعيد تحديث الصفحة بدء الوقت.", focusedPracticeTitle: "متابعة مركزة من 10 أسئلة", focusedPracticeBody: "تبدأ هذه المجموعة الجديدة بمجالات التعلم الأقل نتيجة في المحاولة المكتملة، وتفضّل الأسئلة التي لم تُجب عنها للتو.", startFocusedSet: "ابدأ المجموعة المركزة",
     quizProgress: "تقدم الأسئلة", quizScore: "درجة التدريب", correctAnswers: "الإجابات الصحيحة", quizDebriefEyebrow: "تحليل بنك الأسئلة", quizDebriefTitle: "راجع ما فهمته وما يحتاج إلى عودة", quizIncomplete: "أكمل مجموعة الأسئلة الحالية لعرض التحليل.", localExamProgress: "سجل تدريب الأسئلة", localExamProgressBody: "راجع مجموعات الأسئلة المكتملة وعدد الإجابات والأداء في كل مجال تعلّم.", setsCompleted: "المجموعات المكتملة", questionsAnswered: "الأسئلة المجاب عنها", categoryInsights: "مراجعة مجالات التعلم", morePractice: "دقة أقل في هذه العينة", developingKnowledge: "أداء متباين في هذه العينة", strongKnowledge: "دقة أعلى في هذه العينة", noExamAttempts: "ستظهر أول مجموعة أسئلة مكتملة هنا.",
     originalPracticeNotice: "تدريب مستقل ومؤلف أصلاً فقط. لا يستخدم أسئلة اختبار متذكَّرة أو سرية أو رسمية، ولا تتنبأ الدرجات بنتيجة اختبار أو ترخيص أو كفاءة.", allDifficultyLevels: "كل المستويات", questionsAvailable: "سؤالاً متاحاً", practiceSet: "مجموعة تدريب", newVariation: "تنويع جديد", viewQuestionBank: "فتح بنك الأسئلة", uniqueItems: "أسئلة فريدة", completedSetsEvidence: "مجموعات مكتملة", earlyIndicator: "مؤشر تعلم مبكر", categoryEvidenceBody: "لا يظهر مؤشر لمجال التعلم إلا بعد ثلاثة أسئلة فريدة على الأقل عبر مجموعتين مكتملتين.", contextVariant: "سياق التدريب", contextDetails: "تفاصيل السياق", contextVariantNote: "يغير السياق طريقة العرض فقط؛ وتبقى القرائن السريرية والدرجة وأفضل استجابة متسقة.", guidedScenarioTitle: "ترتيب موجّه للسيناريوهات", guidedScenarioBody: "تعيد القرارات المكتملة ترتيب المكتبة لتظهر مجالات التعلم ذات الدقة الأقل أو اختيارات السلامة قرب الأعلى بصورة أكثر تكراراً، مع إبقاء السيناريوهات الجديدة ضمن التناوب.", recommendedNext: "مقترح تالٍ", recommendationExplore: "توسيع خط الأساس", recommendationEvidence: "جمع أدلة إضافية", recommendationDevelopment: "التدرب على الأداء المتفاوت", recommendationReview: "مراجعة مجال منخفض الدقة", recommendationSafety: "مراجعة اختيار متعلق بالسلامة", adaptiveLearningTitle: "التدريب التالي المقترح", adaptiveLearningBody: "تستخدم الاقتراحات النشاط المكتمل على هذا الجهاز لتركيز جلسة التدريب التالية.", openRecommendedScenario: "فتح السيناريو المقترح", startGuidedQuestions: "بدء أسئلة موجّهة", examNonAffiliation: "فرضيات تمريضية مورد تعليمي مطوّر بصورة مستقلة. لا يصدر عن أي جهة تنظيمية تمريضية أو مالك اختبار أو مزود تقديم اختبارات، ولا ترعاه أو تؤيده أو تعتمده أو تديره أيٌّ منها. ولا يتضمن أسئلة اختبار متذكَّرة أو سرية. تصف درجات التدريب أداء المتعلم في هذه المجموعة فقط، ولا تتنبأ بنتيجة اختبار أو بالحصول على ترخيص أو بالكفاءة المهنية.",
-    includedAccess: "تدريب متاح",
-    referencesEyebrow: "مكتبة المراجع", referencesTitle: "كل المراجع في مكان واحد", referencesBody: "تصفح مكتبة المصادر المستخدمة في إعداد السيناريوهات والأسئلة التدريبية الأصلية.", referenceSearchLabel: "البحث في المراجع", referenceSearchPlaceholder: "ابحث بالعنوان أو الجهة", referenceFilterAll: "الكل", referenceFilterScenarios: "السيناريوهات", referenceFilterQuestions: "بنك الأسئلة", usedInScenarios: "السيناريوهات", usedInQuestions: "بنك الأسئلة", noReferencesFound: "لا توجد مراجع مطابقة لهذا البحث.", sourceRecords: "مرجعاً",
+    includedAccess: "تدريب متاح", sepsisQuizCardTitle: "اختبار Sepsis", sepsisQuizCardBody: "اختبار مستقل من 10 أسئلة عن الاكتشاف المبكر وqSOFA وTime Zero والتصعيد.", openSepsisQuiz: "فتح اختبار Sepsis", sepsisQuizQuestions: "10 أسئلة · النتيجة من 10",
+    referencesEyebrow: "مكتبة المراجع", referencesTitle: "كل المراجع في مكان واحد", referencesBody: "تصفح مكتبة المصادر المستخدمة في إعداد السيناريوهات والأسئلة التدريبية الأصلية.", referenceSearchLabel: "البحث في المراجع", referenceSearchPlaceholder: "ابحث بالعنوان أو الجهة", referenceFilterAll: "الكل", referenceFilterScenarios: "السيناريوهات", referenceFilterQuestions: "بنك الأسئلة", referenceFilterSepsis: "اختبار Sepsis", usedInScenarios: "السيناريوهات", usedInQuestions: "بنك الأسئلة", usedInSepsisQuiz: "اختبار Sepsis", sourceUnavailable: "لا يوجد رابط عام للمصدر", noReferencesFound: "لا توجد مراجع مطابقة لهذا البحث.", sourceRecords: "مرجعاً",
     source: "صفحة الناشر/المصدر", accessNote: "ملاحظة الوصول", aboutEyebrow: "عن المنصة", aboutTitle: "مساحة تدريب للاستدلال السريري", aboutLead: "تحوّل فرضيات تمريضية لحظات واقعية لكنها خيالية إلى تدريب مقصود: لاحظ، ورتّب الأولوية، وتدخل، وأعد التقييم، واشرح.",
     purpose: "لأي غرض؟", purposeBody: "للتعلم التمريضي الذاتي والتحليل الميسر ومناقشة تسلسل القرارات الآمنة عبر المجالات السريرية.", method: "كيف بُنيت؟", methodBody: "حالات متفرعة أصلية، وشروح ثنائية اللغة، ودرجات شفافة، ومراجع مرتبطة على مستوى السيناريو.",
     boundaries: "مكان المنصة", boundariesBody: "تدعم الممارسة الشخصية والنقاش الميسّر والمراجعة المنظمة إلى جانب الإشراف والسياسات المحلية والتعليم الرسمي.", accountModel: "دخول النسخة العامة التجريبية",
@@ -329,7 +332,8 @@ const POLICY_PAGES = {
   },
 };
 
-const NAV_ITEMS = [["home", "home", House], ["scenarios", "simulations", Exam], ["questions", "questionBank", ClipboardText], ["dose-practice", "dosePractice", Calculator], ["learning", "learning", ChartLineUp], ["resources", "resources", Books], ["about", "about", Info]];
+const NAV_ITEMS = [["home", "home", House], ["scenarios", "simulations", Exam], ["questions", "questionBank", ClipboardText], ["sepsis-quiz", "sepsisQuiz", FirstAidKit], ["dose-practice", "dosePractice", Calculator], ["learning", "learning", ChartLineUp], ["resources", "resources", Books], ["about", "about", Info]];
+const DESKTOP_NAV_ITEMS = NAV_ITEMS.filter(([path]) => ["scenarios", "questions", "sepsis-quiz", "learning"].includes(path));
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(([path]) => ["scenarios", "questions", "learning"].includes(path));
 const TOOL_NAV_ITEMS = NAV_ITEMS.filter(([path]) => ["dose-practice", "resources", "about"].includes(path));
 
@@ -415,7 +419,7 @@ function createScenarioSession(scenarioId = null, orderSeed = 0) {
 
 function parseRoute() {
   const [page = "home", id = ""] = window.location.hash.replace(/^#\/?/, "").split("/");
-  const allowed = new Set(["home", "scenarios", "scenario", "result", "questions", "dose-practice", "learning", "resources", "about", "privacy", "terms", "contact"]);
+  const allowed = new Set(["home", "scenarios", "scenario", "result", "questions", "sepsis-quiz", "dose-practice", "learning", "resources", "about", "privacy", "terms", "contact"]);
   return allowed.has(page) ? { page, id } : { page: "home", id: "" };
 }
 
@@ -441,6 +445,7 @@ function activeRoutePath(route) {
 function routeTitleKey(route) {
   if (route.page === "scenario" || route.page === "result") return "scenarios";
   if (route.page === "questions") return "questionBank";
+  if (route.page === "sepsis-quiz") return "sepsisQuiz";
   if (route.page === "dose-practice") return "dosePractice";
   return route.page;
 }
@@ -541,7 +546,7 @@ function SectionIntro({ eyebrow, title, body }) {
 function Header({ lang, setLanguage, route, menuOpen, setMenuOpen, t }) {
   const menuButtonRef = useRef(null);
   const active = activeRoutePath(route);
-  const dockActive = active === "home" ? "scenarios" : active;
+  const dockActive = active === "home" ? "scenarios" : active === "sepsis-quiz" ? "questions" : active;
   useEffect(() => {
     if (!menuOpen) return undefined;
     const handleKeyDown = (event) => {
@@ -572,7 +577,7 @@ function Header({ lang, setLanguage, route, menuOpen, setMenuOpen, t }) {
           <span className="brand-copy"><span className="brand-name">{PRODUCT_NAME[lang]}</span><span className="brand-tagline">{t("footerLine")}</span></span>
         </AppLink>
         <nav className="desktop-nav" aria-label={lang === "ar" ? "التنقل الرئيسي" : "Primary navigation"}>
-          {PRIMARY_NAV_ITEMS.map(([path, label]) => <AppLink key={path} to={path} className={active === path ? "active" : ""} aria-current={active === path ? "page" : undefined}>{t(label)}</AppLink>)}
+          {DESKTOP_NAV_ITEMS.map(([path, label]) => <AppLink key={path} to={path} className={active === path ? "active" : ""} aria-current={active === path ? "page" : undefined}>{t(label)}</AppLink>)}
         </nav>
         <div className="header-actions">
           <div className="language-switch" aria-label={t("language")} role="group"><Globe size={19} aria-hidden="true" /><button type="button" className={lang === "ar" ? "selected" : ""} aria-pressed={lang === "ar"} onClick={() => setLanguage("ar")} lang="ar">العربية</button><button type="button" className={lang === "en" ? "selected" : ""} aria-pressed={lang === "en"} onClick={() => setLanguage("en")} lang="en">English</button></div>
@@ -799,7 +804,7 @@ function ResultPage({ scenarioId, lang, t, profile, onStart }) {
 
 const allQuestionReferences = [
   ...new Map(
-    [...examReferences, ...references].map((reference) => [reference.id, reference]),
+    [...examReferences, ...references, ...SEPSIS_QUIZ_REFERENCES].map((reference) => [reference.id, reference]),
   ).values(),
 ];
 const scenarioReferenceIds = new Set(scenarios.flatMap((scenario) => [
@@ -808,6 +813,7 @@ const scenarioReferenceIds = new Set(scenarios.flatMap((scenario) => [
   ...(scenario.hypotheses ?? []).flatMap((hypothesis) => hypothesis.referenceIds ?? []),
 ]));
 const questionReferenceIds = new Set(questionBank.flatMap((question) => question.referenceIds ?? []));
+const sepsisReferenceIds = new Set(SEPSIS_QUIZ_REFERENCES.map((reference) => reference.id));
 
 const examLearningDomains = examTracks.flatMap((track) => (
   examDomains.map((domain) => ({ ...domain, examId: track.id }))
@@ -947,6 +953,11 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
 
   if (!quiz && !result) {
     return <div className="page-container question-bank-page"><SectionIntro eyebrow={t("questionBankEyebrow")} title={t("questionBankTitle")} body={t("questionBankBody")} />
+      <section className="sepsis-quiz-entry" aria-labelledby="sepsis-quiz-entry-title">
+        <span className="sepsis-quiz-entry__icon" aria-hidden="true"><FirstAidKit size={32} weight="duotone" /></span>
+        <div><p className="eyebrow">SEPSIS</p><h2 id="sepsis-quiz-entry-title">{t("sepsisQuizCardTitle")}</h2><p>{t("sepsisQuizCardBody")}</p><small>{t("sepsisQuizQuestions")}</small></div>
+        <AppLink to="sepsis-quiz" className="button button-primary">{t("openSepsisQuiz")}{lang === "ar" ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</AppLink>
+      </section>
       <section className="quiz-builder" aria-labelledby="quiz-builder-title"><div className="quiz-builder-heading"><div><p className="eyebrow">{t("practiceSet")}</p><h2 id="quiz-builder-title">{t("selectTrack")}</h2></div><AccessBadge t={t} /></div>
         <fieldset className="exam-track-list"><legend className="sr-only">{t("selectTrack")}</legend>{examTracks.map((track) => <label key={track.id} className={examId === track.id ? "selected" : ""}><input type="radio" name="exam-track" value={track.id} checked={examId === track.id} onChange={() => { setExamId(track.id); setCategoryId("all"); setNotice(""); }} /><span className="track-check" aria-hidden="true">{examId === track.id ? <Check size={16} weight="bold" /> : null}</span><span><strong>{localize(track.shortLabel, lang)}</strong><small>{localize(track.description, lang)}</small></span></label>)}</fieldset>
         <fieldset className="practice-mode-list"><legend>{t("practiceMode")}</legend><label className={practiceMode === "guided" ? "selected" : ""}><input type="radio" name="practice-mode" value="guided" checked={practiceMode === "guided"} onChange={() => { setPracticeMode("guided"); setNotice(""); }} /><Brain size={23} weight="duotone" aria-hidden="true" /><span><strong>{t("guidedPractice")}</strong><small>{t("guidedPracticeBody")}</small></span></label><label className={practiceMode === "manual" ? "selected" : ""}><input type="radio" name="practice-mode" value="manual" checked={practiceMode === "manual"} onChange={() => { setPracticeMode("manual"); setNotice(""); }} /><ClipboardText size={23} weight="duotone" aria-hidden="true" /><span><strong>{t("manualPractice")}</strong><small>{t("manualPracticeBody")}</small></span></label></fieldset>
@@ -1053,8 +1064,10 @@ function ReferencesPage({ lang, t }) {
     return allQuestionReferences.filter((reference) => {
       const isScenarioSource = scenarioReferenceIds.has(reference.id);
       const isQuestionSource = questionReferenceIds.has(reference.id);
+      const isSepsisSource = sepsisReferenceIds.has(reference.id);
       if (filter === "scenarios" && !isScenarioSource) return false;
       if (filter === "questions" && !isQuestionSource) return false;
+      if (filter === "sepsis" && !isSepsisSource) return false;
       if (!normalizedQuery) return true;
       const searchable = [reference.title?.en, reference.title?.ar, reference.organization?.en, reference.organization?.ar, reference.year]
         .filter(Boolean)
@@ -1067,11 +1080,12 @@ function ReferencesPage({ lang, t }) {
     ["all", "referenceFilterAll"],
     ["scenarios", "referenceFilterScenarios"],
     ["questions", "referenceFilterQuestions"],
+    ["sepsis", "referenceFilterSepsis"],
   ];
   return <div className="page-container references-page"><SectionIntro eyebrow={t("referencesEyebrow")} title={t("referencesTitle")} body={t("referencesBody")} />
     <div className="reference-toolbar"><label className="reference-search"><span>{t("referenceSearchLabel")}</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("referenceSearchPlaceholder")} /></label><div className="reference-filters" role="group" aria-label={t("referenceSearchLabel")}>{filters.map(([value, label]) => <button key={value} type="button" className={filter === value ? "active" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{t(label)}</button>)}</div></div>
     <p className="reference-summary"><strong>{formatNumber(filteredReferences.length, lang)}</strong> {t("sourceRecords")}</p>
-    {filteredReferences.length ? <div className="source-rows">{filteredReferences.map((reference) => { const isScenarioSource = scenarioReferenceIds.has(reference.id); const isQuestionSource = questionReferenceIds.has(reference.id); return <article className="full-source-row" key={reference.id}><div className="source-year">{reference.year}</div><div className="source-details"><span>{localize(reference.organization, lang)}</span><h2>{localize(reference.title, lang)}</h2><div className="reference-usage">{isScenarioSource ? <span>{t("usedInScenarios")}</span> : null}{isQuestionSource ? <span>{t("usedInQuestions")}</span> : null}</div>{reference.accessNote || reference.licensingNote ? <details><summary>{t("accessNote")}</summary>{reference.accessNote ? <p>{localize(reference.accessNote, lang)}</p> : null}{reference.licensingNote ? <p>{localize(reference.licensingNote, lang)}</p> : null}</details> : null}</div><a href={reference.url} target="_blank" rel="noopener noreferrer nofollow" className="button button-secondary source-link"><span>{t("source")}</span><ArrowSquareOut size={18} /><span className="sr-only">{t("opensNewTab")}</span></a></article>; })}</div> : <p className="reference-empty" role="status">{t("noReferencesFound")}</p>}
+    {filteredReferences.length ? <div className="source-rows">{filteredReferences.map((reference) => { const isScenarioSource = scenarioReferenceIds.has(reference.id); const isQuestionSource = questionReferenceIds.has(reference.id); const isSepsisSource = sepsisReferenceIds.has(reference.id); return <article className="full-source-row" key={reference.id}><div className="source-year">{reference.year}</div><div className="source-details"><span>{localize(reference.organization, lang)}</span><h2>{localize(reference.title, lang)}</h2><div className="reference-usage">{isScenarioSource ? <span>{t("usedInScenarios")}</span> : null}{isQuestionSource ? <span>{t("usedInQuestions")}</span> : null}{isSepsisSource ? <span>{t("usedInSepsisQuiz")}</span> : null}</div>{reference.accessNote || reference.licensingNote ? <details><summary>{t("accessNote")}</summary>{reference.accessNote ? <p>{localize(reference.accessNote, lang)}</p> : null}{reference.licensingNote ? <p>{localize(reference.licensingNote, lang)}</p> : null}</details> : null}</div>{reference.url ? <a href={reference.url} target="_blank" rel="noopener noreferrer nofollow" className="button button-secondary source-link"><span>{t("source")}</span><ArrowSquareOut size={18} /><span className="sr-only">{t("opensNewTab")}</span></a> : <span className="reference-source-unavailable">{t("sourceUnavailable")}</span>}</article>; })}</div> : <p className="reference-empty" role="status">{t("noReferencesFound")}</p>}
   </div>;
 }
 
@@ -1484,6 +1498,9 @@ export function App() {
   else if (route.page === "questions") {
     const storageKey = examSessionStorageKey(auth.user?.id);
     page = <QuestionBankPage key={storageKey} lang={lang} t={t} examProfile={visibleExamProfile} onComplete={completeQuestionSet} storageKey={storageKey} historyClearPending={historyClearPending} />;
+  }
+  else if (route.page === "sepsis-quiz") {
+    page = <Suspense fallback={<div className="page-container">{lang === "ar" ? "جارٍ تحميل اختبار Sepsis…" : "Loading the Sepsis Quiz…"}</div>}><SepsisQuiz lang={lang} /></Suspense>;
   }
   else if (route.page === "dose-practice") {
     const doseMode = route.id || "infusion";
