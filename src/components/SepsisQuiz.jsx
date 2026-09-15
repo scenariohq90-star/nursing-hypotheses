@@ -23,6 +23,7 @@ import {
   withSepsisAnswer,
 } from "../data/sepsis-quiz.js";
 import "./sepsis-quiz.css";
+import { recordAnonymousEvent } from "../lib/anonymous-analytics.js";
 
 function DirectionalArrow({ lang, back = false }) {
   const pointsLeft = (lang === "ar" && !back) || (lang !== "ar" && back);
@@ -153,6 +154,7 @@ export default function SepsisQuiz({ lang }) {
   }, [phase, currentIndex]);
 
   function startQuiz() {
+    recordAnonymousEvent("sepsis_start", "sepsis", lang);
     setAnswers({});
     setCurrentIndex(0);
     setSelectionError(false);
@@ -183,7 +185,10 @@ export default function SepsisQuiz({ lang }) {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    if (isSepsisQuizComplete(SEPSIS_QUIZ_QUESTIONS, answers)) setPhase("results");
+    if (isSepsisQuizComplete(SEPSIS_QUIZ_QUESTIONS, answers)) {
+      recordAnonymousEvent("sepsis_complete", "sepsis", lang, scoreSepsisQuiz(SEPSIS_QUIZ_QUESTIONS, answers) / SEPSIS_QUIZ_TOTAL * 100);
+      setPhase("results");
+    }
   }
 
   return <div className="sepsis-quiz" dir={lang === "ar" ? "rtl" : "ltr"}>

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
-import worker, { createWorker, extractAssistantResult } from "../worker/index.js";
+import worker, { analyticsDimensionAllowed, createWorker, extractAssistantResult } from "../worker/index.js";
+import { scenarios } from "../src/data/scenarios.js";
+import { examDomains } from "../src/data/question-bank.js";
 
 function assistantEnv(overrides = {}) {
   return {
@@ -364,10 +366,102 @@ test("emits the files required by Sites packaging", async () => {
   await access(new URL("../dist/client/index.html", import.meta.url));
   await access(new URL("../dist/server/index.js", import.meta.url));
   await access(new URL("../dist/.openai/hosting.json", import.meta.url));
+  await access(new URL("../dist/.openai/drizzle/0000_worthless_fantastic_four.sql", import.meta.url));
+  await access(new URL("../dist/.openai/drizzle/meta/_journal.json", import.meta.url));
 
   const [sourceWorker, builtWorker] = await Promise.all([
     readFile(new URL("../worker/index.js", import.meta.url), "utf8"),
     readFile(new URL("../dist/server/index.js", import.meta.url), "utf8"),
   ]);
   assert.equal(builtWorker, sourceWorker, "the packaged worker must match the reviewed source worker");
+});
+
+function analyticsRequest(payload, options = {}) {
+  return new Request("https://example.test/api/anonymous-analytics", {
+    method: "POST",
+    headers: { origin: "https://example.test", "content-type": "application/json", ...options.headers },
+    body: typeof payload === "string" ? payload : JSON.stringify(payload),
+  });
+}
+
+function analyticsDB(results = []) {
+  const calls = [];
+  return {
+    calls,
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            async run() { calls.push({ sql, values, action: "run" }); return { success: true }; },
+            async all() { calls.push({ sql, values, action: "all" }); return { results }; },
+          };
+        },
+      };
+    },
+  };
+}
+
+test("analytics content dimensions stay aligned with the authored banks", () => {
+  for (const scenario of scenarios) {
+    assert.equal(analyticsDimensionAllowed("scenario_start", scenario.id), true, scenario.id);
+    assert.equal(analyticsDimensionAllowed("scenario_complete", scenario.id), true, scenario.id);
+  }
+  for (const domain of examDomains) assert.equal(analyticsDimensionAllowed("focus_gap", domain.id), true, domain.id);
+  assert.equal(analyticsDimensionAllowed("page", "owner-dashboard"), false);
+});
+
+test("anonymous analytics accepts only bounded same-origin aggregate events and purges old rows", async () => {
+  const DB = analyticsDB();
+  const analyticsWorker = createWorker({ now: () => new Date("2026-09-15T12:00:00.000Z") });
+  const response = await analyticsWorker.fetch(analyticsRequest({ event: "scenario_complete", dimension: scenarios[0].id, language: "ar", score: 80 }), { DB });
+  assert.equal(response.status, 202);
+  assert.equal((await response.json()).accepted, true);
+  assert.equal(DB.calls.length, 2);
+  assert.match(DB.calls[0].sql, /DELETE FROM analytics_daily/);
+  assert.match(DB.calls[1].sql, /ON CONFLICT/);
+  assert.deepEqual(DB.calls[1].values, ["2026-09-15", "scenario_complete", scenarios[0].id, "ar", 80]);
+
+  const cases = [
+    [analyticsRequest({ event: "page", dimension: "home", language: "en" }, { headers: { origin: "https://evil.example" } }), 403],
+    [analyticsRequest({ event: "page", dimension: "home", language: "en", patient: "MRN 12345" }), 400],
+    [analyticsRequest({ event: "scenario_start", dimension: "made-up-case", language: "en" }), 400],
+    [analyticsRequest({ event: "page", dimension: "home", language: "en", score: 50 }), 400],
+    [analyticsRequest({ event: "scenario_complete", dimension: scenarios[0].id, language: "en", score: 101 }), 400],
+    [analyticsRequest({ event: "page", dimension: "home", language: "en" }, { headers: { "content-type": "text/plain" } }), 415],
+    [analyticsRequest("x".repeat(1025)), 413],
+  ];
+  for (const [request, status] of cases) {
+    assert.equal((await analyticsWorker.fetch(request, { DB })).status, status);
+  }
+  assert.equal(DB.calls.length, 2, "rejected inputs must not write to D1");
+});
+
+test("owner dashboard and analytics reads fail closed without the exact authenticated owner", async () => {
+  let assetCalls = 0;
+  const DB = analyticsDB([{ day: "2026-09-15", event: "visit", dimension: "all", language: "en", count: 3, scoreSum: 0 }]);
+  const env = {
+    DB,
+    OWNER_DASHBOARD_EMAIL: "owner@example.test",
+    ASSETS: { fetch: async () => { assetCalls += 1; return new Response("<html>dashboard</html>", { headers: { "content-type": "text/html" } }); } },
+  };
+  const ownerWorker = createWorker({ now: () => new Date("2026-09-15T12:00:00.000Z") });
+  const readUrl = "https://example.test/api/owner-analytics?days=7";
+  assert.equal((await ownerWorker.fetch(new Request(readUrl), env)).status, 401);
+  assert.equal((await ownerWorker.fetch(new Request(readUrl, { headers: { "oai-authenticated-user-email": "owner@example.test" } }), env)).status, 401);
+  assert.equal((await ownerWorker.fetch(new Request(readUrl, { headers: { "oai-authenticated-user-email": "other@example.test", "oai-authenticated-user-id": "other" } }), env)).status, 403);
+  const signin = await ownerWorker.fetch(new Request("https://example.test/owner-dashboard"), env);
+  assert.equal(signin.status, 302);
+  assert.equal(signin.headers.get("location"), "/signin-with-chatgpt?return_to=%2Fowner-dashboard");
+  assert.equal(assetCalls, 0);
+  assert.equal(DB.calls.length, 0);
+  const ownerHeaders = { "oai-authenticated-user-email": "owner@example.test", "oai-authenticated-user-id": "owner-site-id" };
+  const dashboard = await ownerWorker.fetch(new Request("https://example.test/owner-dashboard", { headers: ownerHeaders }), env);
+  assert.equal(dashboard.status, 200);
+  assert.equal(dashboard.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(dashboard.headers.get("cache-control"), "no-store");
+  const read = await ownerWorker.fetch(new Request(readUrl, { headers: ownerHeaders }), env);
+  assert.equal(read.status, 200);
+  assert.equal((await read.json()).rows[0].count, 3);
+  assert.equal(assetCalls, 1);
+  assert.equal(DB.calls.filter((call) => call.action === "all").length, 1);
 });

@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "db:generate": "drizzle-kit generate",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
     "test": "node --test tests/learning-engine.test.mjs tests/scenarios.test.mjs tests/question-bank.test.mjs tests/exam-session.test.mjs tests/progress-repository.test.mjs tests/supabase-security.test.mjs tests/local-learning-cache.test.mjs tests/release-features.test.mjs tests/dose-calculator.test.mjs tests/infusion-calculator.test.mjs tests/infusion-presets.test.mjs tests/sepsis-quiz.test.mjs",
@@ -22,8 +23,12 @@
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.115.0",
     "@vitejs/plugin-react": "5.0.4",
+    "drizzle-orm": "0.45.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "vite": "6.4.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10"
   }
 }

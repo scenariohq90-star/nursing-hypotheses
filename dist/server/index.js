@@ -1,4 +1,22 @@
 const ASSISTANT_PATH = "/api/nursing-assistant";
+const ANALYTICS_WRITE_PATH = "/api/anonymous-analytics";
+const ANALYTICS_READ_PATH = "/api/owner-analytics";
+const OWNER_DASHBOARD_PATH = "/owner-dashboard";
+const ANALYTICS_MAX_BYTES = 1024;
+const ANALYTICS_RETENTION_DAYS = 90;
+const ANALYTICS_DIMENSIONS = {
+  visit: new Set(["all"]),
+  page: new Set(["home", "scenarios", "scenario", "result", "questions", "sepsis-quiz", "dose-practice", "learning", "resources", "about", "privacy", "terms", "contact"]),
+  scenario_start: new Set(["ed-older-adult-dyspnea", "mental-health-crisis-safety", "infection-control-respiratory-risk", "medication-safety-label-mismatch", "ward-postoperative-deterioration", "pediatric-febrile-deterioration", "maternity-postpartum-sepsis", "icu-postoperative-sepsis", "older-adult-acute-confusion", "oncology-fever-between-cycles", "perioperative-verification-pause", "home-care-medication-reconciliation"]),
+  scenario_complete: new Set(["ed-older-adult-dyspnea", "mental-health-crisis-safety", "infection-control-respiratory-risk", "medication-safety-label-mismatch", "ward-postoperative-deterioration", "pediatric-febrile-deterioration", "maternity-postpartum-sepsis", "icu-postoperative-sepsis", "older-adult-acute-confusion", "oncology-fever-between-cycles", "perioperative-verification-pause", "home-care-medication-reconciliation"]),
+  question_start: new Set(["saudi-nursing", "international-rn", "computerized-practice"]),
+  question_complete: new Set(["saudi-nursing", "international-rn", "computerized-practice"]),
+  question_unavailable: new Set(["saudi-nursing", "international-rn", "computerized-practice"]),
+  sepsis_start: new Set(["sepsis"]),
+  sepsis_complete: new Set(["sepsis"]),
+  focus_gap: new Set(["assessment-recognition", "prioritization-response", "escalation-coordination", "reassessment-monitoring", "communication-handover", "safety-quality", "person-centred-care", "adult-medical-surgical", "emergency-critical-care", "pediatrics", "maternal-newborn", "mental-health", "pharmacology", "fundamentals", "management-safety"]),
+};
+const SCORED_EVENTS = new Set(["scenario_complete", "question_complete", "sepsis_complete"]);
 const MAX_REQUEST_BYTES = 8 * 1024;
 const MAX_QUESTION_LENGTH = 1200;
 const DEFAULT_TIMEOUT_MS = 35_000;
@@ -127,6 +145,104 @@ function jsonResponse(payload, status = 200, extraHeaders = {}) {
       ...extraHeaders,
     },
   }));
+}
+
+function sameOrigin(request) {
+  try {
+    const origin = request.headers.get("origin");
+    return Boolean(origin) && new URL(origin).origin === new URL(request.url).origin;
+  } catch { return false; }
+}
+
+function ownerStatus(request, env) {
+  const userId = request.headers.get("oai-authenticated-user-id")?.trim();
+  const userEmail = request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase();
+  if (!userId || !userEmail) return 401;
+  const ownerEmail = String(env?.OWNER_DASHBOARD_EMAIL ?? "").trim().toLowerCase();
+  return ownerEmail && userEmail === ownerEmail ? 200 : 403;
+}
+
+function validateAnalyticsPayload(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const keys = Object.keys(payload);
+  if (keys.some((key) => !["event", "dimension", "language", "score"].includes(key))) return null;
+  const { event, dimension, language, score } = payload;
+  if (typeof event !== "string" || typeof dimension !== "string" || !analyticsDimensionAllowed(event, dimension)) return null;
+  if (language !== "en" && language !== "ar") return null;
+  if (SCORED_EVENTS.has(event)) {
+    if (!Number.isInteger(score) || score < 0 || score > 100) return null;
+  } else if (score !== undefined) return null;
+  return { event, dimension, language, score: score ?? 0 };
+}
+
+export function analyticsDimensionAllowed(event, dimension) {
+  return ANALYTICS_DIMENSIONS[event]?.has(dimension) === true;
+}
+
+function analyticsCutoff(now) {
+  return new Date(now.getTime() - ANALYTICS_RETENTION_DAYS * 86_400_000).toISOString().slice(0, 10);
+}
+
+async function handleAnalyticsWrite(request, env, now) {
+  if (request.method !== "POST") return jsonResponse({ error: { code: "method_not_allowed" } }, 405, { Allow: "POST" });
+  if (!sameOrigin(request)) return jsonResponse({ error: { code: "cross_origin_forbidden" } }, 403);
+  if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
+    return jsonResponse({ error: { code: "unsupported_media_type" } }, 415);
+  }
+  if (!env?.DB) return jsonResponse({ error: { code: "analytics_unavailable" } }, 503);
+  try {
+    const payload = validateAnalyticsPayload(JSON.parse(await readRequestTextWithLimit(request, ANALYTICS_MAX_BYTES)));
+    if (!payload) return jsonResponse({ error: { code: "invalid_event" } }, 400);
+    const current = now();
+    const day = current.toISOString().slice(0, 10);
+    await env.DB.prepare("DELETE FROM analytics_daily WHERE day < ?").bind(analyticsCutoff(current)).run();
+    await env.DB.prepare(`INSERT INTO analytics_daily (day, event, dimension, language, count, score_sum)
+      VALUES (?, ?, ?, ?, 1, ?)
+      ON CONFLICT(day, event, dimension, language)
+      DO UPDATE SET count = count + 1, score_sum = score_sum + excluded.score_sum`)
+      .bind(day, payload.event, payload.dimension, payload.language, payload.score).run();
+    return jsonResponse({ accepted: true }, 202);
+  } catch (error) {
+    const status = error instanceof AssistantRequestError ? error.status : error instanceof SyntaxError ? 400 : 503;
+    return jsonResponse({ error: { code: status === 413 ? "payload_too_large" : status === 400 ? "invalid_json" : "analytics_unavailable" } }, status);
+  }
+}
+
+async function handleAnalyticsRead(request, env, now) {
+  if (request.method !== "GET") return jsonResponse({ error: { code: "method_not_allowed" } }, 405, { Allow: "GET" });
+  const status = ownerStatus(request, env);
+  if (status !== 200) return jsonResponse({ error: { code: status === 401 ? "sign_in_required" : "forbidden" } }, status);
+  if (!env?.DB) return jsonResponse({ error: { code: "analytics_unavailable" } }, 503);
+  const daysParam = new URL(request.url).searchParams.get("days") ?? "30";
+  if (!["7", "30", "90"].includes(daysParam)) return jsonResponse({ error: { code: "invalid_range" } }, 400);
+  try {
+    const current = now();
+    const since = new Date(current.getTime() - (Number(daysParam) - 1) * 86_400_000).toISOString().slice(0, 10);
+    await env.DB.prepare("DELETE FROM analytics_daily WHERE day < ?").bind(analyticsCutoff(current)).run();
+    const result = await env.DB.prepare(`SELECT day, event, dimension, language, count, score_sum AS scoreSum
+      FROM analytics_daily WHERE day >= ? ORDER BY day DESC, event, dimension LIMIT 12000`).bind(since).all();
+    return jsonResponse({ since, through: current.toISOString().slice(0, 10), days: Number(daysParam), rows: result.results ?? [] });
+  } catch { return jsonResponse({ error: { code: "analytics_unavailable" } }, 503); }
+}
+
+async function handleOwnerDashboard(request, env) {
+  if (!["GET", "HEAD"].includes(request.method)) return jsonResponse({ error: { code: "method_not_allowed" } }, 405, { Allow: "GET, HEAD" });
+  const status = ownerStatus(request, env);
+  if (status === 401) {
+    return withSecurityHeaders(new Response(null, {
+      status: 302,
+      headers: { Location: "/signin-with-chatgpt?return_to=%2Fowner-dashboard", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" },
+    }));
+  }
+  if (status !== 200) return jsonResponse({ error: { code: "forbidden" } }, 403);
+  const indexUrl = new URL(request.url);
+  indexUrl.pathname = "/index.html";
+  indexUrl.search = "";
+  const asset = await env.ASSETS.fetch(new Request(indexUrl, request));
+  const headers = new Headers(asset.headers);
+  headers.set("Cache-Control", "no-store");
+  headers.set("X-Robots-Tag", "noindex, nofollow");
+  return withSecurityHeaders(new Response(asset.body, { status: asset.status, headers }));
 }
 
 async function readRequestTextWithLimit(request, byteLimit) {
@@ -464,10 +580,14 @@ async function handleNursingAssistant(request, env, dependencies) {
   }
 }
 
-export function createWorker({ fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+export function createWorker({ fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS, now = () => new Date() } = {}) {
   return {
     async fetch(request, env) {
       const url = new URL(request.url);
+      const path = url.pathname.replace(/\/+$/, "") || "/";
+      if (path === ANALYTICS_WRITE_PATH) return handleAnalyticsWrite(request, env, now);
+      if (path === ANALYTICS_READ_PATH) return handleAnalyticsRead(request, env, now);
+      if (path === OWNER_DASHBOARD_PATH) return handleOwnerDashboard(request, env);
       if (url.pathname.replace(/\/+$/, "") === ASSISTANT_PATH) {
         if (!isExplicitlyEnabled(env?.NURSING_ASSISTANT_ENABLED)) {
           return jsonResponse({ error: { code: "not_found" } }, 404);

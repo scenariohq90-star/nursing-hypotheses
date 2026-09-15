@@ -87,6 +87,7 @@ import {
 } from "./lib/progress-repository.js";
 import { signOutAndClearLocalLearningCache } from "./lib/local-learning-cache.js";
 import { SEPSIS_QUIZ_REFERENCES } from "./data/sepsis-quiz-references.js";
+import { recordAnonymousEvent, recordAnonymousPage } from "./lib/anonymous-analytics.js";
 
 const PROFILE_STORAGE_KEY = "nursing-hypotheses.learning-profile.v1";
 const EXAM_STORAGE_KEY = "nursing-hypotheses.exam-profile.v1";
@@ -104,6 +105,7 @@ const NursingAssistant = lazy(() => import("./components/NursingAssistant.jsx")
 const MedicationMathPage = lazy(() => import("./components/MedicationMathPage.jsx")
   .then((module) => ({ default: module.MedicationMathPage })));
 const SepsisQuiz = lazy(() => import("./components/SepsisQuiz.jsx"));
+const OwnerAnalytics = lazy(() => import("./components/OwnerAnalytics.jsx").then((module) => ({ default: module.OwnerAnalytics })));
 
 function examSessionStorageKey(userId) {
   return userId ? `${EXAM_SESSION_STORAGE_KEY}.${userId}` : EXAM_SESSION_STORAGE_KEY;
@@ -135,7 +137,7 @@ function examProfileStorageKeyForUser(userId) {
 
 const copy = {
   en: {
-    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", sepsisQuiz: "Sepsis Quiz", dosePractice: "Medication math", learning: "My learning", resources: "References", about: "About", tools: "Tools",
+    skip: "Skip to main content", home: "Home", simulations: "Scenarios", scenarios: "Scenarios", questionBank: "Question bank", sepsisQuiz: "Sepsis Quiz", dosePractice: "Medication math", learning: "My learning", ownerAnalytics: "Visitor experience", resources: "References", about: "About", tools: "Tools",
     menu: "Open navigation", closeMenu: "Close navigation", openTools: "Open tools", closeTools: "Close tools", language: "Language", learner: "Guest beta", localProfile: "Learning profile", localProfileShort: "This device", guestBetaEyebrow: "Public testing beta", guestBetaTitle: "No account needed", guestBetaBody: "Your progress stays in this browser. Account sync and the AI assistant are temporarily unavailable while their production safeguards are completed.", sendFeedback: "Send feedback",
     privacyStrip: "Public testing beta · guest access only. Progress stays on this device; accounts and AI are temporarily off. Draft education only — never enter patient data or use for patient care.",
     simulation: "Simulation", eyebrow: "Practise clinical judgement", heroTitle: "Learn to notice what matters — before the next decision.", homeDecisionTitle: "Can you spot the warning sign?", homeDecisionBody: "Read the cues, set your priorities, then choose the best nursing response.", practiceCase: "Practice case", decisionPath: "Case pathway", decision: "Decision", startFirstDecision: "Start the first decision", quickLinks: "Quick links", homeQuestionsHint: "Practise with short, varied quizzes", homeLearningHint: "Track progress and focus areas",
@@ -185,7 +187,7 @@ const copy = {
     footerLine: "Learn. Reason. Care.", privacy: "Privacy", terms: "Terms", contact: "Contact & safety", copyright: "Nursing Hypotheses. Public beta.",
   },
   ar: {
-    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", sepsisQuiz: "اختبار Sepsis", dosePractice: "حساب الجرعات", learning: "تعلّمي", resources: "المراجع", about: "عن المنصة", tools: "الأدوات",
+    skip: "انتقل إلى المحتوى الرئيسي", home: "الرئيسية", simulations: "السيناريوهات", scenarios: "السيناريوهات", questionBank: "بنك الأسئلة", sepsisQuiz: "اختبار Sepsis", dosePractice: "حساب الجرعات", learning: "تعلّمي", ownerAnalytics: "تجربة الزوار", resources: "المراجع", about: "عن المنصة", tools: "الأدوات",
     menu: "فتح قائمة التنقل", closeMenu: "إغلاق قائمة التنقل", openTools: "فتح الأدوات", closeTools: "إغلاق الأدوات", language: "اللغة", learner: "تجربة الضيف", localProfile: "ملف التعلم", localProfileShort: "هذا الجهاز", guestBetaEyebrow: "نسخة تجريبية عامة", guestBetaTitle: "لا تحتاج إلى حساب", guestBetaBody: "يبقى تقدمك داخل هذا المتصفح. مزامنة الحساب والمساعد الذكي غير متاحين مؤقتاً إلى أن تكتمل ضوابطهما التشغيلية.", sendFeedback: "أرسل ملاحظتك",
     privacyStrip: "نسخة تجريبية عامة · للضيف فقط. يبقى التقدم على هذا الجهاز، وتسجيل الحسابات والذكاء الاصطناعي متوقفان مؤقتاً. تعليم أولي فقط—لا تدخل بيانات مرضى ولا تستخدمه لرعاية مريض.", simulation: "محاكاة", eyebrow: "تدرّب على الحكم السريري", homeDecisionTitle: "هل تلاحظ علامة الخطر؟", homeDecisionBody: "اقرأ المؤشرات، رتّب أولوياتك، ثم اختر الاستجابة التمريضية الأنسب.", practiceCase: "حالة تدريبية", decisionPath: "مسار الحالة", decision: "القرار", startFirstDecision: "ابدأ القرار الأول", quickLinks: "روابط سريعة", homeQuestionsHint: "تدرّب باختبارات قصيرة ومتنوعة", homeLearningHint: "تابع تقدمك وحدد نقاط التحسين",
     heroTitle: "تعلّم كيف تلاحظ المهم — قبل القرار التالي.", heroBody: "سيناريوهات تمريضية متفرعة لقرارات الطوارئ والأجنحة والأطفال والولادة والعناية الحرجة. كل اختيار أولي مشروح بالعربية والإنجليزية ويذكر مجموعة المصادر المستخدمة في تأليفه.",
@@ -243,9 +245,10 @@ const POLICY_PAGES = {
         { title: "Responsible project contact", body: "The responsible project publisher and privacy contact for this beta is Abdulkarim alhejaili, reachable at Scenario.hq90@gmail.com. A formal service address and final controller disclosures remain for qualified counsel to confirm before a wider or paid release." },
         { title: "Information used", body: "The browser stores the selected language, scenario/question/option identifiers, completed attempts and the active timed session on this device. The medication-math page can accept a calculation mode, exact order unit, weight when required, ordered amount or rate, medicine amount, and product or prepared-solution volume for arithmetic; its practice mode uses fixed fictional values. These numeric calculator entries remain only in page memory until reset or navigation and are not saved to learning history. Do not enter names, record numbers or clinical notes. The current beta has no account registration, cloud sync, free-text assistant or payment collection. Scores and learning-domain signals are recalculated from the current authored content. Do not enter patient data, payment data, licence numbers or employer information." },
         { title: "Device storage", body: "Browser storage is not encrypted and can be visible to anyone using the same browser profile. Use the learning dashboard to clear completed history, and clear browser site data after using a shared device. The current guest flow creates no authentication token or synced learning row." },
+        { title: "Anonymous experience metrics", body: "To understand this public beta, the site sends a limited event when a page opens or a practice set starts or finishes. It records the content area, language and a score total in daily aggregate counters; it does not send selected answers, calculator values, free text, names, IP addresses, browser identifiers or patient information to the project's analytics database. A device-only tab marker helps count approximate visit sessions. Do Not Track and Global Privacy Control signals disable these events. Counts are approximate, not a count of distinct people." },
         { title: "Temporarily disabled features", body: "Account registration, cloud learning sync and the AI learning assistant are not available in this public testing beta. The site does not accept free-text clinical questions or upload files." },
         { title: "External source links", body: "Opening a reference sends a request to the third-party publisher. That publisher receives technical data and applies its own privacy and cookie policies. Nursing Hypotheses does not control those services." },
-        { title: "Purpose and retention", body: "Device data supports the requested educational experience and remains until you clear learning history or browser site data. OpenAI Sites hosting logs follow the provider's settings. Support emails are processed through Gmail to respond to the report and retained under the project's Gmail settings while a final retention schedule remains under review." },
+        { title: "Purpose and retention", body: "Device data supports the requested educational experience and remains until you clear learning history or browser site data. Anonymous daily usage counters help improve the beta and are deleted after 90 days; they are stored by OpenAI Sites/Cloudflare and may be processed outside Saudi Arabia. Only the site owner can view their aggregate dashboard. OpenAI Sites hosting logs follow the provider's settings. Support emails are processed through Gmail to respond to reports while a final retention schedule remains under review." },
         { title: "Your controls and requests", body: "The learning dashboard lets you clear completed learning history; browser controls can remove all site data. To raise a privacy concern, email Scenario.hq90@gmail.com without patient or workplace-confidential information. The project aims to acknowledge privacy requests within five business days; applicable statutory deadlines govern the final response." },
       ],
     },
@@ -291,9 +294,10 @@ const POLICY_PAGES = {
         { title: "جهة اتصال المشروع المسؤولة", body: "الناشر المسؤول وجهة اتصال الخصوصية لهذه النسخة هو Abdulkarim alhejaili، ويمكن التواصل عبر Scenario.hq90@gmail.com. يبقى عنوان الخدمة الرسمي وإفصاحات المتحكم النهائية للتأكيد من مستشار مؤهل قبل إصدار أوسع أو مدفوع." },
         { title: "المعلومات المستخدمة", body: "يحفظ المتصفح على هذا الجهاز اللغة ومعرّفات السيناريوهات والأسئلة والخيارات والمحاولات المكتملة والجلسة المؤقتة النشطة. يمكن لصفحة الحساب الدوائي استقبال نوع العملية ووحدة الأمر الدقيقة والوزن عند الحاجة والكمية أو المعدل المطلوب وكمية الدواء وحجم المنتج أو المحلول المحضّر لإجراء العملية الحسابية، بينما يستخدم وضع التدريب قيماً خيالية ثابتة. تبقى مدخلات الحاسبة الرقمية في ذاكرة الصفحة حتى المسح أو الانتقال ولا تُحفظ في سجل التعلم. لا تدخل أسماء أو أرقام ملفات أو ملاحظات سريرية. لا تتضمن النسخة الحالية تسجيل حساب أو مزامنة سحابية أو مساعداً للنص الحر أو تحصيل مدفوعات. لا تدخل بيانات مرضى أو بيانات دفع أو رقم ترخيص أو جهة عمل." },
         { title: "تخزين الجهاز", body: "تخزين المتصفح غير مشفر وقد يراه من يستخدم ملف المتصفح نفسه. استخدم لوحة التعلم لمسح السجل المكتمل، وامسح بيانات الموقع بعد استخدام جهاز مشترك. لا ينشئ مسار الضيف الحالي رمز مصادقة أو صف تعلم متزامناً." },
+        { title: "مؤشرات تجربة مجهولة", body: "لفهم تجربة النسخة العامة، يرسل الموقع حدثاً محدوداً عند فتح صفحة أو بدء تدريب أو إكماله. تُحفظ منطقة المحتوى واللغة ومجموع النتيجة في عدادات يومية مجمّعة؛ ولا تُرسل الإجابات المختارة أو قيم الحاسبة أو النصوص الحرة أو الأسماء أو عناوين IP أو معرّفات المتصفح أو بيانات المرضى إلى قاعدة إحصاءات المشروع. تساعد علامة داخل تبويب الجهاز فقط على تقدير جلسات الزيارة. تتوقف هذه الأحداث عند تفعيل إشارات Do Not Track أو Global Privacy Control. الأعداد تقريبية وليست عدداً لأشخاص فريدين." },
         { title: "ميزات معطلة مؤقتاً", body: "لا يتوفر تسجيل الحسابات أو مزامنة التعلم السحابية أو مساعد التعلم بالذكاء الاصطناعي في النسخة العامة التجريبية. ولا يستقبل الموقع أسئلة سريرية بنص حر أو ملفات مرفوعة." },
         { title: "روابط المصادر الخارجية", body: "يؤدي فتح مرجع إلى إرسال طلب إلى موقع الناشر الخارجي. يستقبل ذلك الناشر بيانات تقنية ويطبق سياسة الخصوصية وملفات الارتباط الخاصة به. لا تتحكم «فرضيات تمريضية» في تلك الخدمات." },
-        { title: "الغرض والاحتفاظ", body: "تدعم بيانات الجهاز التجربة التعليمية المطلوبة وتبقى حتى تمسح سجل التعلم أو بيانات الموقع من المتصفح. تتبع سجلات استضافة OpenAI Sites إعدادات المزود. وتُعالج رسائل الدعم عبر Gmail للرد على البلاغ وتُحتفظ وفق إعدادات حساب المشروع أثناء بقاء جدول الاحتفاظ النهائي قيد المراجعة." },
+        { title: "الغرض والاحتفاظ", body: "تدعم بيانات الجهاز التجربة التعليمية المطلوبة وتبقى حتى تمسح سجل التعلم أو بيانات الموقع من المتصفح. تساعد عدادات الاستخدام اليومية المجهولة على تحسين النسخة التجريبية، وتُحذف بعد ٩٠ يوماً؛ وتحفظها استضافة OpenAI Sites/Cloudflare وقد تُعالج خارج السعودية. لا يطلع على لوحتها المجمّعة إلا مالك الموقع. تتبع سجلات الاستضافة إعدادات المزود. وتُعالج رسائل الدعم عبر Gmail للرد على البلاغ بينما يبقى جدول الاحتفاظ النهائي قيد المراجعة." },
         { title: "ضوابطك وطلباتك", body: "تتيح لوحة التعلم مسح سجل التعلم المكتمل، وتستطيع ضوابط المتصفح إزالة جميع بيانات الموقع. لرفع ملاحظة خصوصية راسل Scenario.hq90@gmail.com من دون بيانات مريض أو معلومات عمل سرية. يستهدف المشروع تأكيد استلام طلب الخصوصية خلال خمسة أيام عمل، مع بقاء المدد النظامية المطبقة حاكمة للاستجابة النهائية." },
       ],
     },
@@ -416,6 +420,7 @@ function createScenarioSession(scenarioId = null, orderSeed = 0) {
 }
 
 function parseRoute() {
+  if (window.location.pathname.replace(/\/+$/, "") === "/owner-dashboard") return { page: "owner-dashboard", id: "" };
   const [page = "home", id = ""] = window.location.hash.replace(/^#\/?/, "").split("/");
   const allowed = new Set(["home", "scenarios", "scenario", "result", "questions", "sepsis-quiz", "dose-practice", "learning", "resources", "about", "privacy", "terms", "contact"]);
   return allowed.has(page) ? { page, id } : { page: "home", id: "" };
@@ -441,6 +446,7 @@ function activeRoutePath(route) {
   return route.page;
 }
 function routeTitleKey(route) {
+  if (route.page === "owner-dashboard") return "ownerAnalytics";
   if (route.page === "scenario" || route.page === "result") return "scenarios";
   if (route.page === "questions") return "questionBank";
   if (route.page === "sepsis-quiz") return "sepsisQuiz";
@@ -534,7 +540,8 @@ function stableChoiceOrder(choices, seed, safeTargetPosition) {
 }
 
 function AppLink({ to, className = "", children, onNavigate, ...props }) {
-  return <a href={`#/${to}`} className={className} onClick={() => onNavigate?.()} {...props}>{children}</a>;
+  const root = window.location.pathname.replace(/\/+$/, "") === "/owner-dashboard" ? "/" : "";
+  return <a href={`${root}#/${to}`} className={className} onClick={() => onNavigate?.()} {...props}>{children}</a>;
 }
 
 function SectionIntro({ eyebrow, title, body }) {
@@ -869,13 +876,14 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
     const questions = practiceMode === "guided"
       ? createGuidedQuiz(questionBank, completedSets, examLearningDomains, quizOptions)
       : createQuiz(questionBank, quizOptions);
-    if (!questions.length) { setNotice(t(practiceMode === "guided" ? "noFreshGuidedQuestions" : "noQuestions")); return; }
+    if (!questions.length) { recordAnonymousEvent("question_unavailable", examId, lang); setNotice(t(practiceMode === "guided" ? "noFreshGuidedQuestions" : "noQuestions")); return; }
     submittedRef.current = false;
     startSession({
       questions,
       durationSeconds: questions.length * EXAM_SECONDS_PER_QUESTION,
       metadata: { examId, seed, selectionMode: practiceMode, bankVersion: QUESTION_BANK_VERSION },
     });
+    recordAnonymousEvent("question_start", examId, lang);
     setNotice("");
     setResult(null);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -917,6 +925,10 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
       setNotice(t("historyClearPending"));
       return;
     }
+    recordAnonymousEvent("question_complete", completed.examId, lang, completed.score);
+    for (const domain of new Set(completed.decisions.filter((decision) => !decision.isCorrect).map((decision) => decision.categoryId))) {
+      recordAnonymousEvent("focus_gap", domain, lang);
+    }
     setResult(completed);
     clearSession();
     setNotice(effectiveCompletionReason === "time-expired" ? t("timeExpired") : "");
@@ -933,7 +945,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
     const seed = `focused:${result.examId}:${Date.now()}`;
     const focusedQuestions = analyzePerformance(resultAnswers, resultQuestions);
     const questions = createQuiz(focusedQuestions, { examId: result.examId, limit: 10, seed });
-    if (!questions.length) { setNotice(t("noQuestions")); return; }
+    if (!questions.length) { recordAnonymousEvent("question_unavailable", result.examId, lang); setNotice(t("noQuestions")); return; }
     submittedRef.current = false;
     setResult(null);
     setNotice("");
@@ -942,6 +954,7 @@ function QuestionBankPage({ lang, t, examProfile, onComplete, storageKey, histor
       durationSeconds: questions.length * EXAM_SECONDS_PER_QUESTION,
       metadata: { examId: result.examId, seed, selectionMode: "performance-focus", bankVersion: QUESTION_BANK_VERSION },
     });
+    recordAnonymousEvent("question_start", result.examId, lang);
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
@@ -1173,7 +1186,7 @@ export function App() {
       setRoute(parseRoute());
       setMenuOpen(false);
     };
-    if (!window.location.hash) window.history.replaceState(null, "", "#/home");
+    if (!window.location.hash && route.page !== "owner-dashboard") window.history.replaceState(null, "", "#/home");
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
@@ -1186,6 +1199,7 @@ export function App() {
     return () => window.cancelAnimationFrame(frame);
   }, [route.page, route.id]);
   useEffect(() => { document.documentElement.lang = lang; document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"; document.title = `${PRODUCT_NAME[lang]} · ${t(routeTitleKey(route))}`; }, [lang, route]);
+  useEffect(() => { recordAnonymousPage(route.page, lang); }, [route.page]);
   useEffect(() => {
     if (auth.status !== "ready" || !auth.user) return;
     const authMarker = new URLSearchParams(window.location.search).get("auth");
@@ -1313,7 +1327,7 @@ export function App() {
         });
     }
   }
-  function startScenario(id) { setSession(createScenarioSession(id, profile.attempts.length + 1)); window.location.hash = `#/scenario/${id}`; }
+  function startScenario(id) { setSession(createScenarioSession(id, profile.attempts.length + 1)); recordAnonymousEvent("scenario_start", id, lang); window.location.hash = `#/scenario/${id}`; }
   function completeScenario(scenario, answers) {
     if (historyClearPendingRef.current) {
       setSession((current) => ({ ...current, notice: t("historyClearPending") }));
@@ -1339,6 +1353,10 @@ export function App() {
         .catch(() => {
           if (generation === syncGenerationRef.current) setSyncStatus("error");
         });
+    }
+    recordAnonymousEvent("scenario_complete", scenario.id, lang, attempt.score);
+    for (const domain of new Set(attempt.decisions.filter((decision) => decision.classification !== "safe").map((decision) => decision.competency))) {
+      recordAnonymousEvent("focus_gap", domain, lang);
     }
     window.location.hash = `#/result/${scenario.id}`;
     return true;
@@ -1490,7 +1508,8 @@ export function App() {
   const visibleExamProfile = cacheIsVisible ? examProfile : createEmptyExamProfile();
   const visibleScenarioSession = cacheIsVisible ? session : createScenarioSession();
   let page;
-  if (route.page === "scenarios") page = <ScenarioLibrary lang={lang} t={t} profile={visibleProfile} onStart={startScenario} />;
+  if (route.page === "owner-dashboard") page = <Suspense fallback={<div className="page-container">{lang === "ar" ? "جارٍ تحميل اللوحة…" : "Loading dashboard…"}</div>}><OwnerAnalytics lang={lang} /></Suspense>;
+  else if (route.page === "scenarios") page = <ScenarioLibrary lang={lang} t={t} profile={visibleProfile} onStart={startScenario} />;
   else if (route.page === "scenario") page = <ScenarioPage scenarioId={route.id} lang={lang} t={t} session={visibleScenarioSession} setSession={setSession} onComplete={completeScenario} />;
   else if (route.page === "result") page = <ResultPage scenarioId={route.id} lang={lang} t={t} profile={visibleProfile} onStart={startScenario} />;
   else if (route.page === "questions") {
