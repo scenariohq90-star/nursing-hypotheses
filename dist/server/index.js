@@ -239,7 +239,7 @@ async function handleOwnerDashboard(request, env) {
   }
   if (status !== 200) return jsonResponse({ error: { code: "forbidden" } }, 403);
   const indexUrl = new URL(request.url);
-  indexUrl.pathname = "/index.html";
+  indexUrl.pathname = "/";
   indexUrl.search = "";
   const asset = await env.ASSETS.fetch(new Request(indexUrl, request));
   const headers = new Headers(asset.headers);
@@ -606,7 +606,7 @@ export function createWorker({ fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS
       }
 
       const indexUrl = new URL(request.url);
-      indexUrl.pathname = "/index.html";
+    indexUrl.pathname = "/";
       indexUrl.search = "";
       return withSecurityHeaders(await env.ASSETS.fetch(new Request(indexUrl, request)));
     },

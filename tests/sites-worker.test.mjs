@@ -117,7 +117,7 @@ test("serves existing static assets without a fallback", async () => {
   assert.doesNotMatch(response.headers.get("content-security-policy"), /\*\.supabase\.co/);
 });
 
-test("falls back to index.html for an unknown app route", async () => {
+test("falls back to the root app shell for an unknown app route", async () => {
   const calls = [];
   const response = await worker.fetch(
     new Request("https://example.test/flow/step-two?source=share", {
@@ -128,8 +128,8 @@ test("falls back to index.html for an unknown app route", async () => {
         fetch: async (request) => {
           const url = new URL(request.url);
           calls.push(url.pathname + url.search);
-          return new Response(url.pathname === "/index.html" ? "app" : "missing", {
-            status: url.pathname === "/index.html" ? 200 : 404,
+          return new Response(url.pathname === "/" ? "app" : "missing", {
+            status: url.pathname === "/" ? 200 : 404,
           });
         },
       },
@@ -137,7 +137,7 @@ test("falls back to index.html for an unknown app route", async () => {
   );
 
   assert.equal(response.status, 200);
-  assert.deepEqual(calls, ["/flow/step-two?source=share", "/index.html"]);
+  assert.deepEqual(calls, ["/flow/step-two?source=share", "/"]);
   assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
 });
 
@@ -439,11 +439,18 @@ test("anonymous analytics accepts only bounded same-origin aggregate events and 
 
 test("owner dashboard and analytics reads fail closed without the exact authenticated owner", async () => {
   let assetCalls = 0;
+  const assetPaths = [];
   const DB = analyticsDB([{ day: "2026-09-15", event: "visit", dimension: "all", language: "en", count: 3 }]);
   const env = {
     DB,
     OWNER_DASHBOARD_EMAIL: "owner@example.test",
-    ASSETS: { fetch: async () => { assetCalls += 1; return new Response("<html>dashboard</html>", { headers: { "content-type": "text/html" } }); } },
+    ASSETS: { fetch: async (request) => {
+      assetCalls += 1;
+      const path = new URL(request.url).pathname;
+      assetPaths.push(path);
+      if (path === "/index.html") return new Response(null, { status: 307, headers: { Location: "/" } });
+      return new Response("<html>dashboard</html>", { headers: { "content-type": "text/html" } });
+    } },
   };
   const ownerWorker = createWorker({ now: () => new Date("2026-09-15T12:00:00.000Z") });
   const readUrl = "https://example.test/api/owner-analytics?days=7";
@@ -467,6 +474,7 @@ test("owner dashboard and analytics reads fail closed without the exact authenti
   assert.equal(payload.rows[0].scoreSum, undefined);
   assert.deepEqual(payload.scores, []);
   assert.equal(assetCalls, 1);
+  assert.deepEqual(assetPaths, ["/"], "serving index.html must not redirect the signed-in owner to home");
   assert.equal(DB.calls.filter((call) => call.action === "all").length, 2);
   assert.match(DB.calls.find((call) => call.sql.includes("SUM(score_sum)")).sql, /HAVING SUM\(count\) >= 5/);
 });
