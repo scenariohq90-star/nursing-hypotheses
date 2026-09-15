@@ -219,9 +219,12 @@ async function handleAnalyticsRead(request, env, now) {
     const current = now();
     const since = new Date(current.getTime() - (Number(daysParam) - 1) * 86_400_000).toISOString().slice(0, 10);
     await env.DB.prepare("DELETE FROM analytics_daily WHERE day < ?").bind(analyticsCutoff(current)).run();
-    const result = await env.DB.prepare(`SELECT day, event, dimension, language, count, score_sum AS scoreSum
+    const result = await env.DB.prepare(`SELECT day, event, dimension, language, count
       FROM analytics_daily WHERE day >= ? ORDER BY day DESC, event, dimension LIMIT 12000`).bind(since).all();
-    return jsonResponse({ since, through: current.toISOString().slice(0, 10), days: Number(daysParam), rows: result.results ?? [] });
+    const scores = await env.DB.prepare(`SELECT event, dimension, SUM(count) AS count, SUM(score_sum) AS scoreSum
+      FROM analytics_daily WHERE day >= ? AND event IN ('scenario_complete', 'question_complete', 'sepsis_complete')
+      GROUP BY event, dimension HAVING SUM(count) >= 5`).bind(since).all();
+    return jsonResponse({ since, through: current.toISOString().slice(0, 10), days: Number(daysParam), rows: result.results ?? [], scores: scores.results ?? [] });
   } catch { return jsonResponse({ error: { code: "analytics_unavailable" } }, 503); }
 }
 

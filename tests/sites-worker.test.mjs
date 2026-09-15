@@ -384,7 +384,7 @@ function analyticsRequest(payload, options = {}) {
   });
 }
 
-function analyticsDB(results = []) {
+function analyticsDB(results = [], scoreResults = []) {
   const calls = [];
   return {
     calls,
@@ -393,7 +393,7 @@ function analyticsDB(results = []) {
         bind(...values) {
           return {
             async run() { calls.push({ sql, values, action: "run" }); return { success: true }; },
-            async all() { calls.push({ sql, values, action: "all" }); return { results }; },
+            async all() { calls.push({ sql, values, action: "all" }); return { results: sql.includes("SUM(score_sum)") ? scoreResults : results }; },
           };
         },
       };
@@ -439,7 +439,7 @@ test("anonymous analytics accepts only bounded same-origin aggregate events and 
 
 test("owner dashboard and analytics reads fail closed without the exact authenticated owner", async () => {
   let assetCalls = 0;
-  const DB = analyticsDB([{ day: "2026-09-15", event: "visit", dimension: "all", language: "en", count: 3, scoreSum: 0 }]);
+  const DB = analyticsDB([{ day: "2026-09-15", event: "visit", dimension: "all", language: "en", count: 3 }]);
   const env = {
     DB,
     OWNER_DASHBOARD_EMAIL: "owner@example.test",
@@ -462,7 +462,11 @@ test("owner dashboard and analytics reads fail closed without the exact authenti
   assert.equal(dashboard.headers.get("cache-control"), "no-store");
   const read = await ownerWorker.fetch(new Request(readUrl, { headers: ownerHeaders }), env);
   assert.equal(read.status, 200);
-  assert.equal((await read.json()).rows[0].count, 3);
+  const payload = await read.json();
+  assert.equal(payload.rows[0].count, 3);
+  assert.equal(payload.rows[0].scoreSum, undefined);
+  assert.deepEqual(payload.scores, []);
   assert.equal(assetCalls, 1);
-  assert.equal(DB.calls.filter((call) => call.action === "all").length, 1);
+  assert.equal(DB.calls.filter((call) => call.action === "all").length, 2);
+  assert.match(DB.calls.find((call) => call.sql.includes("SUM(score_sum)")).sql, /HAVING SUM\(count\) >= 5/);
 });
