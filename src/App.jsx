@@ -237,7 +237,7 @@ const POLICY_PAGES = {
       eyebrow: "Transparency for the public testing beta",
       title: "Privacy notice",
       lead: "This working notice describes the current guest-only public testing beta. Account registration, cloud sync and the AI assistant are disabled while qualified Saudi legal and privacy review continues.",
-      effective: "Effective 9 September 2026 · public testing notice under legal review",
+      effective: "Updated 15 September 2026 · public testing notice under legal review",
       warning: "Do not enter names, record numbers, clinical notes or any information about a real patient anywhere in this website.",
       sections: [
         { title: "Responsible project contact", body: "The responsible project publisher and privacy contact for this beta is Abdulkarim alhejaili, reachable at Scenario.hq90@gmail.com. A formal service address and final controller disclosures remain for qualified counsel to confirm before a wider or paid release." },
@@ -285,7 +285,7 @@ const POLICY_PAGES = {
       eyebrow: "الشفافية للنسخة العامة التجريبية",
       title: "إشعار الخصوصية",
       lead: "يصف إشعار العمل هذا النسخة العامة التجريبية الحالية للضيف فقط. تسجيل الحسابات والمزامنة السحابية والمساعد الذكي معطلة أثناء استمرار المراجعة القانونية ومراجعة الخصوصية السعودية المؤهلة.",
-      effective: "يسري من 9 سبتمبر 2026 · إشعار تجربة عامة قيد المراجعة القانونية",
+      effective: "حُدّث في 15 سبتمبر 2026 · إشعار تجربة عامة قيد المراجعة القانونية",
       warning: "لا تُدخل اسماً أو رقم ملف أو ملاحظة سريرية أو أي معلومات تخص مريضاً حقيقياً في أي موضع من هذا الموقع.",
       sections: [
         { title: "جهة اتصال المشروع المسؤولة", body: "الناشر المسؤول وجهة اتصال الخصوصية لهذه النسخة هو Abdulkarim alhejaili، ويمكن التواصل عبر Scenario.hq90@gmail.com. يبقى عنوان الخدمة الرسمي وإفصاحات المتحكم النهائية للتأكيد من مستشار مؤهل قبل إصدار أوسع أو مدفوع." },
