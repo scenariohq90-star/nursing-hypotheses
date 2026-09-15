@@ -15,6 +15,7 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 - Every clinical case is fictional, must prohibit real patient data, and must retain internal mappings to versioned authoritative references.
 - Keep source titles and external links in the central References page. Scenario and question interfaces show rationales without inline source lists so the learning flow stays focused.
 - Do not repeat large educational-disclaimer banners throughout normal learning flows. Keep the product boundary and real-patient-data rules in About, Terms, Privacy, and calculator-specific safety controls, and never use copy that implies bedside decision support.
+- Keep the Privacy notice concise: do not add a standalone "processors, location and technical records" section, while retaining accurate, necessary service and retention disclosures in plain language.
 - The website includes original bilingual practice banks for SNLE and NCLEX-RN; never reproduce secure or official exam items, predict licensure readiness, or imply endorsement by SCFHS or NCSBN.
 - Scenario presentations should offer safe contextual variation while preserving the clinically reviewed best action, rationale, score, and source set.
 - Subscriptions, pricing, checkout, institutional plans, and paid-content entitlements are out of the current product scope. Do not surface membership sales or subscription calls to action unless the user explicitly starts a future billing phase.
