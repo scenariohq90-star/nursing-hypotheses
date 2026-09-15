@@ -3,7 +3,7 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 import worker, { analyticsDimensionAllowed, createWorker, extractAssistantResult } from "../worker/index.js";
 import { scenarios } from "../src/data/scenarios.js";
-import { examDomains } from "../src/data/question-bank.js";
+import { examDomains, questionBank } from "../src/data/question-bank.js";
 
 function assistantEnv(overrides = {}) {
   return {
@@ -407,6 +407,7 @@ test("analytics content dimensions stay aligned with the authored banks", () => 
     assert.equal(analyticsDimensionAllowed("scenario_complete", scenario.id), true, scenario.id);
   }
   for (const domain of examDomains) assert.equal(analyticsDimensionAllowed("focus_gap", domain.id), true, domain.id);
+  for (const question of questionBank) assert.equal(analyticsDimensionAllowed("focus_gap", question.domainId), true, question.id);
   assert.equal(analyticsDimensionAllowed("page", "owner-dashboard"), false);
 });
 
