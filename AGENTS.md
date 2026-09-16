@@ -15,6 +15,7 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 - Every clinical case is fictional, must prohibit real patient data, and must retain internal mappings to versioned authoritative references.
 - Keep source titles and external links in the central References page. Scenario and question interfaces show rationales without inline source lists so the learning flow stays focused.
 - Do not repeat large educational-disclaimer banners throughout normal learning flows. Keep the product boundary and real-patient-data rules in About, Terms, Privacy, and calculator-specific safety controls, and never use copy that implies bedside decision support.
+- Do not show the removed generic "calculation only — not a dose recommendation" banner above medication calculators; retain the input-specific unit, label, and result safeguards without changing named medicine shortcuts.
 - Keep the Privacy notice concise: do not add a standalone "processors, location and technical records" section, while retaining accurate, necessary service and retention disclosures in plain language.
 - The public beta owner dashboard is server-authorized and shows only anonymous daily usage aggregates. It must not collect answer selections, patient data, IP/user-agent, or persistent visitor identifiers; visit-session counts are approximate and begin only after activation.
 - The website includes original bilingual practice banks for SNLE and NCLEX-RN; never reproduce secure or official exam items, predict licensure readiness, or imply endorsement by SCFHS or NCSBN.

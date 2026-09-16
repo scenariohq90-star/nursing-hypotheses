@@ -120,8 +120,6 @@ const pageCopy = {
     eyebrow: "Medication calculations",
     title: "Medication calculators and arithmetic practice",
     lead: "Calculate a liquid dose or an IV infusion rate from values you enter, and keep practising with authored fictional exercises.",
-    boundaryTitle: "Calculation only — not a dose recommendation",
-    boundaryBody: "The tools perform arithmetic only from values and units you enter. Named options never choose a dose or confirm a prepared concentration. The tools do not validate an order, indication, age limits, allergies, contraindications, maximum dose, interval, route, organ function, interactions, device, tubing or local policy. Do not rely on this website during patient care or an emergency.",
     calculatorTab: "Single liquid dose (mg/kg/dose)",
     infusionTab: "IV infusion rate",
     practiceTab: "Fictional exercises",
@@ -248,8 +246,6 @@ const pageCopy = {
     eyebrow: "حسابات الدواء",
     title: "حاسبات الدواء والتدريب الحسابي",
     lead: "احسب جرعة سائلة أو معدل تسريب وريدي من القيم التي تدخلها، واستمر في التدريب على مسائل تعليمية مؤلفة.",
-    boundaryTitle: "عملية حسابية فقط — وليست توصية بجرعة",
-    boundaryBody: "تنفذ الأدوات عملية حسابية فقط من القيم والوحدات التي تدخلها. لا تختار الخيارات المسماة جرعة ولا تؤكد تركيز التحضير. ولا تعتمد الأدوات الأمر أو الاستطباب أو العمر أو الحساسية أو الموانع أو الحد الأقصى أو الفاصل أو الطريق أو وظائف الأعضاء أو التداخلات أو الجهاز أو الأنابيب أو سياسة المنشأة. لا تعتمد على الموقع أثناء رعاية مريض أو في الطوارئ.",
     calculatorTab: "جرعة سائلة مفردة (mg/kg/dose)",
     infusionTab: "معدل التسريب الوريدي",
     practiceTab: "تمارين خيالية",
@@ -982,11 +978,6 @@ export function MedicationMathPage({ lang, initialMode = "infusion" }) {
       <h1>{text.title}</h1>
       <p className="section-lead">{text.lead}</p>
     </header>
-
-    <section className="dose-boundary" role="note">
-      <ShieldWarning size={30} weight="fill" aria-hidden="true" />
-      <div><h2>{text.boundaryTitle}</h2><p>{text.boundaryBody}</p></div>
-    </section>
 
     <div className="dose-mode-tabs" role="tablist" aria-label={text.title}>
       <button id="dose-calculator-tab" type="button" role="tab" aria-selected={activeMode === "calculator"} aria-controls="dose-calculator-panel" tabIndex={activeMode === "calculator" ? 0 : -1} onClick={() => selectDoseMode("calculator")} onKeyDown={handleModeKeyDown}><Pill size={19} aria-hidden="true" /> {text.calculatorTab}</button>

@@ -54,33 +54,12 @@
   gap: 7px;
 }
 
-.dose-boundary {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 15px;
-  margin-block: 0 28px;
-  padding: 20px 22px;
-  color: #6d4300;
-  background: #fff8e8;
-  border: 1px solid #e1ad42;
-  border-inline-start: 5px solid #a96500;
-  border-radius: 8px;
-}
-
-.dose-boundary > svg {
-  margin-block-start: 2px;
-  color: #a96500;
-}
-
-.dose-boundary h2,
 .dose-safety-card h2,
 .dose-result-card h2 {
   margin: 0;
   font-size: 18px;
 }
 
-.dose-boundary p,
 .dose-safety-card p {
   margin: 7px 0 0;
   font-size: 13px;
@@ -929,7 +908,6 @@ html[dir="rtl"] .dose-practice-page .directional-icon {
     width: 100%;
   }
 
-  .dose-boundary,
   .dose-calculator-card,
   .dose-safety-card,
   .dose-result-card {

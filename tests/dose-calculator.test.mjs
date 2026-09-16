@@ -111,7 +111,7 @@ test("every authored exercise is generic and mathematically valid", () => {
   }
 });
 
-test("the public page keeps named medicine presets and states the calculation boundary bilingually", async () => {
+test("the public page keeps named medicine presets without the removed warning banner", async () => {
   const [source, appSource] = await Promise.all([
     readFile(new URL("../src/components/MedicationMathPage.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/App.jsx", import.meta.url), "utf8"),
@@ -120,8 +120,9 @@ test("the public page keeps named medicine presets and states the calculation bo
   assert.equal(namedDosePresets.length, 3);
   assert.match(source, /namedDosePresets/);
   assert.match(source, /medicineId: "custom"/);
-  assert.match(source, /Calculation only — not a dose recommendation/i);
-  assert.match(source, /عملية حسابية فقط — وليست توصية بجرعة/);
+  assert.doesNotMatch(source, /Calculation only — not a dose recommendation/i);
+  assert.doesNotMatch(source, /عملية حسابية فقط — وليست توصية بجرعة/);
+  assert.doesNotMatch(source, /className="dose-boundary"/);
   assert.match(source, /current product label exactly matches/i);
   assert.match(source, /ملصق المنتج الحالي يطابق تماماً/);
   assert.match(source, /readOnly=\{isNamedPreset\}/);
