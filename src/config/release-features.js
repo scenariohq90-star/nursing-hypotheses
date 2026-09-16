@@ -1,6 +1,7 @@
 export function createReleaseFeatures(environment = {}) {
   return Object.freeze({
     learningAccounts: String(environment.VITE_LEARNING_ACCOUNTS_ENABLED ?? "").trim() === "true",
+    emailPasswordAuth: String(environment.VITE_EMAIL_PASSWORD_AUTH_ENABLED ?? "").trim() === "true",
     nursingAssistant: String(environment.VITE_NURSING_ASSISTANT_ENABLED ?? "").trim() === "true",
   });
 }

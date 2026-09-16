@@ -4,6 +4,7 @@ import {
   CloudCheck,
   DownloadSimple,
   EnvelopeSimple,
+  GoogleLogo,
   Key,
   LockKey,
   SignIn,
@@ -13,12 +14,13 @@ import {
 
 const SUPPORT_EMAIL = "Scenario.hq90@gmail.com";
 
-export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearningData }) {
+export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearningData, emailPasswordEnabled = false }) {
   const [mode, setMode] = useState("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [privacyRead, setPrivacyRead] = useState(false);
   const [adultConfirmed, setAdultConfirmed] = useState(false);
+  const [importGuestProgress, setImportGuestProgress] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -26,6 +28,7 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     setPassword("");
     setPrivacyRead(false);
     setAdultConfirmed(false);
+    setImportGuestProgress(false);
     setNotice("");
     setMode("sign-in");
   }, [auth.user?.id]);
@@ -41,6 +44,10 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     password: "كلمة المرور",
     newPassword: "كلمة المرور الجديدة",
     submitSignIn: "دخول ومزامنة التقدم",
+    continueWithGoogle: "المتابعة بحساب Google",
+    googleConsentHint: "للدخول عبر Google أو إنشاء حساب جديد، وافق أولاً على البنود التالية.",
+    importGuestProgress: "ادمج تقدم الضيف الموجود على هذا الجهاز مع الحساب بعد الدخول.",
+    orUseEmail: "أو استخدم البريد الإلكتروني",
     submitCreate: "إنشاء حساب تعلم",
     submitReset: "إرسال رابط الاستعادة",
     submitNewPassword: "حفظ كلمة المرور الجديدة",
@@ -63,7 +70,7 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     terms: "شروط التعلم",
     export: "تنزيل بيانات تعلمي",
     deletion: "طلب حذف الحساب",
-    deletionHint: "يرسل الطلب إلى بريد المشروع للتحقق من ملكية الحساب قبل الحذف.",
+    deletionHint: "يفتح هذا الزر رسالة بريد موجهة للمشروع ولا يرسل الطلب تلقائياً؛ يلزم إرسال الرسالة للتحقق من ملكية الحساب قبل الحذف.",
     recoveryTitle: "اختر كلمة مرور جديدة",
   } : {
     eyebrow: "Learning account",
@@ -76,6 +83,10 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     password: "Password",
     newPassword: "New password",
     submitSignIn: "Sign in and sync progress",
+    continueWithGoogle: "Continue with Google",
+    googleConsentHint: "To use Google for sign-in or account creation, first accept the following terms.",
+    importGuestProgress: "Merge the guest progress on this device into the account after sign-in.",
+    orUseEmail: "or use email",
     submitCreate: "Create learning account",
     submitReset: "Send reset link",
     submitNewPassword: "Save new password",
@@ -98,7 +109,7 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     terms: "Learning terms",
     export: "Download my learning data",
     deletion: "Request account deletion",
-    deletionHint: "The request goes to the project email so account ownership can be verified before deletion.",
+    deletionHint: "This button opens an email to the project and does not send it automatically; send the message so account ownership can be verified before deletion.",
     recoveryTitle: "Choose a new password",
   };
 
@@ -112,8 +123,8 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     setNotice("");
     try {
       let result;
-      if (mode === "sign-in") result = await auth.signIn({ email: email.trim(), password });
-      else if (mode === "create") result = await auth.signUp({ email: email.trim(), password });
+      if (mode === "sign-in") result = await auth.signIn({ email: email.trim(), password, claimLocalHistory: importGuestProgress });
+      else if (mode === "create") result = await auth.signUp({ email: email.trim(), password, claimLocalHistory: importGuestProgress });
       else result = await auth.requestPasswordReset({ email: email.trim() });
       setPassword("");
       if (!result.ok) setNotice(text.failure);
@@ -122,6 +133,20 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
       if (result.ok && result.code !== "signed-in") setEmail("");
     } catch {
       setPassword("");
+      setNotice(text.failure);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function continueWithGoogle() {
+    if (busy || !privacyRead || !adultConfirmed) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const result = await auth.signInWithGoogle({ claimLocalHistory: importGuestProgress });
+      if (!result.ok) setNotice(text.failure);
+    } catch {
       setNotice(text.failure);
     } finally {
       setBusy(false);
@@ -177,5 +202,33 @@ export function AccountPanel({ auth, lang, syncStatus, onSignOut, onExportLearni
     || !email.trim()
     || (mode !== "reset" && password.length < 8)
     || (mode === "create" && (!privacyRead || !adultConfirmed));
-  return <section className="account-panel signed-out-panel"><div className="account-intro"><CloudCheck size={39} weight="duotone" /><div><p className="eyebrow">{text.eyebrow}</p><h2>{text.title}</h2><p>{text.body}</p></div></div><div className="account-mode" role="group" aria-label={text.eyebrow}><button type="button" aria-pressed={mode === "sign-in"} className={mode === "sign-in" ? "active" : ""} onClick={() => { setMode("sign-in"); setNotice(""); }}>{text.signIn}</button><button type="button" aria-pressed={mode === "create"} className={mode === "create" ? "active" : ""} onClick={() => { setMode("create"); setNotice(""); }}>{text.create}</button></div><form className="account-form" onSubmit={submit}><label><span>{text.email}</span><input type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>{mode !== "reset" ? <label><span>{text.password}</span><input type="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} minLength="8" value={password} onChange={(event) => setPassword(event.target.value)} required /><small>{text.passwordHint}</small></label> : null}{mode === "create" ? <div className="account-consent"><label><input type="checkbox" checked={privacyRead} onChange={(event) => setPrivacyRead(event.target.checked)} /><span>{text.privacyConsent} <a href="#/privacy">{text.privacy}</a> · <a href="#/terms">{text.terms}</a></span></label><label><input type="checkbox" checked={adultConfirmed} onChange={(event) => setAdultConfirmed(event.target.checked)} /><span>{text.adultConsent}</span></label></div> : null}<button type="submit" className="button button-primary" disabled={submitDisabled}><SignIn size={18} />{mode === "sign-in" ? text.submitSignIn : mode === "create" ? text.submitCreate : text.submitReset}</button>{mode === "sign-in" ? <button type="button" className="account-help" onClick={() => { setMode("reset"); setPassword(""); setNotice(""); }}>{text.forgot}</button> : mode === "reset" ? <button type="button" className="account-help" onClick={() => { setMode("sign-in"); setNotice(""); }}>{text.signIn}</button> : null}{notice ? <p className="account-notice" role="status">{notice}</p> : null}</form></section>;
+  return (
+    <section className="account-panel signed-out-panel">
+      <div className="account-intro">
+        <CloudCheck size={39} weight="duotone" />
+        <div><p className="eyebrow">{text.eyebrow}</p><h2>{text.title}</h2><p>{text.body}</p></div>
+      </div>
+      <div className="account-oauth">
+        <p>{text.googleConsentHint}</p>
+        <div className="account-consent">
+          <label><input type="checkbox" checked={privacyRead} onChange={(event) => setPrivacyRead(event.target.checked)} /><span>{text.privacyConsent} <a href="#/privacy">{text.privacy}</a> · <a href="#/terms">{text.terms}</a></span></label>
+          <label><input type="checkbox" checked={adultConfirmed} onChange={(event) => setAdultConfirmed(event.target.checked)} /><span>{text.adultConsent}</span></label>
+          <label><input type="checkbox" checked={importGuestProgress} onChange={(event) => setImportGuestProgress(event.target.checked)} /><span>{text.importGuestProgress}</span></label>
+        </div>
+        <button type="button" className="button button-secondary account-google" onClick={continueWithGoogle} disabled={busy || !privacyRead || !adultConfirmed}><GoogleLogo size={19} weight="bold" />{text.continueWithGoogle}</button>
+        {emailPasswordEnabled ? <div className="account-divider"><span>{text.orUseEmail}</span></div> : null}
+      </div>
+      {emailPasswordEnabled ? <div className="account-mode" role="group" aria-label={text.eyebrow}>
+        <button type="button" aria-pressed={mode === "sign-in"} className={mode === "sign-in" ? "active" : ""} onClick={() => { setMode("sign-in"); setNotice(""); }}>{text.signIn}</button>
+        <button type="button" aria-pressed={mode === "create"} className={mode === "create" ? "active" : ""} onClick={() => { setMode("create"); setNotice(""); }}>{text.create}</button>
+      </div> : null}
+      {emailPasswordEnabled ? <form className="account-form" onSubmit={submit}>
+        <label><span>{text.email}</span><input type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+        {mode !== "reset" ? <label><span>{text.password}</span><input type="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} minLength="8" value={password} onChange={(event) => setPassword(event.target.value)} required /><small>{text.passwordHint}</small></label> : null}
+        <button type="submit" className="button button-primary" disabled={submitDisabled}><SignIn size={18} />{mode === "sign-in" ? text.submitSignIn : mode === "create" ? text.submitCreate : text.submitReset}</button>
+        {mode === "sign-in" ? <button type="button" className="account-help" onClick={() => { setMode("reset"); setPassword(""); setNotice(""); }}>{text.forgot}</button> : mode === "reset" ? <button type="button" className="account-help" onClick={() => { setMode("sign-in"); setNotice(""); }}>{text.signIn}</button> : null}
+        {notice ? <p className="account-notice" role="status">{notice}</p> : null}
+      </form> : notice ? <p className="account-notice" role="status">{notice}</p> : null}
+    </section>
+  );
 }

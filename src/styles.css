@@ -2257,6 +2257,46 @@ html[dir="rtl"] .decision-actions {
   border-radius: 8px;
 }
 
+.account-oauth {
+  display: grid;
+  grid-column: 2;
+  gap: 12px;
+}
+
+.account-oauth > p {
+  margin: 0;
+}
+
+.account-google {
+  width: 100%;
+  justify-content: center;
+  color: var(--navy-900);
+  background: #fff;
+}
+
+.account-google:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.account-divider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.account-divider::before,
+.account-divider::after {
+  height: 1px;
+  background: var(--line);
+  content: "";
+}
+
 .account-mode button {
   min-height: 38px;
   padding-inline: 12px;
@@ -2333,9 +2373,12 @@ html[dir="rtl"] .decision-actions {
 }
 
 .account-consent label {
+  display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: flex-start;
   gap: 9px;
+  color: var(--navy-800);
+  font-size: 10px;
   font-weight: 500;
   line-height: 1.55;
 }
@@ -4634,12 +4677,22 @@ html[dir="rtl"] .decision-actions {
 
 @media (max-width: 820px) {
   .signed-out-panel {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
+  .account-intro,
+  .account-intro > div,
   .account-mode,
-  .account-form {
+  .account-oauth,
+  .account-form,
+  .account-consent,
+  .account-consent span {
     grid-column: 1;
+    min-width: 0;
+  }
+
+  .account-consent span {
+    overflow-wrap: anywhere;
   }
 
   .signed-in-panel,

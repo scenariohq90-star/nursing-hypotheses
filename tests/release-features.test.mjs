@@ -6,20 +6,25 @@ import { createReleaseFeatures } from "../src/config/release-features.js";
 test("public release features fail closed unless explicitly enabled", () => {
   assert.deepEqual(createReleaseFeatures(), {
     learningAccounts: false,
+    emailPasswordAuth: false,
     nursingAssistant: false,
   });
   assert.deepEqual(createReleaseFeatures({
     VITE_LEARNING_ACCOUNTS_ENABLED: "true",
+    VITE_EMAIL_PASSWORD_AUTH_ENABLED: "true",
     VITE_NURSING_ASSISTANT_ENABLED: "true",
   }), {
     learningAccounts: true,
+    emailPasswordAuth: true,
     nursingAssistant: true,
   });
   assert.deepEqual(createReleaseFeatures({
     VITE_LEARNING_ACCOUNTS_ENABLED: "TRUE",
+    VITE_EMAIL_PASSWORD_AUTH_ENABLED: "yes",
     VITE_NURSING_ASSISTANT_ENABLED: "1",
   }), {
     learningAccounts: false,
+    emailPasswordAuth: false,
     nursingAssistant: false,
   });
 });

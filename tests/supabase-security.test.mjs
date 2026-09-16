@@ -70,3 +70,23 @@ test("history clearing preserves active sessions and gates concurrent completion
   assert.match(app, /historyClearPending=\{historyClearPending\}/);
   assert.match(app, /\[historyClearPending, isExpired, session\?\.id\]/);
 });
+
+test("Google OAuth requires explicit consent and binds an optional guest-history claim to the returned user", async () => {
+  const [auth, accountPanel, app] = await Promise.all([
+    readFile(authUrl, "utf8"),
+    readFile(accountPanelUrl, "utf8"),
+    readFile(appUrl, "utf8"),
+  ]);
+
+  assert.match(auth, /signInWithOAuth\(\{\s*provider:\s*["']google["']/s);
+  assert.match(auth, /redirectTo:\s*appRedirectUrl\(["']google["']\)/);
+  assert.match(auth, /OAUTH_INTENT_MAX_AGE_MS\s*=\s*15\s*\*\s*60\s*\*\s*1000/);
+  assert.match(auth, /elapsed >= 0/);
+  assert.match(auth, /get\(["']auth["']\) === ["']google["']/);
+  assert.match(auth, /intent\.claimLocalHistory[\s\S]*?userId,[\s\S]*?createdAt:/);
+  assert.match(auth, /learning_terms_version:\s*consent\.learningTermsVersion/);
+  assert.match(accountPanel, /!privacyRead\s*\|\|\s*!adultConfirmed/);
+  assert.match(accountPanel, /claimLocalHistory:\s*importGuestProgress/);
+  assert.match(accountPanel, /emailPasswordEnabled\s*=\s*false/);
+  assert.match(app, /\["confirmed",\s*"recovery",\s*"google"\]\.includes\(authMarker\)/);
+});
