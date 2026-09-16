@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ChartLineUp,
+  ChatCircleDots,
   ClipboardText,
   FirstAidKit,
   Gauge,
@@ -191,6 +192,28 @@ export function HomeExperience({
           <ArrowIcon size={19} aria-hidden="true" />
         </button>
       </nav>
+      <section className="home-experience__assistant" aria-labelledby="home-assistant-title">
+        <span className="home-experience__assistant-icon" aria-hidden="true">
+          <ChatCircleDots size={26} weight="duotone" />
+        </span>
+        <div className="home-experience__assistant-copy">
+          <div className="home-experience__assistant-heading">
+            <h2 id="home-assistant-title">
+              {getCopy(t, "assistantComingSoonTitle", isArabic ? "المساعد الذكي" : "Smart nursing assistant")}
+            </h2>
+            <span className="home-experience__assistant-badge">
+              {getCopy(t, "assistantComingSoonLabel", isArabic ? "قريبًا" : "Coming soon")}
+            </span>
+          </div>
+          <p>{getCopy(
+            t,
+            "assistantComingSoonBody",
+            isArabic
+              ? "اسأل عن موضوع تمريضي عام. سيبحث المساعد عن مصادر حديثة ويشرح الإجابة بالعربية والإنجليزية، مع روابط تقدر ترجع لها."
+              : "Ask a general nursing question. The assistant will search current sources and explain the answer in English and Arabic, with links you can review.",
+          )}</p>
+        </div>
+      </section>
     </div>
   );
 }

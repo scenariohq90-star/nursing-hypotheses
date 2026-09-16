@@ -329,6 +329,64 @@
   white-space: nowrap;
 }
 
+.home-experience__assistant {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.9rem;
+  margin-block-start: 0.85rem;
+  padding: 1.15rem;
+  border: 1px solid #c7e2e5;
+  border-radius: 1.15rem;
+  background: linear-gradient(135deg, #eef9fa, #ffffff 72%);
+  color: var(--home-ink);
+}
+
+.home-experience__assistant-icon {
+  display: grid;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: #dff3f4;
+  color: var(--home-teal-deep);
+}
+
+.home-experience__assistant-copy {
+  min-inline-size: 0;
+}
+
+.home-experience__assistant-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.8rem;
+}
+
+.home-experience__assistant h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.home-experience__assistant-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #d7f0f1;
+  color: #075e66;
+  font-size: 0.875rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.home-experience__assistant p {
+  max-inline-size: 62ch;
+  margin: 0.35rem 0 0;
+  color: #445e6b;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
 @media (max-width: 42rem) {
   .home-experience {
     padding: 0;
@@ -397,6 +455,11 @@
   .home-experience__shortcuts button {
     min-block-size: 4.65rem;
     box-shadow: 0 0.35rem 1rem rgba(4, 28, 55, 0.06);
+  }
+
+  .home-experience__assistant {
+    margin: 0 0.85rem 1.1rem;
+    padding: 1rem;
   }
 }
 

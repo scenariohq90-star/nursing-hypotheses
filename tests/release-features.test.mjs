@@ -37,3 +37,19 @@ test("the public beta gates account and assistant UI behind release features", a
   assert.match(authSource, /if \(!authEnabled\)/);
   assert.match(supabaseSource, /releaseFeatures\.learningAccounts/);
 });
+
+test("the home page describes the assistant as coming soon without an active input", async () => {
+  const [appSource, homeSource] = await Promise.all([
+    readFile(new URL("../src/App.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/HomeExperience.jsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(appSource, /assistantComingSoonLabel: "Coming soon"/);
+  assert.match(appSource, /assistantComingSoonLabel: "قريبًا"/);
+  assert.match(appSource, /assistantComingSoonBody: "Ask a general nursing question/);
+  assert.match(appSource, /assistantComingSoonBody: "اسأل عن موضوع تمريضي عام/);
+  const card = homeSource.split('<section className="home-experience__assistant"')[1]?.split("</section>")[0];
+  assert.ok(card, "the static preview should be visible on the home page");
+  assert.match(card, /aria-labelledby="home-assistant-title"/);
+  assert.doesNotMatch(card, /<button|<a\s|<form|onClick|fetch\(/);
+  assert.match(appSource, /releaseFeatures\.nursingAssistant \? <Suspense/);
+});
